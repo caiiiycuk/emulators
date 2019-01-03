@@ -1,0 +1,6 @@
+.git
+cmake-build-debug
+cmake-build-release
+node_modules
+build
+dist
