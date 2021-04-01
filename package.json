@@ -7,7 +7,7 @@
     "browserslist": "> 0.25%, not dead",
     "repository": {
         "type": "git",
-        "url": "git+https://github.com/caiiiycuk/js-dos.git"
+        "url": "git+https://github.com/js-dos/emulators.git"
     },
     "keywords": [
         "js-dos",
@@ -21,7 +21,7 @@
     "author": "Alexander Guryanov (aka caiiiycuk)",
     "license": "GPL-2.0",
     "bugs": {
-        "url": "https://github.com/caiiiycuk/js-dos/issues"
+        "url": "https://github.com/js-dos/emulators/issues"
     },
     "homepage": "https://js-dos.com",
     "devDependencies": {
