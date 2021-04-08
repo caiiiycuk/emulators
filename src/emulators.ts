@@ -19,11 +19,14 @@ export interface Emulators {
 
     dosBundle: () => Promise<DosBundle>;
 
-    // * dosDirect - create DOS Direct emulator backend
-    dosDirect: (bundle: Uint8Array | Uint8Array[]) => Promise<CommandInterface>;
+    // * dosboxNode - createDOSBOX Node emulator backend
+    dosboxNode: (bundle: Uint8Array | Uint8Array[]) => Promise<CommandInterface>;
 
-    // * dosWorker - create DOS Worker emulator backend
-    dosWorker: (bundle: Uint8Array | Uint8Array[]) => Promise<CommandInterface>;
+    // * dosboxDirect - create DOSBOX Direct emulator backend
+    dosboxDirect: (bundle: Uint8Array | Uint8Array[]) => Promise<CommandInterface>;
+
+    // * dosboxWorker - create DOSBOX Worker emulator backend
+    dosboxWorker: (bundle: Uint8Array | Uint8Array[]) => Promise<CommandInterface>;
 
     // * janus - create janus backend for given url
     janus: (restUrl: string) => Promise<CommandInterface>;

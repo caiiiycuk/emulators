@@ -3,8 +3,6 @@ import { TransportLayer, MessageHandler, ClientMessage, ServerMessage } from "..
 import { MessagesQueue } from "../../../protocol/messages-queue";
 
 export async function dosDirect(wasmModule: WasmModule, sessionId: string): Promise<TransportLayer> {
-    const isBrowser = !(typeof process === "object" && typeof process.versions === "object" && typeof process.versions.node === "string");
-
     const messagesQueue = new MessagesQueue();
     let handler: MessageHandler = messagesQueue.handler.bind(messagesQueue);
     let startupErrorLog: string = "";
@@ -40,13 +38,13 @@ export async function dosDirect(wasmModule: WasmModule, sessionId: string): Prom
             messagesQueue.sendTo(handler);
         },
         exit: () => {
-            if (isBrowser) {
+            if (typeof window !== "undefined") {
                 window.removeEventListener("message", sleepHandler);
             }
         },
     };
 
-    if (isBrowser) {
+    if (typeof window !== "undefined") {
         window.addEventListener("message", sleepHandler, { passive: true });
     }
 

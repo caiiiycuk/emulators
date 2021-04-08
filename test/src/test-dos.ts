@@ -14,8 +14,8 @@ import { createDosConfig } from "../../src/dos/bundle/dos-conf";
 type CIFactory = (bundle: Uint8Array | Uint8Array[]) => Promise<CommandInterface>;
 
 export function testDos() {
-    testServer((bundle) => emulatorsImpl.dosDirect(bundle), "dosDirect");
-    testServer((bundle) => emulatorsImpl.dosWorker(bundle), "dosWorker");
+    testServer((bundle) => emulatorsImpl.dosboxDirect(bundle), "dosboxDirect");
+    testServer((bundle) => emulatorsImpl.dosboxWorker(bundle), "dosboxWorker");
 }
 
 function testServer(factory: CIFactory, name: string) {

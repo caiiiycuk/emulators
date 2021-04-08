@@ -1,10 +1,13 @@
 import { WasmModule } from "../../../impl/modules";
 import { TransportLayer, MessageHandler, ClientMessage } from "../../../protocol/protocol";
+import { MessagesQueue } from "../../../protocol/messages-queue";
 
 export async function dosWorker(workerUrl: string,
                                  wasmModule: WasmModule,
                                  sessionId: string): Promise<TransportLayer> {
-    let handler: MessageHandler = () => { /**/ };
+    const messagesQueue = new MessagesQueue();
+    let handler: MessageHandler = messagesQueue.handler.bind(messagesQueue);
+
     const worker = new Worker(workerUrl);
     worker.onerror = (e) => {
         handler("ws-err", { type: e.type, filename: e.filename, message: e.message });
@@ -25,6 +28,7 @@ export async function dosWorker(workerUrl: string,
         },
         initMessageHandler: (newHandler: MessageHandler) => {
             handler = newHandler;
+            messagesQueue.sendTo(handler);
         },
         exit: () => {
             worker.terminate();

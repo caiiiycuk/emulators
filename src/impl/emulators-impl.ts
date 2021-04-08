@@ -44,14 +44,18 @@ class EmulatorsImpl implements Emulators {
         return new DosBundle(libzipWasm, cache);
     }
 
-    async dosDirect(bundle: Uint8Array | Uint8Array[]): Promise<CommandInterface> {
+    async dosboxNode(bundle: Uint8Array | Uint8Array[]): Promise<CommandInterface> {
+        return this.dosboxDirect(bundle);
+    }
+
+    async dosboxDirect(bundle: Uint8Array | Uint8Array[]): Promise<CommandInterface> {
         const modules = await this.wasmModules();
         const dosWorkerWasm = await modules.dosWorker();
         const transportLayer = await dosDirect(dosWorkerWasm, "session-" + Date.now());
         return this.backend(bundle, transportLayer);
     }
 
-    async dosWorker(bundle: Uint8Array | Uint8Array[]): Promise<CommandInterface> {
+    async dosboxWorker(bundle: Uint8Array | Uint8Array[]): Promise<CommandInterface> {
         const modules = await this.wasmModules();
         const dosWorkerWasm = await modules.dosWorker();
         const transportLayer = await dosWorker(this.pathPrefix + "wworker.js", dosWorkerWasm, "session-" + Date.now());
@@ -93,7 +97,16 @@ class EmulatorsImpl implements Emulators {
         return this.wasmModulesPromise;
     }
 
+    async dosDirect(bundle: Uint8Array | Uint8Array[]): Promise<CommandInterface> {
+        return this.dosboxDirect(bundle);
+    }
+
+    async dosWorker(bundle: Uint8Array | Uint8Array[]): Promise<CommandInterface> {
+        return this.dosboxWorker(bundle);
+    }
+
 }
 
 const emulators = new EmulatorsImpl();
+
 export default emulators;
