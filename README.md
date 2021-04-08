@@ -16,7 +16,7 @@ Emulators for [js-dos 7.xx](https://js-dos.com/v7/build/)
     docker run -p 8080:8080 -ti emulators
 ```
 
-Open `http://localhost:8080` in browser, all test should pass
+Open `http://localhost:8080/test/test.html` in browser, all test should pass
 
 
 ### Development
