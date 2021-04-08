@@ -23,7 +23,7 @@ export async function dosWorker(workerUrl: string,
         sendMessageToServer: (name: ClientMessage, props?: {[key: string]: any}) => {
             worker.postMessage({ name, props });
         },
-        setMessageHandler: (newHandler: MessageHandler) => {
+        initMessageHandler: (newHandler: MessageHandler) => {
             handler = newHandler;
         },
         exit: () => {

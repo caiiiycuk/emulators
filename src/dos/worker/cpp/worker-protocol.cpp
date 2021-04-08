@@ -15,7 +15,9 @@ EM_JS(void, ws_init_runtime, (const char* sessionId), {
     function sendMessage(name, props) {
       props = props || {};
       props.sessionId = Module.sessionId;
-      if (worker) {
+      if (Module.postMessage) {
+        Module.postMessage(name, props);
+      } else if (worker) {
         postMessage({ name, props });
       } else {
         window.postMessage({ name, props }, "*");
@@ -94,7 +96,10 @@ EM_JS(void, ws_init_runtime, (const char* sessionId), {
       }
     };
 
-    if (worker) {
+    if (Module.postMessage) {
+      Module.messageHandler = messageHandler;
+      Module.cleanup = function() { /**/ };
+    } else if (worker) {
       onmessage = messageHandler;
       Module.cleanup = function() { /**/ };
     } else {

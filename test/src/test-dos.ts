@@ -79,6 +79,7 @@ function testServer(factory: CIFactory, name: string) {
         const ci = await factory(new Uint8Array(buffer as ArrayBuffer));
         assert.ok(ci);
         cachedBundle = await ci.persist();
+        assert.ok(cachedBundle, "cachedBundle is undefined");
         await compareAndExit("persistent-mount.png", ci);
     });
 
