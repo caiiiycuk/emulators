@@ -8,12 +8,18 @@ int frameHeight = 0;
 int frameWidth = 0;
 
 // clang-format off
-EM_JS(void, ws_init_runtime, (), {
+EM_JS(void, ws_init_runtime, (const char* sessionId), {
+    var worker = typeof importScripts === "function";
+    Module.sessionId = UTF8ToString(sessionId);
+
     function sendMessage(name, props) {
-      postMessage({
-          name,
-          props
-        });
+      props = props || {};
+      props.sessionId = Module.sessionId;
+      if (worker) {
+        postMessage({ name, props });
+      } else {
+        window.postMessage({ name, props }, "*");
+      }
     };
     Module.sendMessage = sendMessage;
     Module.ping = function(msg) {
@@ -30,9 +36,15 @@ EM_JS(void, ws_init_runtime, (), {
     Module.print = Module.log;
     Module.printErr = Module.err;
 
-    onmessage = function(e) {
+    function messageHandler(e) {
       var data = e.data;
-      if (data.type === "sync_sleep_message") {
+
+      if (data.name === undefined || data.name.length < 3 ||
+          data.name[0] !== "w" || data.name[1] !== "c" || data.name[2] !== "-") {
+        return;
+      }
+
+      if (data.props.sessionId !== Module.sessionId) {
         return;
       }
 
@@ -73,11 +85,24 @@ EM_JS(void, ws_init_runtime, (), {
         case "wc-mouse-button": {
           Module._mouseButton(data.props.button, data.props.pressed, data.props.timeMs);
         } break;
+        case "wc-sync-sleep": {
+          // ignore
+        } break;
         default: {
-          console.log("ws " + JSON.stringify(data));
+          console.log("Unknown client message (wc): " + JSON.stringify(data));
         } break;
       }
     };
+
+    if (worker) {
+      onmessage = messageHandler;
+      Module.cleanup = function() { /**/ };
+    } else {
+      window.addEventListener("message", messageHandler, { passive: true });
+      Module.cleanup = function () {
+        window.removeEventListener("message", messageHandler);
+      }
+    }
 
     sendMessage("ws-ready");
   });
@@ -128,6 +153,7 @@ EM_JS(void, emsc_exit_runtime, (), {
       return;
     }
     Module.exit();
+    Module.cleanup();
   });
 
 EM_JS(void, emsc_extract_bundle_to_fs, (), {
@@ -267,7 +293,7 @@ extern "C" char* EMSCRIPTEN_KEEPALIVE getConfigContent() {
 }
 
 int main(int argc, char **argv) {
-  ws_init_runtime();
+  ws_init_runtime(argc > 1 ? argv[1] : "id-null");
   emscripten_exit_with_live_runtime();
   return 0;
 }

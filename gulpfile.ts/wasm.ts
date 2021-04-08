@@ -24,7 +24,6 @@ function clean() {
 async function makeWasm() {
     return await make(".", "build/wasm",
                       "wlibzip",
-                      "wdirect",
                       "wworker");
 }
 

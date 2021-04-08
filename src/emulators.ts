@@ -4,6 +4,7 @@ import emulatorsImpl from "./impl/emulators-impl";
 import { Cache } from "./cache";
 import { Keys } from "./keys";
 import { DosConfig } from "./dos/bundle/dos-conf";
+import { TransportLayer } from "./protocol/protocol";
 
 export interface Emulators {
     // * pathPrefix - by default emulators will load wasm modules relatively from current path,
@@ -24,7 +25,11 @@ export interface Emulators {
     // * dosWorker - create DOS Worker emulator backend
     dosWorker: (bundle: Uint8Array | Uint8Array[]) => Promise<CommandInterface>;
 
+    // * janus - create janus backend for given url
     janus: (restUrl: string) => Promise<CommandInterface>;
+
+    // * backend - create abstract emulation backend by given TransportLayer
+    backend: (bundle: Uint8Array | Uint8Array[], transportLayer: TransportLayer) => Promise<CommandInterface>;
 }
 
 export interface CommandInterface {

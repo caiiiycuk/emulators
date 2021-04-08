@@ -15,6 +15,7 @@ function clean() {
 
 function copyAssetsTest() {
     return src(["test/*.html", "test/*.png", "test/*.zip", "test/*.jsdos",
+                "test/dhry2-node.js",
                 "test/mocha.css", "test/mocha.js", "test/chai.js",
                 "test/janus.js", "test/adapter-latest.js"])
         .pipe(dest("dist/test"));

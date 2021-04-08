@@ -39,7 +39,7 @@ else()
 #	add_definitions(-DC_DEBUG=1 -DC_HEAVY_DEBUG=1)
 endif()
 
-include_directories("${CMAKE_CURRENT_LIST_DIR}/src/include")
+include_directories("${CMAKE_CURRENT_LIST_DIR}/src/protocol")
 
 include("${CMAKE_CURRENT_LIST_DIR}/native/libzip/libzip.cmake")
 include("${CMAKE_CURRENT_LIST_DIR}/native/dos/jsdos.cmake")

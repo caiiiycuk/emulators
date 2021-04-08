@@ -5,9 +5,11 @@ import { Cache, CacheDb } from "../cache";
 import { IWasmModules, WasmModulesImpl } from "./modules";
 
 import DosBundle from "../dos/bundle/dos-bundle";
-import DosDirect from "../dos/direct/ts/direct";
-import DosWorker from "../dos/worker/ts/worker";
+import { dosDirect } from "../dos/direct/ts/direct";
+import { dosWorker } from "../dos/worker/ts/worker";
 import Janus from "../janus/janus-impl";
+
+import { TransportLayer, CommandInterfaceOverTransportLayer } from "../protocol/protocol";
 
 class EmulatorsImpl implements Emulators {
     pathPrefix = "";
@@ -44,20 +46,36 @@ class EmulatorsImpl implements Emulators {
 
     async dosDirect(bundle: Uint8Array | Uint8Array[]): Promise<CommandInterface> {
         const modules = await this.wasmModules();
-        const dosDirectWasm = await modules.dosDirect();
-        return DosDirect(dosDirectWasm,
-                         Array.isArray(bundle) ? bundle : [bundle]);
+        const dosWorkerWasm = await modules.dosWorker();
+        const transportLayer = await dosDirect(dosWorkerWasm, "session-" + Date.now());
+        return this.backend(bundle, transportLayer);
     }
 
     async dosWorker(bundle: Uint8Array | Uint8Array[]): Promise<CommandInterface> {
         const modules = await this.wasmModules();
         const dosWorkerWasm = await modules.dosWorker();
-        return DosWorker(this.pathPrefix + "wworker.js", dosWorkerWasm,
-                         Array.isArray(bundle) ? bundle : [bundle]);
+        const transportLayer = await dosWorker(this.pathPrefix + "wworker.js", dosWorkerWasm, "session-" + Date.now());
+        return this.backend(bundle, transportLayer);
     }
 
     async janus(restUrl: string): Promise<CommandInterface> {
         return Janus(restUrl);
+    }
+
+    async backend(bundle: Uint8Array | Uint8Array[], transportLayer: TransportLayer): Promise<CommandInterface> {
+        return new Promise<CommandInterface>((resolve, reject) => {
+            const ci = new CommandInterfaceOverTransportLayer(
+                Array.isArray(bundle) ? bundle : [bundle],
+                transportLayer,
+                (err) => {
+                    if (err !== null) {
+                        reject(err);
+                    } else {
+                        resolve(ci);
+                    }
+                }
+            );
+        })
     }
 
     wasmModules(): Promise<IWasmModules> {

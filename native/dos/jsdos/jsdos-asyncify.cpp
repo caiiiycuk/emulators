@@ -30,7 +30,6 @@ EM_JS(bool, initTimeoutSyncSleep, (), {
 
 EM_JS(bool, initMessageSyncSleep, (bool worker), {
     Module.alive = true;
-    Module.sync_id = Date.now();
     Module.sync_sleep = function(wakeUp) {
       if (Module.sync_wakeUp) {
         throw new Error("Trying to sleep in sleeping state!");
@@ -39,18 +38,17 @@ EM_JS(bool, initMessageSyncSleep, (bool worker), {
 
       Module.sync_wakeUp = wakeUp;
       if (worker) {
-        postMessage({type : "sync_sleep_message", id : Module.sync_id});
+        postMessage({name : "ws-sync-sleep", props: { sessionId : Module.sessionId } });
       } else {
-        window.postMessage({type : "sync_sleep_message", id : Module.sync_id},
+        window.postMessage({name : "ws-sync-sleep", props: { sessionId : Module.sessionId } },
                            "*");
       }
     };
 
     Module.receive = function(ev) {
       var data = ev.data;
-      if (ev.data.type === "sync_sleep_message" &&
-          Module.sync_id == ev.data.id) {
-        ev.stopPropagation();
+      if (ev.data.name === "wc-sync-sleep" &&
+          Module.sessionId === ev.data.props.sessionId) {
         var wakeUp = Module.sync_wakeUp;
         delete Module.sync_wakeUp;
 
@@ -61,9 +59,9 @@ EM_JS(bool, initMessageSyncSleep, (bool worker), {
     };
 
     if (worker) {
-      self.addEventListener("message", Module.receive, true);
+      self.addEventListener("message", Module.receive, { passive: true });
     } else {
-      window.addEventListener("message", Module.receive, true);
+      window.addEventListener("message", Module.receive, { passive: true });
     }
 
     return true;
@@ -85,7 +83,7 @@ EM_JS(void, destroyMessageSyncSleep, (bool worker), {
   });
 
 EM_JS(bool, isWorker, (), {
-    return typeof importScripts === 'function';
+    return typeof importScripts === "function";
   });
 
 EM_JS(bool, isNode, (), {
