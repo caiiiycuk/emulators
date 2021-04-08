@@ -7,8 +7,7 @@ export interface WasmModule {
 
 export interface IWasmModules {
     libzip: () => Promise<WasmModule>;
-    dosDirect: () => Promise<WasmModule>;
-    dosWorker: () => Promise<WasmModule>;
+    dosbox: () => Promise<WasmModule>;
 }
 
 interface Globals {
@@ -90,8 +89,7 @@ export class WasmModulesImpl implements IWasmModules {
     private cache: Cache;
 
     private libzipPromise?: Promise<WasmModule>;
-    private dosDirectPromise?: Promise<WasmModule>;
-    private dosWorkerPromise?: Promise<WasmModule>;
+    private dosboxPromise?: Promise<WasmModule>;
 
     public wasmSupported = false;
 
@@ -114,22 +112,13 @@ export class WasmModulesImpl implements IWasmModules {
         return this.libzipPromise;
     }
 
-    dosDirect() {
-        if (this.dosDirectPromise !== undefined) {
-            return this.dosDirectPromise;
+    dosbox() {
+        if (this.dosboxPromise !== undefined) {
+            return this.dosboxPromise;
         }
 
-        this.dosDirectPromise = this.loadModule(this.pathPrefix + "wdirect.js", "WDIRECT");
-        return this.dosDirectPromise;
-    }
-
-    dosWorker() {
-        if (this.dosWorkerPromise !== undefined) {
-            return this.dosWorkerPromise;
-        }
-
-        this.dosWorkerPromise = this.loadModule(this.pathPrefix + "wworker.js", "WWORKER");
-        return this.dosWorkerPromise;
+        this.dosboxPromise = this.loadModule(this.pathPrefix + "wdosbox.js", "WDOSBOX");
+        return this.dosboxPromise;
     }
 
     private loadModule(url: string,

@@ -5,8 +5,8 @@ import { Cache, CacheDb } from "../cache";
 import { IWasmModules, WasmModulesImpl } from "./modules";
 
 import DosBundle from "../dos/bundle/dos-bundle";
-import { dosDirect } from "../dos/direct/ts/direct";
-import { dosWorker } from "../dos/worker/ts/worker";
+import { dosDirect } from "../dos/dosbox/ts/direct";
+import { dosWorker } from "../dos/dosbox/ts/worker";
 import Janus from "../janus/janus-impl";
 
 import { TransportLayer, CommandInterfaceOverTransportLayer } from "../protocol/protocol";
@@ -50,15 +50,15 @@ class EmulatorsImpl implements Emulators {
 
     async dosboxDirect(bundle: Uint8Array | Uint8Array[]): Promise<CommandInterface> {
         const modules = await this.wasmModules();
-        const dosWorkerWasm = await modules.dosWorker();
-        const transportLayer = await dosDirect(dosWorkerWasm, "session-" + Date.now());
+        const dosboxWasm = await modules.dosbox();
+        const transportLayer = await dosDirect(dosboxWasm, "session-" + Date.now());
         return this.backend(bundle, transportLayer);
     }
 
     async dosboxWorker(bundle: Uint8Array | Uint8Array[]): Promise<CommandInterface> {
         const modules = await this.wasmModules();
-        const dosWorkerWasm = await modules.dosWorker();
-        const transportLayer = await dosWorker(this.pathPrefix + "wworker.js", dosWorkerWasm, "session-" + Date.now());
+        const dosboxWasm = await modules.dosbox();
+        const transportLayer = await dosWorker(this.pathPrefix + "wdosbox.js", dosboxWasm, "session-" + Date.now());
         return this.backend(bundle, transportLayer);
     }
 

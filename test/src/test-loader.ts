@@ -28,7 +28,7 @@ export function testLoader() {
     });
 
     test("loader should show progress loading and use cache", async () => {
-        const moduleUrl = "/wdirect.js"
+        const moduleUrl = "/wdosbox.js"
 
         let cacheGetUsed = false;
         let cachePutUsed = false;
@@ -63,7 +63,7 @@ export function testLoader() {
     });
 
     test("loader should never load module twice", async () => {
-        const moduleUrl = "/wdirect.js";
+        const moduleUrl = "/wdosbox.js";
 
         class TestCache implements Cache {
             // tslint:disable-next-line:no-empty

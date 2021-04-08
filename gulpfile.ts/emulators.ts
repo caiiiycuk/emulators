@@ -48,10 +48,10 @@ function js() {
         .pipe(dest("dist"));
 }
 
-function workerJs() {
-    return src("dist/wworker.js")
-        .pipe(footer(fs.readFileSync("src/dos/worker/ts/worker-server.js")))
+function dosboxJs() {
+    return src("dist/wdosbox.js")
+        .pipe(footer(fs.readFileSync("src/dos/dosbox/ts/worker-server.js")))
         .pipe(dest("dist"));
 }
 
-export const emulators = series(clean, parallel(js, workerJs));
+export const emulators = series(clean, parallel(js, dosboxJs));

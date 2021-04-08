@@ -10,6 +10,14 @@
         <div id="stdout"></div>
         <script>
          var stdout = document.getElementById("stdout");
+         const sleepHandler = (e) => {
+             const data = e.data;
+             if (data !== undefined && data.name === "ws-sync-sleep") {
+                 postMessage({ name: "wc-sync-sleep", props: data.props }, "*");
+             }
+         };
+
+         window.addEventListener("message", sleepHandler, { passive: true });
 
          function start() {
              WDHRY2({

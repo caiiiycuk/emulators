@@ -24,7 +24,7 @@ function clean() {
 async function makeWasm() {
     return await make(".", "build/wasm",
                       "wlibzip",
-                      "wworker");
+                      "wdosbox");
 }
 
 function copyAssets() {
