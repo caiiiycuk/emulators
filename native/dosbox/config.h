@@ -20,7 +20,6 @@
  *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  */
 
-
 /* Define if building universal (internal helper macro) */
 /* #undef AC_APPLE_UNIVERSAL_BUILD */
 
@@ -123,7 +122,7 @@
 #endif
 
 /* Define to 1 to use a unaligned memory access */
-#if defined(X86_64) || defined(X86)
+#if defined(X86_64) || defined(X86) || defined(JSDOS_UNALIGNED_MEMORY)
 #define C_UNALIGNED_MEMORY 1
 #else
 /* #undef C_UNALIGNED_MEMORY */
@@ -226,7 +225,7 @@
 #define PACKAGE_VERSION "SVN"
 
 /* The size of `int *', as computed by sizeof. */
-#ifdef X86_64
+#if defined(X86_64) || defined(JSDOS_64)
 #define SIZEOF_INT_P 8
 #else
 #define SIZEOF_INT_P 4
@@ -239,7 +238,7 @@
 #define SIZEOF_UNSIGNED_INT 4
 
 /* The size of `unsigned long', as computed by sizeof. */
-#ifdef X86_64
+#if defined(X86_64) || defined(JSDOS_64)
 #define SIZEOF_UNSIGNED_LONG 8
 #else
 #define SIZEOF_UNSIGNED_LONG 4
