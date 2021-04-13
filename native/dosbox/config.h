@@ -52,6 +52,8 @@
 /* Define to 1 to use recompiling cpu core. Can not be used together with the
    dynamic-x86 core */
 /* #undef C_DYNREC */
+#elif defined(ARM_64)
+#define C_DYNREC 1
 #else
 /* #undef C_DYNAMIC_X86 */
 /* #undef C_DYNREC */
@@ -117,6 +119,8 @@
 #define C_TARGETCPU X86_64
 #elif X86
 #define C_TARGETCPU X86
+#elif ARM_64
+#define C_TARGETCPU ARMV8LE
 #else
 #define C_TARGETCPU UNKNOWN
 #endif
@@ -225,7 +229,7 @@
 #define PACKAGE_VERSION "SVN"
 
 /* The size of `int *', as computed by sizeof. */
-#if defined(X86_64) || defined(JSDOS_64)
+#if defined(X86_64) || defined(ARM_64)
 #define SIZEOF_INT_P 8
 #else
 #define SIZEOF_INT_P 4
@@ -238,7 +242,7 @@
 #define SIZEOF_UNSIGNED_INT 4
 
 /* The size of `unsigned long', as computed by sizeof. */
-#if defined(X86_64) || defined(JSDOS_64)
+#if defined(X86_64) || defined(ARM_64)
 #define SIZEOF_UNSIGNED_LONG 8
 #else
 #define SIZEOF_UNSIGNED_LONG 4
