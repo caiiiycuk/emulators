@@ -218,9 +218,9 @@ void client_frame_set_size(int width, int height) {
   emsc_ws_client_frame_set_size(width, height);
 }
 
-void client_frame_update_lines(uint32_t *lines, uint32_t count, void *rgba) {
+void client_frame_update_lines(uint32_t *lines, uint32_t batchCount, void *rgba) {
   emsc_start_frame_update();
-  for (uint32_t i = 0; i < count; ++i) {
+  for (uint32_t i = 0; i < batchCount; ++i) {
     uint32_t base = i * 3;
     uint32_t start = lines[base];
     uint32_t count = lines[base + 1];
