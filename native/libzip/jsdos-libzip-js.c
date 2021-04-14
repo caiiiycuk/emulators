@@ -12,7 +12,7 @@ int main(int argc, char** argv) {
 #ifdef EMSCRIPTEN
     emscripten_exit_with_live_runtime();
 #else
-    ZipArchive *archive = zip_from_fs();
+    ZipArchive *archive = zip_from_fs(0);
     if (!archive) {
       return -1;
     }
