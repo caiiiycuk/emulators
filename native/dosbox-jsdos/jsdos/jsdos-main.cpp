@@ -415,6 +415,7 @@ void server_exit() {
 }
 
 int server_run() {
+  jsdos::init();
   jsdos::initTimer();
   jsdos::initAsyncify();
   CommandLine commandLine(0, nullptr);

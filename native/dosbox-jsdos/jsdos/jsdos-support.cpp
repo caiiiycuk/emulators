@@ -12,6 +12,9 @@ namespace {
 #endif
 }
 
+void jsdos::init() {
+    _exit = false;
+}
 
 bool jsdos::isExitRequested() {
     return _exit;
