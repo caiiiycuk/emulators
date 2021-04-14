@@ -370,6 +370,8 @@ void GFX_Events() {
       if (it != keyEvents.end()) {
         executeNextKeyEventAt = frameTime + (it->clientTime - clientTime);
         clientTime = it->clientTime;
+      } else {
+        executeNextKeyEventAt = frameTime + 16;
       }
     }
 }
@@ -380,7 +382,7 @@ void server_add_key(KBD_KEYS key, bool pressed, uint64_t pressedMs) {
     std::lock_guard<std::mutex> g(eventsMutex);
 #endif
     keyEvents.push_back({ key, pressed, pressedMs });
-    if (keyEvents.size() == 1) {
+    if (keyEvents.size() == 1 && pressed) {
       executeNextKeyEventAt = GetMsPassedFromStart();
     }
 }
