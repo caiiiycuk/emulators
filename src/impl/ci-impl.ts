@@ -5,7 +5,7 @@ export class CommandInterfaceEventsImpl implements CommandInterfaceEvents {
     private delayedStdout: string[] = [];
     private onStdoutConsumers: ((message: string) => void)[] = [];
     private onFrameSizeConsumers: ((width: number, height: number) => void)[] = [];
-    private onFrameConsumers: ((frame: Uint8Array) => void)[] = [];
+    private onFrameConsumers: ((rgb: Uint8Array) => void)[] = [];
     private onSoundPushConsumers: ((samples: Float32Array) => void)[] = [];
     private onExitConsumers: (() => void)[] = [];
 
@@ -26,7 +26,7 @@ export class CommandInterfaceEventsImpl implements CommandInterfaceEvents {
         this.onFrameSizeConsumers.push(consumer);
     }
 
-    onFrame = (consumer: (frame: Uint8Array) => void) => {
+    onFrame = (consumer: (rgb: Uint8Array) => void) => {
         this.onFrameConsumers.push(consumer);
     }
 

@@ -46,7 +46,7 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
     private startedAt = Date.now();
     private frameWidth: number = 0;
     private frameHeight: number = 0;
-    private rgba: Uint8Array = new Uint8Array();
+    private rgb: Uint8Array = new Uint8Array();
     private freq = 0;
 
     private bundles?: Uint8Array[];
@@ -166,15 +166,15 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
 
         this.frameWidth = width;
         this.frameHeight = height;
-        this.rgba = new Uint8Array(width * height * 4);
+        this.rgb = new Uint8Array(width * height * 3);
         this.eventsImpl.fireFrameSize(width, height);
     }
 
     private onFrameLines(lines: FrameLine[]) {
         for (const line of lines) {
-            this.rgba.set(line.heapu8, line.start * this.frameWidth * 4);
+            this.rgb.set(line.heapu8, line.start * this.frameWidth * 3);
         }
-        this.eventsImpl.fireFrame(this.rgba);
+        this.eventsImpl.fireFrame(this.rgb);
     }
 
     private onSoundInit(freq: number) {
@@ -221,10 +221,16 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
     }
 
     public screenshot(): Promise<ImageData> {
-        const rgba = new Uint8ClampedArray(this.rgba.buffer);
+        const rgba = new Uint8ClampedArray(this.rgb.length / 3 * 4);
 
-        for (let next = 3; next < rgba.byteLength; next = next + 4) {
-            this.rgba[next] = 255;
+        let rgbOffset = 0;
+        let rgbaOffset = 0
+
+        while (rgbaOffset < rgba.length) {
+            rgba[rgbaOffset++] = this.rgb[rgbOffset++];
+            rgba[rgbaOffset++] = this.rgb[rgbOffset++];
+            rgba[rgbaOffset++] = this.rgb[rgbOffset++];
+            rgba[rgbaOffset++] = 255;
         }
 
         return Promise.resolve(new ImageData(rgba, this.frameWidth, this.frameHeight));

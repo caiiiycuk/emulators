@@ -120,9 +120,20 @@ EM_JS(void, emsc_start_frame_update, (), {
     Module.frame_update_lines = [];
   });
 
-EM_JS(void, emsc_add_frame_line, (uint32_t start, char* ptr, uint32_t len), {
-    Module.frame_update_lines.push(
-        {start : start, heapu8 : Module.HEAPU8.slice(ptr, ptr + len)});
+EM_JS(void, emsc_add_frame_line, (uint32_t start, char* ptr, uint32_t bpp4len), {
+    var bpp3 = new Uint8Array(bpp4len / 4 * 3);
+    var bpp4 = Module.HEAPU8;
+
+    var bpp3Offset = 0;
+    var bpp4Offset = ptr;
+    while (bpp3Offset < bpp3.length) {
+      bpp3[bpp3Offset++] = bpp4[bpp4Offset++];
+      bpp3[bpp3Offset++] = bpp4[bpp4Offset++];
+      bpp3[bpp3Offset++] = bpp4[bpp4Offset++];
+      bpp4Offset++;
+    }
+
+    Module.frame_update_lines.push({start : start, heapu8 : bpp3});
   });
 
 EM_JS(void, emsc_end_frame_update, (), {
