@@ -48,11 +48,10 @@
 #if defined(X86_64) || defined(X86)
 /* Define to 1 to use x86 dynamic cpu core */
 #define C_DYNAMIC_X86 1
-
 /* Define to 1 to use recompiling cpu core. Can not be used together with the
    dynamic-x86 core */
 /* #undef C_DYNREC */
-#elif defined(ARM_64)
+#elif defined(__aarch64__) || defined(__arm__) || defined(__x86_64__) || defined(__i386__)
 #define C_DYNREC 1
 #else
 /* #undef C_DYNAMIC_X86 */
@@ -62,7 +61,7 @@
 /* Define to 1 to enable floating point emulation */
 #define C_FPU 1
 
-#if defined(X86_64) || defined(X86)
+#if defined(X86_64) || defined(X86) || defined(__x86_64__) || defined(__i386__)
 /* Define to 1 to use a x86/x64 assembly fpu core */
 #define C_FPU_X86 1
 #else
@@ -115,18 +114,20 @@
 /* #undef C_SUPPORTS_COREMIDI */
 
 /* The type of cpu this target has */
-#ifdef X86_64
+#if defined(X86_64) || defined(__x86_64__)
 #define C_TARGETCPU X86_64
-#elif X86
+#elif defined(X86) || defined(__i386__)
 #define C_TARGETCPU X86
-#elif ARM_64
+#elif defined(__aarch64__)
 #define C_TARGETCPU ARMV8LE
+#elif defined(__arm__)
+#define C_TARGETCPU ARMV7LE
 #else
 #define C_TARGETCPU UNKNOWN
 #endif
 
 /* Define to 1 to use a unaligned memory access */
-#if defined(X86_64) || defined(X86) || defined(JSDOS_UNALIGNED_MEMORY)
+#if defined(X86_64) || defined(X86) || defined(__x86_64__) || defined(__i386__) || defined(__aarch64__) || defined(__arm__)
 #define C_UNALIGNED_MEMORY 1
 #else
 /* #undef C_UNALIGNED_MEMORY */
@@ -229,7 +230,7 @@
 #define PACKAGE_VERSION "SVN"
 
 /* The size of `int *', as computed by sizeof. */
-#if defined(X86_64) || defined(ARM_64)
+#if defined(X86_64) || defined(__aarch64__) || defined(__x86_64__)
 #define SIZEOF_INT_P 8
 #else
 #define SIZEOF_INT_P 4
@@ -242,7 +243,7 @@
 #define SIZEOF_UNSIGNED_INT 4
 
 /* The size of `unsigned long', as computed by sizeof. */
-#if defined(X86_64) || defined(ARM_64)
+#if defined(X86_64) || defined(__aarch64__) || defined(__x86_64__)
 #define SIZEOF_UNSIGNED_LONG 8
 #else
 #define SIZEOF_UNSIGNED_LONG 4
