@@ -120,6 +120,26 @@ EM_JS(bool, isNode, (), {
 #include <thread>
 #endif
 
+volatile bool paused = false;
+
+void server_pause() {
+  paused = true;
+#ifdef EMSCRIPTEN
+  EM_ASM(({
+      Module.paused = true;
+  }));
+#endif
+}
+
+void server_resume() {
+  paused = false;
+#ifdef EMSCRIPTEN
+  EM_ASM(({
+      Module.paused = false;
+  }));
+#endif
+}
+
 void jsdos::initAsyncify() {
 #ifdef EMSCRIPTEN
   if (isNode()) {
@@ -155,6 +175,10 @@ extern "C" void asyncify_sleep(unsigned int ms) {
     syncSleep();
   }
 #else
+  while (paused) {
+    std::this_thread::sleep_for(std::chrono::milliseconds(16));
+  }
+
   if (ms == 0) {
     return;
   }

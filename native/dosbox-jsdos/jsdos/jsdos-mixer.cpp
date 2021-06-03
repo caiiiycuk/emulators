@@ -54,15 +54,14 @@ static void MIXER_CallBack(float *stream, int len);
 
 typedef float mixer_t;
 
-#ifdef EMSCRIPTEN
-EM_JS(bool, isMuted, (), {
-	return Module.muted === true;
-});
-#else
-bool isMuted() {
-	return false;
+bool muted = false;
+void server_mute() {
+	muted = true;
 }
-#endif
+
+void server_unmute() {
+	muted = false;
+}
 
 static INLINE float MIXER_CLIP(Bits SAMP) {
 	Bit16s samp16s;
@@ -519,7 +518,7 @@ static void MIXER_Mix(void) {
       samplesCount = BLOCK_SIZE;
     }
     MIXER_CallBack(blockBuffer, samplesCount);
-    if (!isMuted()) {
+    if (!muted) {
         client_sound_push(blockBuffer, samplesCount);
     }
     pushedAt = now;
