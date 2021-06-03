@@ -63,6 +63,12 @@ EM_JS(void, ws_init_runtime, (const char* sessionId), {
         case "wc-resume": {
           Module.paused = false;
         } break;
+        case "wc-mute": {
+          Module.muted = true;
+        } break;
+        case "wc-unmute": {
+          Module.muted = false;
+        } break;
         case "wc-exit": {
           try {
             Module._requestExit();

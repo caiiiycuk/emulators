@@ -53,6 +53,17 @@ static void MIXER_CallBack(float *stream, int len);
 #define TICK_MASK (TICK_NEXT -1)
 
 typedef float mixer_t;
+
+#ifdef EMSCRIPTEN
+EM_JS(bool, isMuted, (), {
+	return Module.muted === true;
+});
+#else
+bool isMuted() {
+	return false;
+}
+#endif
+
 static INLINE float MIXER_CLIP(Bits SAMP) {
 	Bit16s samp16s;
 	if (SAMP < MAX_AUDIO) {
@@ -508,7 +519,9 @@ static void MIXER_Mix(void) {
       samplesCount = BLOCK_SIZE;
     }
     MIXER_CallBack(blockBuffer, samplesCount);
-    client_sound_push(blockBuffer, samplesCount);
+    if (!isMuted()) {
+        client_sound_push(blockBuffer, samplesCount);
+    }
     pushedAt = now;
   }
 }
@@ -733,7 +746,7 @@ void MIXER_Init(Section* sec) {
 	mixer.nosound=section->Get_bool("nosound");
 	mixer.blocksize= ::BLOCK_SIZE; // section->Get_int("blocksize");
 
-        client_sound_init(mixer.freq);
+	client_sound_init(mixer.freq);
 
 	mixer.channels=0;
 	mixer.pos=0;
