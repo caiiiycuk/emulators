@@ -58,16 +58,16 @@ EM_JS(void, ws_init_runtime, (const char* sessionId), {
           sendMessage("ws-server-ready");
         } break;
         case "wc-pause": {
-          Module.paused = true;
+          Module._requestPause();
         } break;
         case "wc-resume": {
-          Module.paused = false;
+          Module._requestResume();
         } break;
         case "wc-mute": {
-          Module.muted = true;
+          Module._requestMute();
         } break;
         case "wc-unmute": {
-          Module.muted = false;
+          Module._requestUnmute();
         } break;
         case "wc-exit": {
           try {
@@ -296,7 +296,25 @@ extern "C" void EMSCRIPTEN_KEEPALIVE runRuntime() {
   exitRuntime();
 }
 
-extern "C" void EMSCRIPTEN_KEEPALIVE requestExit() { server_exit(); }
+extern "C" void EMSCRIPTEN_KEEPALIVE requestPause() { 
+  server_pause(); 
+}
+
+extern "C" void EMSCRIPTEN_KEEPALIVE requestResume() { 
+  server_resume(); 
+}
+
+extern "C" void EMSCRIPTEN_KEEPALIVE requestMute() { 
+  server_mute(); 
+}
+
+extern "C" void EMSCRIPTEN_KEEPALIVE requestUnmute() { 
+  server_unmute(); 
+}
+
+extern "C" void EMSCRIPTEN_KEEPALIVE requestExit() { 
+  server_exit(); 
+}
 
 extern "C" char* EMSCRIPTEN_KEEPALIVE getConfigContent() {
   FILE *f = fopen(".jsdos/jsdos.json", "rb");
