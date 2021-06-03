@@ -57,6 +57,12 @@ EM_JS(void, ws_init_runtime, (const char* sessionId), {
           Module._runRuntime();
           sendMessage("ws-server-ready");
         } break;
+        case "wc-pause": {
+          Module.paused = true;
+        } break;
+        case "wc-resume": {
+          Module.paused = false;
+        } break;
         case "wc-exit": {
           try {
             Module._requestExit();

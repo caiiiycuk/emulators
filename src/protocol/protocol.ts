@@ -10,7 +10,11 @@ export type ClientMessage =
     "wc-mouse-move" |
     "wc-mouse-button" |
     "wc-exit" |
-    "wc-sync-sleep";
+    "wc-sync-sleep" |
+    "wc-pause" |
+    "wc-resume" |
+    "wc-mute" |
+    "wc-unmute";
 
 export type ServerMessage =
     "ws-ready" |
@@ -287,17 +291,32 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
         }
     }
 
+    public pause() {
+        this.sendClientMessage("wc-pause");
+    }
+
+    public resume() {
+        this.sendClientMessage("wc-resume");
+    }
+
+    public mute() {
+        this.sendClientMessage("wc-mute");
+    }
+
+    public unmute() {
+        this.sendClientMessage("wc-unmute");
+    }
+
     public exit(): Promise<void> {
         if (this.exitPromise !== undefined) {
             return this.exitPromise;
         }
-
-
         this.exitPromise = new Promise<void>((resolve) => this.exitResolve = resolve);
         this.exitPromise.then(() => {
             this.events().fireExit();
         });
 
+        this.resume();
         this.sendClientMessage("wc-exit");
 
         return this.exitPromise;

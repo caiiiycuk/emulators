@@ -1,5 +1,5 @@
 import { assert } from "chai";
-import { compareAndExit } from "./compare"
+import { compareAndExit, renderComparsionOf } from "./compare"
 
 import DosBundle from "../../src/dos/bundle/dos-bundle";
 import { CommandInterface } from "../../src/emulators";
@@ -136,6 +136,49 @@ function testServer(factory: CIFactory, name: string) {
         await exitPromise;
         assert.ok(true);
     })
+
+    test(name + " can pause/resume emulation", async () => {
+        const ci = await CI((await emulatorsImpl.dosBundle())
+            .extract("digger.zip")
+            .autoexec("DIGGER.COM"));
+        assert.ok(ci);
+
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        ci.pause();
+
+        await new Promise((resolve) => setTimeout(resolve, 300));
+        const first = await ci.screenshot();
+
+        await new Promise((resolve) => setTimeout(resolve, 300));
+        const second = await ci.screenshot();
+        ci.resume();
+
+        await new Promise((resolve) => setTimeout(resolve, 300));
+        const third  = await ci.screenshot();
+
+        await ci.exit();
+
+        function compare(a: ImageData, b: ImageData) {
+            for (let i = 0; i < a.data.length; ++i) {
+                if (a.data[i] !== b.data[i]) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        if (!compare(first, second)) {
+            renderComparsionOf(first, second);
+            assert.fail("screenshot during pause is changed");
+        }
+
+        if (compare(first, third)) {
+            console.log(first === third, first, third);
+            renderComparsionOf(first, third);
+            assert.fail("screenshot during emulation is not changed");
+        }
+    });
 
     test(name + " can simulate key events", async () => {
         const ci = await CI((await emulatorsImpl.dosBundle())

@@ -331,6 +331,24 @@ class JanusBackendImpl implements JanusCommandInterface {
         return Promise.reject(new Error("Not supported"));
     }
 
+    pause() {
+        // tslint:disable-next-line
+        console.warn("pause/resume is not implemented");
+    }
+
+    resume() {
+        //
+    }
+
+    mute() {
+        // tslint:disable-next-line
+        console.warn("mute/unmute is not implemented");
+    }
+
+    unmute() {
+        //
+    }
+
     exit() {
         this.live = false;
         clearInterval(this.logIntervalId);

@@ -57,7 +57,7 @@ export default class DosBundle {
     // ### extractAll
     extractAll(sources: DosArchiveSource[]): DosBundle {
         // download given [`sources`](https://js-dos.com/6.22/docs/api/generate.html?page=jsdos-bundle#dosfs-dosarchivesource)
-        // and extract them to mountPoint's.
+        // and extract them 
         this.sources.push(...sources);
         return this;
     }

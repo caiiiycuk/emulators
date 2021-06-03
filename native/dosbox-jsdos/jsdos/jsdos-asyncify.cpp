@@ -20,9 +20,20 @@ EM_JS(bool, initTimeoutSyncSleep, (), {
     Module.alive = true;
     Module.sync_sleep = function(wakeUp) {
       setTimeout(function() {
-          if (Module.alive) {
-            wakeUp();
+          if (!Module.alive) {
+            return;
           }
+
+          if (Module.paused === true) {
+            var checkIntervalId = setInterval(function() {
+              if (Module.paused === false) {
+                clearInterval(checkIntervalId);
+                wakeUp();
+              }
+            }, 16);
+          } else {
+            wakeUp();
+          } 
         });
     };
     return true;
@@ -37,11 +48,25 @@ EM_JS(bool, initMessageSyncSleep, (bool worker), {
       }
 
       Module.sync_wakeUp = wakeUp;
-      if (worker) {
-        postMessage({name : "ws-sync-sleep", props: { sessionId : Module.sessionId } });
+      
+      function postWakeUpMessage() {
+        if (worker) {
+          postMessage({name : "ws-sync-sleep", props: { sessionId : Module.sessionId } });
+        } else {
+          window.postMessage({name : "ws-sync-sleep", props: { sessionId : Module.sessionId } },
+                              "*");
+        }
+      }
+
+      if (Module.paused === true) {
+        var checkIntervalId = setInterval(function() {
+          if (Module.paused === false) {
+            clearInterval(checkIntervalId);
+            postWakeUpMessage();
+          }
+        }, 16);
       } else {
-        window.postMessage({name : "ws-sync-sleep", props: { sessionId : Module.sessionId } },
-                           "*");
+        postWakeUpMessage();
       }
     };
 
