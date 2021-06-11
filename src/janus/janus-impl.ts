@@ -8,19 +8,19 @@ export type JanusMessageType = "error" | "attached" | "started" |
     "onremotestream" | "destroyed";
 
 function dataAssembler(onMessage: (data: string) => void,
-                       onError: (message: any) => void) {
+    onError: (message: any) => void) {
     let acc: string = "";
 
     const assemble = (data: string) => {
         const splitIndex = data.indexOf("\n");
-        if (splitIndex == -1) {
+        if (splitIndex === -1) {
             acc += data;
         } else {
             const payload = acc + data.substr(0, splitIndex);
             acc = "";
 
             try {
-                onMessage(atob(payload));
+                onMessage(utf8Decode(payload));
             } catch (e) {
                 onError(e);
             }
@@ -46,17 +46,17 @@ class JanusBackendImpl implements JanusCommandInterface {
     private eventsImpl: CommandInterfaceEventsImpl;
 
     private exitPromise: Promise<void>;
-    private exitResolveFn: () => void = () => {/**/};
+    private exitResolveFn: () => void = () => {/**/ };
 
     private configPromise: Promise<DosConfig>;
-    private configResolveFn: (dosConfig: DosConfig) => void = () => {/**/};
+    private configResolveFn: (dosConfig: DosConfig) => void = () => {/**/ };
 
     private opaqueId: string;
     private handle?: JanusJS.PluginHandle;
     private handlePromise: Promise<JanusJS.PluginHandle>;
-    private handleResolveFn: (handle: JanusJS.PluginHandle) => void = () => {/**/};
+    private handleResolveFn: (handle: JanusJS.PluginHandle) => void = () => {/**/ };
 
-    private keyMatrix: {[keyCode: number]: boolean} = {};
+    private keyMatrix: { [keyCode: number]: boolean } = {};
 
     private frameWidth = 0;
     private frameHeight = 0;
@@ -148,7 +148,7 @@ class JanusBackendImpl implements JanusCommandInterface {
             onmessage: (message: JanusJS.Message, jsep?: JanusJS.JSEP) => {
                 this.onJanusMessage(handleRef, message, jsep);
             },
-		        onremotestream: (stream: MediaStream) => {
+            onremotestream: (stream: MediaStream) => {
                 this.fireMessage("onremotestream", stream);
             },
             ondataopen: () => this.handleResolveFn(handleRef),
@@ -163,7 +163,7 @@ class JanusBackendImpl implements JanusCommandInterface {
             const [width, height] = data.substr("frame=".length).split("x");
             this.frameWidth = Number.parseInt(width, 10) || 0;
             this.frameHeight = Number.parseInt(height, 10) || 0;
-        } else if (data.startsWith("rtt=")){
+        } else if (data.startsWith("rtt=")) {
             const [opaqueId, sentAtStr, receivedAtStr] = data.substr("rtt=".length).split(" ");
             const sentAt = Number.parseInt(sentAtStr, 10);
             const receivedAt = Number.parseInt(receivedAtStr, 10);
@@ -191,7 +191,7 @@ class JanusBackendImpl implements JanusCommandInterface {
         }
     }
 
-		private onJanusMessage = (handle: JanusJS.PluginHandle, message: JanusJS.Message, jsep?: JanusJS.JSEP) => {
+    private onJanusMessage = (handle: JanusJS.PluginHandle, message: JanusJS.Message, jsep?: JanusJS.JSEP) => {
         if (jsep !== undefined && jsep !== null) {
             handle.createAnswer({
                 jsep,
@@ -304,7 +304,7 @@ class JanusBackendImpl implements JanusCommandInterface {
                 switch (newColor) {
                     case "white": this.eventsImpl.fireStdout("yellow-stream:" + (Date.now() - this.logYellowMs - captureTime)); break;
                     case "red": this.eventsImpl.fireStdout("white-stream:" + (Date.now() - this.logWhiteMs - captureTime)); break;
-                    case "yellow": this.eventsImpl.fireStdout("red-stream:" + (Date.now() - this.logRedMs -captureTime)); break;
+                    case "yellow": this.eventsImpl.fireStdout("red-stream:" + (Date.now() - this.logRedMs - captureTime)); break;
                 }
                 this.logColor = newColor;
             }
@@ -407,4 +407,13 @@ export default function JanusBackend(restUrl: string, janus?: any): Promise<Comm
         const janusImpl = new Janus(options) as JanusJS.Janus;
     });
 
+}
+
+function utf8Decode(base64Text: string) {
+    const binary = atob(base64Text);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < bytes.length; i++) {
+        bytes[i] = binary.charCodeAt(i);
+    }
+    return new TextDecoder().decode(bytes);
 }
