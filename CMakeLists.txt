@@ -3,9 +3,11 @@ cmake_minimum_required(VERSION 3.6)
 
 set(X86 false)
 set(X86_64 false)
-set(OPT_FLAGS "-Oz -s -fno-exceptions -w -Werror=return-type -flto=thin")
+set(OPT_FLAGS "-Oz -fno-exceptions -w -Werror=return-type -flto=thin")
 
 if(${EMSCRIPTEN})
+	set(OPT_FLAGS "${OPT_FLAGS} -s")
+
 	add_definitions(-DEMSCRIPTEN)
 
 	set(USE_PORTS "-s USE_ZLIB=1")	

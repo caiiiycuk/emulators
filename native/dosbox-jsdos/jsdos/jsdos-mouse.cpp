@@ -133,11 +133,33 @@ struct mickey {
         float col, row;
 };
 
+constexpr Bitu mickeyRelSyncCount = 3;
+Bitu mickeyRelSyncTries = mickeyRelSyncCount;
 extern Bitu surfaceWidth;
 extern Bitu surfaceHeight;
 
+void mickeySync() {
+  mickeyRelSyncTries = mickeyRelSyncCount;
+}
+
 mickey getRelMickey(float prevCol, float prevRow,
                     float col, float row) {
+  while (mickeyRelSyncTries) {
+    mouse.col = 0;
+    mouse.row = 0;
+    mouse.mickeyCol = 0;
+    mouse.mickeyRow = 0;
+    if (!mouse.in_UIR) {
+      mickeyRelSyncTries--;
+    }
+    return {
+        .mickey_x = -(mouse.max_x - mouse.min_x),
+        .mickey_y = -(mouse.max_y - mouse.min_y),
+        .col = 0,
+        .row = 0,
+    };
+  }
+
   auto dCol = col - prevCol;
   auto dRow = row - prevRow;
 
@@ -726,7 +748,7 @@ void Mouse_AfterNewVideoMode(bool setmode) {
 	oldmouseX = static_cast<Bit16s>(mouse.col);
 	oldmouseY = static_cast<Bit16s>(mouse.row);
 
-
+        mickeySync();
 }
 
 //Much too empty, Mouse_NewVideoMode contains stuff that should be in here
@@ -754,6 +776,7 @@ static void Mouse_Reset(void) {
         mouse.mickeyRow = mouse.row;
 	mouse.sub_mask = 0;
 	mouse.in_UIR = false;
+        mickeySync();
 }
 
 static Bitu INT33_Handler(void) {
@@ -883,7 +906,7 @@ static Bitu INT33_Handler(void) {
 		DrawCursor();
 		break;
 	case 0x0b: { /* Read Motion Data */
-          mickey rel = getRelMickey(mouse.mickeyCol, mouse.mickeyRow, 
+          mickey rel = getRelMickey(mouse.mickeyCol, mouse.mickeyRow,
 				    mouse.col, mouse.row);
           reg_cx = static_cast<Bit16s>(rel.mickey_x);
           reg_dx = static_cast<Bit16s>(rel.mickey_y);
