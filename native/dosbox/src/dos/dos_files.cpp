@@ -405,6 +405,7 @@ bool DOS_ReadFile(Bit16u entry,Bit8u * data,Bit16u * amount,bool fcb) {
 }
 
 void client_stdout_wrapper(const char* data, uint32_t amount) {
+  static std::string line;
   static double time[2] = { 0.0, 0.0 };
   static int timeIndex = 0;
   static bool reportRuns = false;
@@ -434,15 +435,16 @@ void client_stdout_wrapper(const char* data, uint32_t amount) {
     timeIndex = (timeIndex + 1) % 2;
     reportRuns = timeIndex == 0;
   } else {
-    std::string message;
     for (int i = 0; i < amount; ++i) {
       char next = data[i];
-      if (std::isalnum(next) || next == '\n' || next == ' ') {
-          message += next;
+      if (std::isprint(next) || next == '\n') {
+          line += next;
       }
-    }
-    if (message.length() > 0) {
-      client_stdout(message.c_str(), message.length());
+
+	  if (next == '\n') {
+      	client_stdout(line.c_str(), line.length());
+		line.clear();
+	  }
     }
   }
 }

@@ -287,7 +287,6 @@ extern "C" void EMSCRIPTEN_KEEPALIVE mouseButton(int button, bool pressed, uint6
 
 extern "C" void EMSCRIPTEN_KEEPALIVE exitRuntime() {
   emsc_exit_runtime();
-  emscripten_force_exit(0);
 }
 
 extern "C" void EMSCRIPTEN_KEEPALIVE runRuntime() {
