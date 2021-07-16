@@ -138,7 +138,7 @@ Bitu mickeyRelSyncTries = mickeyRelSyncCount;
 extern Bitu surfaceWidth;
 extern Bitu surfaceHeight;
 
-void mickeySync() {
+extern void mickeySync() {
   mickeyRelSyncTries = mickeyRelSyncCount;
 }
 

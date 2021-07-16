@@ -1,8 +1,4 @@
-/* tslint:disable:max-line-length */
-/* tslint:disable:no-console */
-
 import { assert } from "chai";
-import { compareAndExit } from "./compare"
 
 import emulatorsImpl from "../../src/impl/emulators-impl";
 import emulators from "../../src/impl/emulators-impl";
@@ -18,7 +14,7 @@ suite("janus");
 
 test("Should reject on wrong address", async () => {
     try {
-        const ci = await emulators.janus("http://127.0.0.1:8088");
+        await emulators.janus("http://127.0.0.1:8088");
         assert.fail();
     } catch (e) {
         assert.equal("Probably a network error, is the server down?: [object Object]", e);
@@ -86,14 +82,14 @@ test("should render playable video game", async() => {
         ci.sendKeyEvent(getKeyCode(e.keyCode), false);
     });
     const videoEl = document.getElementById("video");
-    videoEl.addEventListener("mousedown", (e) => {
+    videoEl.addEventListener("mousedown", () => {
         ci.sendMouseButton(0, true);
     });
     videoEl.addEventListener("mousemove", (e) => {
         ci.sendMouseMotion(e.offsetX / 320,
                            e.offsetY / 240);
     });
-    videoEl.addEventListener("mouseup", (e) => {
+    videoEl.addEventListener("mouseup", () => {
         ci.sendMouseButton(0, false);
     });
 
@@ -102,7 +98,7 @@ test("should render playable video game", async() => {
         ci.events().onMessage((msgType: JanusMessageType, stream: MediaStream) => {
             if (msgType === "onremotestream") {
                 if (video !== null) {
-								    (window as any).Janus.attachMediaStream(video, stream);
+                    (window as any).Janus.attachMediaStream(video, stream);
                 }
             } else if (msgType === "started") {
                 ci.logVisual(video);

@@ -5,7 +5,7 @@ import { MessagesQueue } from "../../../protocol/messages-queue";
 export async function dosDirect(wasmModule: WasmModule, sessionId: string): Promise<TransportLayer> {
     const messagesQueue = new MessagesQueue();
     let handler: MessageHandler = messagesQueue.handler.bind(messagesQueue);
-    let startupErrorLog: string = "";
+    let startupErrorLog = "";
 
     const startupErrFn = (...args: any[]) => {
         console.error(...args);

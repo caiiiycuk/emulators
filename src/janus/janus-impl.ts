@@ -9,7 +9,7 @@ export type JanusMessageType = "error" | "attached" | "started" |
 
 function dataAssembler(onMessage: (data: string) => void,
     onError: (message: any) => void) {
-    let acc: string = "";
+    let acc = "";
 
     const assemble = (data: string) => {
         const splitIndex = data.indexOf("\n");
@@ -278,6 +278,10 @@ class JanusBackendImpl implements JanusCommandInterface {
         this.sendPipeMessage("m" + (pressed ? "down" : "up"), button, Date.now() - this.startedAt);
     }
 
+    sendMouseSync() {
+        this.sendPipeMessage("msync", Date.now() - this.startedAt);
+    }
+
     logVisual(video: HTMLVideoElement) {
         this.sendPipeMessage("log-visual-on");
         const canvas = document.createElement("canvas");
@@ -332,7 +336,7 @@ class JanusBackendImpl implements JanusCommandInterface {
     }
 
     pause() {
-        // tslint:disable-next-line
+        // eslint-disable-next-line
         console.warn("pause/resume is not implemented");
     }
 
@@ -341,7 +345,7 @@ class JanusBackendImpl implements JanusCommandInterface {
     }
 
     mute() {
-        // tslint:disable-next-line
+        // eslint-disable-next-line
         console.warn("mute/unmute is not implemented");
     }
 

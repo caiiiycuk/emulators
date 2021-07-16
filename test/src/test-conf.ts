@@ -71,7 +71,6 @@ export function testConf() {
     });
 }
 
-/* tslint:disable:max-line-length */
 const defaultConfig = `[sdl]
 autolock=false
 

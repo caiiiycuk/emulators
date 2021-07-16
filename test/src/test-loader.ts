@@ -1,3 +1,5 @@
+/* eslint @typescript-eslint/no-unused-vars: 0 */
+
 import { assert } from "chai";
 
 import { loadWasmModule, host } from "../../src/impl/modules";
@@ -33,7 +35,7 @@ export function testLoader() {
         let cacheGetUsed = false;
         let cachePutUsed = false;
         class TestCache implements Cache {
-            // tslint:disable-next-line:no-empty
+            // eslint-disable-next-line
             public close() {
             }
 
@@ -66,7 +68,7 @@ export function testLoader() {
         const moduleUrl = "/wdosbox.js";
 
         class TestCache implements Cache {
-            // tslint:disable-next-line:no-empty
+            // eslint-disable-next-line
             public close() {
             }
 

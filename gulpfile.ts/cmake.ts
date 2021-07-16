@@ -13,7 +13,7 @@ export default async function make(listsPath: string,
     if (!fs.existsSync(buildPath)) {
         fs.ensureDirSync(buildPath);
         process.chdir(buildPath);
-        await emcmake(listsPath, buildPath);
+        await emcmake(listsPath);
     }
 
     process.chdir(buildPath);
@@ -25,7 +25,6 @@ async function makeBuild(...targets: string[]) {
     await execute("make", "-j4", ...targets);
 }
 
-async function emcmake(listsPath: string,
-                       buildPath: string) {
+async function emcmake(listsPath: string) {
     await execute("emcmake", "cmake", listsPath);
 }

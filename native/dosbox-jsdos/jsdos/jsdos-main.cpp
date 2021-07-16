@@ -412,6 +412,14 @@ void server_mouse_button(int button, bool pressed, uint64_t pressedMs) {
   }
 }
 
+extern void mickeySync();
+void server_mouse_sync() {
+#ifndef EMSCRIPTEN
+  std::lock_guard<std::mutex> g(eventsMutex);
+#endif
+  mickeySync();
+}
+
 void server_exit() {
     jsdos::requestExit();
 }

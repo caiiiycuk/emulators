@@ -1,6 +1,3 @@
-/* tslint:disable:max-line-length */
-/* tslint:disable:no-console */
-
 import { testLoader } from "./test-loader";
 import { testLibZip } from "./test-libzip";
 import { testConf } from "./test-conf";

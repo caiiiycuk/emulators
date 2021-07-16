@@ -12,9 +12,9 @@ import md5File from "md5-file";
 
 import { execute } from "./execute"
 
-// tslint:disable-next-line:no-var-requires
+// eslint-disable-next-line
 const MD5 = require("md5.js");
-// tslint:disable-next-line:no-var-requires
+// eslint-disable-next-line
 const pjson = require("../package.json");
 
 function clean() {

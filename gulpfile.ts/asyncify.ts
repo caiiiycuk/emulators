@@ -60,7 +60,7 @@ function extractFnSignature(next: string): string {
     let fnSig = "";
 
     // case 1
-    let index = next.indexOf("@");
+    const index = next.indexOf("@");
     if (index >= 0) {
         fnSig = next.substr(0, index).trim();
     }

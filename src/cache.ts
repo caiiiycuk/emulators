@@ -1,3 +1,5 @@
+/* eslint @typescript-eslint/no-unused-vars: 0 */
+
 export interface Cache {
     put: (key: string, data: string | ArrayBuffer) => Promise<void>;
     get: (key: string, defaultValue?: string | ArrayBuffer) => Promise<string | ArrayBuffer>;
@@ -7,7 +9,7 @@ export interface Cache {
 
 export class CacheNoop implements Cache {
 
-    // tslint:disable-next-line:no-empty
+    // eslint-disable-next-line
     public close() {
     }
 
@@ -39,7 +41,7 @@ export function CacheDb(version: string, logger: { onErr(...args: any[]): any })
 class CacheDbImpl implements Cache {
 
     public version: string;
-    private storeName: string = "files";
+    private storeName = "files";
     private indexedDB: IDBFactory;
     private db: IDBDatabase | null = null;
 

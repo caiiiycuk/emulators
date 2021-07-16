@@ -49,7 +49,7 @@ export default class DosBundle {
     }
 
     // ### extract
-    extract(url: string, path: string = "/", type: "zip" = "zip"): DosBundle {
+    extract(url: string, path = "/", type: "zip" = "zip"): DosBundle {
         // simplified version of extractAll, works only for one archive. It calls extractAll inside.
         return this.extractAll([{ url, path, type }]);
     }
@@ -62,7 +62,7 @@ export default class DosBundle {
         return this;
     }
 
-    async toUint8Array(overwriteConfig: boolean = false): Promise<Uint8Array> {
+    async toUint8Array(overwriteConfig = false): Promise<Uint8Array> {
         const module = {};
         await this.libzipWasm.instantiate(module);
         const libzip = new LibZip(module, "/home/web_user");

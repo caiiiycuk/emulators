@@ -1,4 +1,3 @@
-// tslint:disable:variable-name
 class KeyCodes {
     public KBD_NONE = 0;
     public KBD_0 = 48;
@@ -107,6 +106,6 @@ class KeyCodes {
     public KBD_down = 264;
     public KBD_right = 262;
     public KBD_extra_lt_gt = 348; // ???
-};
+}
 
 export const Keys = new KeyCodes();

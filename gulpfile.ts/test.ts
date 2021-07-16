@@ -6,12 +6,12 @@ import browserify from "browserify";
 import buffer from "vinyl-buffer";
 import source from "vinyl-source-stream";
 
-// tslint:disable-next-line:no-var-requires
+// eslint-disable-next-line
 const tsify = require("tsify");
 
 function clean() {
     return del(["dist/test*", "dist/test/temp.jsdos"], { force: true });
-};
+}
 
 function copyAssetsTest() {
     return src(["test/*.html", "test/*.png", "test/*.zip", "test/*.jsdos",
@@ -19,7 +19,7 @@ function copyAssetsTest() {
                 "test/mocha.css", "test/mocha.js", "test/chai.js",
                 "test/janus.js", "test/adapter-latest.js"])
         .pipe(dest("dist/test"));
-};
+}
 
 function testJs() {
     return browserify({
@@ -49,7 +49,7 @@ function testJs() {
         .pipe(buffer())
         .pipe(size({ showFiles: true, showTotal: false }))
         .pipe(dest("dist/test"));
-};
+}
 
 function testJanusJs() {
     return browserify({
@@ -79,6 +79,6 @@ function testJanusJs() {
         .pipe(buffer())
         .pipe(size({ showFiles: true, showTotal: false }))
         .pipe(dest("dist/test"));
-};
+}
 
 export const test = series(clean, parallel(copyAssetsTest, testJs, testJanusJs));

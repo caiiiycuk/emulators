@@ -8,7 +8,7 @@ export interface DosConfigOption {
     description: string,
     value: DosConfigValue,
     allowedValues: DosConfigValue[],
-};
+}
 
 export type DosCategoryOptions = { [name: string]: DosConfigOption };
 
@@ -29,7 +29,7 @@ export class OutputCategory implements DosConfigCategory {
             allowedValues: [true, false],
         }
     };
-};
+}
 
 export class DosboxCategory implements DosConfigCategory {
     name = "dosbox";
@@ -130,7 +130,6 @@ function validateCategory(category: DosConfigCategory, valid: DosConfigCategory)
     const categoryName = valid.name === "sdl" ? "output" : valid.name;
     return new Promise<void>((resolve, reject) => {
         if (!category) {
-            const name = valid.name;
             reject(new Error("Category '" + categoryName + "' is missed"));
             return;
         }
@@ -388,7 +387,7 @@ gusrate=44100
 gusbase=240
 gusirq=5
 gusdma=3
-ultradir=C:\ULTRASND
+ultradir=C:\\ULTRASND
 
 [speaker]
 # pcspeaker: Enable PC-Speaker emulation.

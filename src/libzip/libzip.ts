@@ -9,7 +9,7 @@ export default class LibZip {
         this.chdirToHome();
     }
 
-    zipFromFs(changedAfterMs: number = -1): Promise<Uint8Array> {
+    zipFromFs(changedAfterMs = -1): Promise<Uint8Array> {
         this.chdirToHome();
 
         const ptr = this.module._zip_from_fs(changedAfterMs);
@@ -24,7 +24,7 @@ export default class LibZip {
         return Promise.resolve(archive);
     }
 
-    zipToFs(zipArchive: Uint8Array, path: string = "/"): Promise<void> {
+    zipToFs(zipArchive: Uint8Array, path = "/"): Promise<void> {
         path = this.normalizeFilename(path);
         const pathParts = this.normalizeFilename(path).split("/");
         this.createPath(pathParts, 0, pathParts.length);

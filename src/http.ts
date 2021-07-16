@@ -23,7 +23,7 @@ function XhrRequest(url: string, options: XhrOptions): Promise<string | ArrayBuf
             }
         });
     });
-};
+}
 
 // private implementation
 interface XhrOptionsInternal extends XhrOptions {
@@ -40,8 +40,8 @@ class Xhr {
     private resource: string;
     private options: XhrOptionsInternal;
     private xhr: XMLHttpRequest | null = null;
-    private total: number = 0;
-    private loaded: number = 0;
+    private total = 0;
+    private loaded = 0;
 
     constructor(url: string, options: XhrOptionsInternal) {
         this.resource = url;
@@ -83,7 +83,7 @@ class Xhr {
 
         let errorListener;
         if (typeof (errorListener = this.xhr).addEventListener === "function") {
-            errorListener.addEventListener("error", (evt) => {
+            errorListener.addEventListener("error", () => {
                 if (this.options.fail) {
                     this.options.fail("Unalbe to download '" + this.resource + "', code: " + (this.xhr as XMLHttpRequest).status);
                     return delete this.options.fail;

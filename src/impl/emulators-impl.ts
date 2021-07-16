@@ -27,7 +27,6 @@ class EmulatorsImpl implements Emulators {
 
         if (cachePromise === undefined) {
             const promise = CacheDb(cacheName, {
-                // tslint:disable-next-line
                 onErr: console.error,
             });
 

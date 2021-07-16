@@ -1,3 +1,6 @@
+/* eslint no-self-assign: 0 */
+/* eslint @typescript-eslint/no-var-requires: 0 */
+
 import { Cache } from "../cache";
 import { HTTPRequest } from "../http";
 
@@ -42,8 +45,6 @@ class Host {
 
         // Polyfill for old contains implementations for:
         // `Math.imul`, `Math.fround`, `Math.clz32`, `Math.trunc`
-        /* tslint:disable:no-bitwise */
-        /* tslint:disable:only-arrow-functions */
         (function polyfill() {
             if (!Math.imul || Math.imul(0xffffffff, 5) !== -5) {
                 Math.imul = function imul(a: any, b: any) {
@@ -123,7 +124,7 @@ export class WasmModulesImpl implements IWasmModules {
 
     private loadModule(url: string,
                        moduleName: string) {
-        // tslint:disable-next-line:no-empty
+        // eslint-disable-next-line
         return loadWasmModule(url, moduleName, this.cache, () => {});
     }
 }
@@ -141,7 +142,9 @@ export function loadWasmModule(url: string,
 
 function loadWasmModuleNode(url: string,
                             moduleName: string,
+                            // eslint-disable-next-line
                             cache: Cache,
+                            // eslint-disable-next-line
                             onprogress: (stage: string, total: number, loaded: number) => void) {
     if (host.globals.compiled[moduleName] !== undefined) {
         return host.globals.compiled[moduleName];
@@ -197,14 +200,12 @@ function loadWasmModuleBrowser(url: string,
             return; // no-return
         };
 
-        /* tslint:disable:no-eval */
         eval.call(window, script as string);
-        /* tslint:enable:no-eval */
 
         return new CompiledBrowserModule(wasmModule,
                                          host.globals.exports[moduleName],
                                          instantiateWasm);
-    };
+    }
 
     const promise = load();
 

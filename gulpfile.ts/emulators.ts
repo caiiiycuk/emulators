@@ -6,20 +6,19 @@ import del from "del";
 import sourcemaps from "gulp-sourcemaps";
 import uglify from "gulp-uglify";
 import size from "gulp-size";
-import rename from "gulp-rename";
 import browserify from "browserify";
 import buffer from "vinyl-buffer";
 import source from "vinyl-source-stream";
 
-// tslint:disable-next-line:no-var-requires
+// eslint-disable-next-line
 const tsify = require("tsify");
-// tslint:disable-next-line:no-var-requires
+// eslint-disable-next-line
 const footer = require("gulp-footer");
 
 function clean() {
     return del(["dist/emulators*",
                 "build/wworker-footer*"], { force: true });
-};
+}
 
 function js() {
     return browserify({

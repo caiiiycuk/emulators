@@ -9,6 +9,7 @@ export type ClientMessage =
     "wc-add-key" |
     "wc-mouse-move" |
     "wc-mouse-button" |
+    "wc-mouse-sync" |
     "wc-exit" |
     "wc-sync-sleep" |
     "wc-pause" |
@@ -48,8 +49,8 @@ export interface FrameLine {
 
 export class CommandInterfaceOverTransportLayer implements CommandInterface {
     private startedAt = Date.now();
-    private frameWidth: number = 0;
-    private frameHeight: number = 0;
+    private frameWidth = 0;
+    private frameHeight = 0;
     private rgb: Uint8Array = new Uint8Array();
     private freq = 0;
 
@@ -114,7 +115,8 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
                     delete this.startupErrorLog;
                     this.ready(null);
                 }
-                delete this.ready;
+
+                delete (this as any).ready;
             } break;
             case "ws-frame-set-size": {
                 this.onFrameSize(props.width, props.height);
@@ -126,12 +128,15 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
                 this.onExit();
             } break;
             case "ws-log": {
+                // eslint-disable-next-line
                 this.onLog.apply(this, props.args);
             } break;
             case "ws-warn": {
+                // eslint-disable-next-line
                 this.onWarn.apply(this, props.args);
             } break;
             case "ws-err": {
+                // eslint-disable-next-line
                 this.onErr.apply(this, props.args);
             } break;
             case "ws-stdout": {
@@ -153,10 +158,10 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
                 this.sendClientMessage("wc-sync-sleep", props);
             } break;
             default: {
-                // tslint:disable-next-line:no-console
+                // eslint-disable-next-line
                 console.log("Unknown server message (ws):", name);
             } break;
-        };
+        }
     }
 
     private onConfig(config: DosConfig) {
@@ -266,6 +271,10 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
 
     public sendMouseButton(button: number, pressed: boolean) {
         this.sendClientMessage("wc-mouse-button", { button, pressed, timeMs: Date.now() - this.startedAt });
+    }
+
+    public sendMouseSync() {
+        this.sendClientMessage("wc-mouse-sync", { timeMs: Date.now() - this.startedAt });
     }
 
 

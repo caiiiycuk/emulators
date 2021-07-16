@@ -2,7 +2,6 @@ import DosBundle from "./dos/bundle/dos-bundle";
 import emulatorsImpl from "./impl/emulators-impl";
 
 import { Cache } from "./cache";
-import { Keys } from "./keys";
 import { DosConfig } from "./dos/bundle/dos-conf";
 import { TransportLayer } from "./protocol/protocol";
 
@@ -78,6 +77,9 @@ export interface CommandInterface {
 
     // * `simulateMouseButton` - sends mouse button event (press or release) to backend
     sendMouseButton: (button: number, pressed: boolean) => void;
+
+    // * `sendMouseSync` - sends mouse sync event 
+    sendMouseSync: () => void;
 
     // dump **changed** FS as Uint8Array <zip archive>
     persist(): Promise<Uint8Array>;

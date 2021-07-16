@@ -1,8 +1,7 @@
-import { argv, exit } from "process";
-import { log, warn, fatal } from "./log";
+import { argv } from "process";
+import { warn, fatal } from "./log";
 import fg from "fast-glob";
-import { readFileSync, existsSync, mkdirpSync, writeFileSync } from "fs-extra";
-import { join, dirname } from "path";
+import { readFileSync, existsSync, writeFileSync } from "fs-extra";
 
 export async function updateDosbox() {
     const svnFlag = argv[3];
