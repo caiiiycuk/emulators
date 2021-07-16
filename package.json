@@ -21,7 +21,7 @@
     "author": "Alexander Guryanov (aka caiiiycuk)",
     "license": "GPL-2.0",
     "bugs": {
-        "url": "https://github.com/js-dos/emulators/issues"
+        "url": "https://github.com/caiiiycuk/js-dos/issues"
     },
     "homepage": "https://js-dos.com",
     "devDependencies": {
