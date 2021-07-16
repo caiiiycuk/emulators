@@ -413,7 +413,7 @@ void server_mouse_button(int button, bool pressed, uint64_t pressedMs) {
 }
 
 extern void mickeySync();
-void server_mouse_sync() {
+void server_mouse_sync(uint64_t syncMs) {
 #ifndef EMSCRIPTEN
   std::lock_guard<std::mutex> g(eventsMutex);
 #endif

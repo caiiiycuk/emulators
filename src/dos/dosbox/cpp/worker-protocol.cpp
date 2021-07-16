@@ -99,6 +99,9 @@ EM_JS(void, ws_init_runtime, (const char* sessionId), {
         case "wc-mouse-button": {
           Module._mouseButton(data.props.button, data.props.pressed, data.props.timeMs);
         } break;
+        case "wc-mouse-sync": {
+          Module._mouseSync(data.props.timeMs);
+        } break;
         case "wc-sync-sleep": {
           // ignore
         } break;
@@ -283,6 +286,10 @@ extern "C" void EMSCRIPTEN_KEEPALIVE mouseMove(float x, float y, uint64_t movedM
 
 extern "C" void EMSCRIPTEN_KEEPALIVE mouseButton(int button, bool pressed, uint64_t pressedMs) {
   server_mouse_button(button, pressed, pressedMs);
+}
+
+extern "C" void EMSCRIPTEN_KEEPALIVE mouseSync(uint64_t syncMs) {
+  server_mouse_sync(syncMs);
 }
 
 extern "C" void EMSCRIPTEN_KEEPALIVE exitRuntime() {

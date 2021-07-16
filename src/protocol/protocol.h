@@ -18,7 +18,7 @@ extern int server_run();
 extern void server_add_key(KBD_KEYS key, bool pressed, uint64_t pressedMs);
 extern void server_mouse_moved(float x, float y, uint64_t movedMs);
 extern void server_mouse_button(int button, bool pressed, uint64_t pressedMs);
-extern void server_mouse_sync();
+extern void server_mouse_sync(uint64_t syncMs);
 extern void server_pause();
 extern void server_resume();
 extern void server_mute();
