@@ -266,7 +266,11 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
     }
 
     public sendMouseMotion(x: number, y: number) {
-        this.sendClientMessage("wc-mouse-move", { x, y, timeMs: Date.now() - this.startedAt })
+        this.sendClientMessage("wc-mouse-move", { x, y, relative: false, timeMs: Date.now() - this.startedAt })
+    }
+
+    public sendMouseRelativeMotion(x: number, y: number) {
+        this.sendClientMessage("wc-mouse-move", { x, y, relative: true, timeMs: Date.now() - this.startedAt })
     }
 
     public sendMouseButton(button: number, pressed: boolean) {

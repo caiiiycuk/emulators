@@ -94,7 +94,7 @@ EM_JS(void, ws_init_runtime, (const char* sessionId), {
           Module._addKey(data.props.key, data.props.pressed, data.props.timeMs);
         } break;
         case "wc-mouse-move": {
-          Module._mouseMove(data.props.x, data.props.y, data.props.timeMs);
+          Module._mouseMove(data.props.x, data.props.y, data.props.relative, data.props.timeMs);
         } break;
         case "wc-mouse-button": {
           Module._mouseButton(data.props.button, data.props.pressed, data.props.timeMs);
@@ -280,8 +280,8 @@ extern "C" void EMSCRIPTEN_KEEPALIVE addKey(KBD_KEYS key, bool pressed, uint64_t
   server_add_key(key, pressed, timeMs);
 }
 
-extern "C" void EMSCRIPTEN_KEEPALIVE mouseMove(float x, float y, uint64_t movedMs) {
-  server_mouse_moved(x, y, movedMs);
+extern "C" void EMSCRIPTEN_KEEPALIVE mouseMove(float x, float y, bool relative, uint64_t movedMs) {
+  server_mouse_moved(x, y, relative, movedMs);
 }
 
 extern "C" void EMSCRIPTEN_KEEPALIVE mouseButton(int button, bool pressed, uint64_t pressedMs) {

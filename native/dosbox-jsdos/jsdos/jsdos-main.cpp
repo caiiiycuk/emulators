@@ -387,18 +387,26 @@ void server_add_key(KBD_KEYS key, bool pressed, uint64_t pressedMs) {
     }
 }
 
-void server_mouse_moved(float x, float y, uint64_t movedMs) {
+void server_mouse_moved(float x, float y, bool relative, uint64_t movedMs) {
 #ifndef EMSCRIPTEN
   std::lock_guard<std::mutex> g(eventsMutex);
 #endif
-  Mouse_CursorMoved((x - mouseX) * surfaceWidth,
+  if (relative) {
+    Mouse_CursorMoved(x,
+                    y,
+                    x,
+                    y,
+                    true);
+  } else {
+    Mouse_CursorMoved((x - mouseX) * surfaceWidth,
                     (y - mouseY) * surfaceHeight,
                     x,
                     y,
                     false);
 
-  mouseX = x;
-  mouseY = y;
+    mouseX = x;
+    mouseY = y;
+  }
 }
 
 void server_mouse_button(int button, bool pressed, uint64_t pressedMs) {

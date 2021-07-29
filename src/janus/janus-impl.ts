@@ -274,6 +274,10 @@ class JanusBackendImpl implements JanusCommandInterface {
         this.sendPipeMessage("mmove", x, y, Date.now() - this.startedAt);
     }
 
+    sendMouseRelativeMotion(x: number, y: number) {
+        throw new Error("not implemented");
+    }
+
     sendMouseButton(button: number, pressed: boolean) {
         this.sendPipeMessage("m" + (pressed ? "down" : "up"), button, Date.now() - this.startedAt);
     }

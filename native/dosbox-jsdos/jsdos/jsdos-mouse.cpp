@@ -133,6 +133,14 @@ struct mickey {
         float col, row;
 };
 
+// @caiiiycuk: relative mode means, that mouse movement
+// mickeyCol, mickeyRow stores relative movements.
+// Opposite to absolute values in non relative mode
+bool relativeMode = false;
+
+// @caiiiycuk: sometimes mouse of browser can be
+// out of sync with dos mouse position. We can
+// fix it with mickeySync()
 constexpr Bitu mickeyRelSyncCount = 3;
 Bitu mickeyRelSyncTries = mickeyRelSyncCount;
 extern Bitu surfaceWidth;
@@ -144,6 +152,15 @@ extern void mickeySync() {
 
 mickey getRelMickey(float prevCol, float prevRow,
                     float col, float row) {
+  if (relativeMode) {
+    return {
+      .mickey_x = (int) prevCol,
+      .mickey_y = (int) prevRow,
+      .col = 0,
+      .row = 0
+    };						
+  }
+
   while (mickeyRelSyncTries) {
     mouse.col = 0;
     mouse.row = 0;
@@ -525,16 +542,24 @@ void DrawCursor() {
 }
 
 void Mouse_CursorMoved(float xrel,float yrel,float x,float y,bool emulate) {
+	relativeMode = emulate;
 	if (emulate) {
-                float dx = xrel * mouse.pixelPerMickey_x;
-                float dy = yrel * mouse.pixelPerMickey_y;
+		float dx = xrel * mouse.pixelPerMickey_x;
+		float dy = yrel * mouse.pixelPerMickey_y;
 
-                if((fabs(xrel) > 1.0) || (mouse.senv_x < 1.0)) dx *= mouse.senv_x;
-                if((fabs(yrel) > 1.0) || (mouse.senv_y < 1.0)) dy *= mouse.senv_y;
+		if((fabs(xrel) > 1.0) || (mouse.senv_x < 1.0)) dx *= mouse.senv_x;
+		if((fabs(yrel) > 1.0) || (mouse.senv_y < 1.0)) dy *= mouse.senv_y;
 
-                if (useps2callback) dy *= 2;
+		if (useps2callback) dy *= 2;
 
-                mouse.col += dx;
+		mouse.mickeyCol += (dx * mouse.mickeysPerPixel_x);
+		mouse.mickeyRow += (dy * mouse.mickeysPerPixel_y);
+		if (mouse.mickeyCol >= 32768.0) mouse.mickeyCol -= 65536.0;
+		else if (mouse.mickeyCol <= -32769.0) mouse.mickeyCol += 65536.0;
+		if (mouse.mickeyRow >= 32768.0) mouse.mickeyRow -= 65536.0;
+		else if (mouse.mickeyRow <= -32769.0) mouse.mickeyRow += 65536.0;
+
+		mouse.col += dx;
 		mouse.row += dy;
 	} else {
 		if (CurMode->type == M_TEXT) {

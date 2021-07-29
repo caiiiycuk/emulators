@@ -72,8 +72,11 @@ export interface CommandInterface {
     // * `sendKeyEvent(keyCode, pressed)` - sends single key (press or release) event to backend
     sendKeyEvent: (keyCode: number, pressed: boolean) => void;
 
-    // * `simulateMouseMotion` - sends mouse motion event to backend, position is in range [0, 1]
+    // * `sendMouseMotion` - sends mouse motion event to backend, position is in range [0, 1]
     sendMouseMotion: (x: number, y: number) => void;
+
+    // * `sendRelativeMotion` - sends mouse motion event to backend, position is absolute diff of position
+    sendMouseRelativeMotion: (x: number, y: number) => void;
 
     // * `simulateMouseButton` - sends mouse button event (press or release) to backend
     sendMouseButton: (button: number, pressed: boolean) => void;
