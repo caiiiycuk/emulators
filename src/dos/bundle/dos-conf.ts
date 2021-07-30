@@ -161,7 +161,7 @@ function validateCategory(category: DosConfigCategory, valid: DosConfigCategory)
                         return;
                     }
                 } else if (allowedValue === undefined) {
-                    reject(new Error("Incorrect value '" + value + "' for '" + category.name +
+                    reject(new Error("Incorrect value '" + value + "' (" + (typeof value) + ") for '" + category.name +
                         "." + (next.name || key) + "' allowed is " + JSON.stringify(validOption.allowedValues)));
                     return;
                 }
