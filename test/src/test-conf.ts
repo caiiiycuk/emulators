@@ -41,9 +41,9 @@ export function testConf() {
         await check((c) => (c.cpu.options as any).core22 = "not-a-core",
                     "Unknown option 'core22' in 'cpu'");
         await check((c) => delete c.cpu.options.core.value,
-                    "Incorrect value 'undefined' for 'cpu.core' allowed is [\"auto\",\"normal\",\"simple\"]");
+                    "Incorrect value 'undefined' (undefined) for 'cpu.core' allowed is [\"auto\",\"normal\",\"simple\"]");
         await check((c) => c.cpu.options.core.value = "not-a-core",
-                    "Incorrect value 'not-a-core' for 'cpu.core' allowed is [\"auto\",\"normal\",\"simple\"]");
+                    "Incorrect value 'not-a-core' (string) for 'cpu.core' allowed is [\"auto\",\"normal\",\"simple\"]");
         await check((c) => delete c.cpu.options.core,
                     "Option 'core' is missed in 'cpu'");
         await check((c) => c.cpu.options.cycles.value = "fixed asd",
@@ -177,7 +177,7 @@ gusrate=44100
 gusbase=240
 gusirq=5
 gusdma=3
-ultradir=C:ULTRASND
+ultradir=C:\\ULTRASND
 
 [speaker]
 # pcspeaker: Enable PC-Speaker emulation.
