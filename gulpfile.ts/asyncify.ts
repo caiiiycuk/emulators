@@ -73,6 +73,14 @@ function extractFnSignature(next: string): string {
         }
     }
 
+    // case 3
+    if (fnSig.length === 0) {
+        const matched = /\s*(.*)\s+http:\/\//.exec(next);
+        if (matched) {
+            fnSig = matched[1];
+        }
+    }
+
     fnSig = fnSig.trim();
 
     if (fnSig.length == 0) {
