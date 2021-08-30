@@ -70,7 +70,7 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
 
     private configPromise: Promise<DosConfig>;
     private configResolve: (config: DosConfig) => void = () => {/**/};
-    private startupErrorLog: string | undefined = "";
+    private panicMessages: string[] = [];
 
     constructor(bundles: Uint8Array[],
                 transport: TransportLayer,
@@ -106,16 +106,14 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
                 delete this.bundles;
             } break;
             case "ws-server-ready": {
-                if ((this.startupErrorLog || "").length > 0) {
+                if (this.panicMessages.length > 0) {
                     if (this.transport.exit !== undefined) {
                         this.transport.exit();
                     }
-                    this.ready(new Error(this.startupErrorLog));
+                    this.ready(new Error(JSON.stringify(this.panicMessages)));
                 } else {
-                    delete this.startupErrorLog;
                     this.ready(null);
                 }
-
                 delete (this as any).ready;
             } break;
             case "ws-frame-set-size": {
@@ -129,15 +127,15 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
             } break;
             case "ws-log": {
                 // eslint-disable-next-line
-                this.onLog.apply(this, props.args);
+                this.onLog(props.tag, props.message);
             } break;
             case "ws-warn": {
                 // eslint-disable-next-line
-                this.onWarn.apply(this, props.args);
+                this.onWarn(props.tag, props.message);
             } break;
             case "ws-err": {
                 // eslint-disable-next-line
-                this.onErr.apply(this, props.args);
+                this.onErr(props.tag, props.message);
             } break;
             case "ws-stdout": {
                 this.onStdout(props.message);
@@ -194,19 +192,22 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
         this.eventsImpl.fireSoundPush(samples);
     }
 
-    private onLog(...args: any[]) {
-        this.eventsImpl.fireMessage("log", ...args);
+    private onLog(tag: string, message: string) {
+        this.eventsImpl.fireMessage("log", "[" + tag + "]" + message);
     }
 
-    private onWarn(...args: any[]) {
-        this.eventsImpl.fireMessage("warn", ...args);
+    private onWarn(tag: string, message: string) {
+        this.eventsImpl.fireMessage("warn", "[" + tag + "]" + message);
     }
 
-    private onErr(...args: any[]) {
-        this.eventsImpl.fireMessage("error", ...args);
-        if (this.startupErrorLog !== undefined) {
-            this.startupErrorLog += JSON.stringify(args) + "\n";
+    private onErr(tag: string, message: string) {
+        if (tag === "panic") {
+            this.panicMessages.push(message);
+			console.error("[" + tag + "]" + message);
+        } else {
+			console.log("[" + tag + "]" + message);
         }
+        this.eventsImpl.fireMessage("error", "[" + tag + "]" + message);
     }
 
     private onStdout(message: string) {

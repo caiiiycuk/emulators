@@ -26,14 +26,14 @@ EM_JS(void, ws_init_runtime, (const char* sessionId), {
     Module.sendMessage = sendMessage;
     Module.ping = function(msg) {
     };
-    Module.log = function() {
-      sendMessage("ws-log", { args: Array.prototype.slice.call(arguments) });
+    Module.log = function(message) {
+      sendMessage("ws-log", { tag: "worker", message });
     };
-    Module.warn = function() {
-      sendMessage("ws-warn", { args: Array.prototype.slice.call(arguments) });
+    Module.warn = function(message) {
+      sendMessage("ws-warn", { tag: "worker", message });
     };
-    Module.err = function() {
-      sendMessage("ws-err", { args: Array.prototype.slice.call(arguments) });
+    Module.err = function(message) {
+      sendMessage("ws-err", { tag: "panic", message });
     };
     Module.print = Module.log;
     Module.printErr = Module.err;
@@ -176,6 +176,18 @@ EM_JS(void, ws_client_stdout, (const char* data, uint32_t amount), {
     Module.sendMessage("ws-stdout", { message: UTF8ToString(data, amount) });
   });
 
+EM_JS(void, ws_client_log, (const char* tag, const char* message), {
+    Module.sendMessage("ws-log", { tag: UTF8ToString(tag), message: UTF8ToString(message) });
+  });
+
+EM_JS(void, ws_client_warn, (const char* tag, const char* message), {
+    Module.sendMessage("ws-warn", { tag: UTF8ToString(tag), message: UTF8ToString(message) });
+  });
+
+EM_JS(void, ws_client_error, (const char* tag, const char* message), {
+    Module.sendMessage("ws-err", { tag: UTF8ToString(tag), message: UTF8ToString(message) });
+  });
+
 EM_JS(void, emsc_exit_runtime, (), {
     if (!Module.exit) {
       var message = "ERR! exitRuntime called without request" +
@@ -259,6 +271,18 @@ void client_frame_update_lines(uint32_t *lines, uint32_t batchCount, void *rgba)
 
 void client_stdout(const char* data, uint32_t amount) {
   ws_client_stdout(data, amount);
+}
+
+void client_log(const char* tag, const char* message) {
+  ws_client_log(tag, message);
+}
+
+void client_warn(const char* tag, const char* message) {
+  ws_client_warn(tag, message);
+}
+
+void client_error(const char* tag, const char* message) {
+  ws_client_error(tag, message);
 }
 
 void client_sound_init(int freq) {

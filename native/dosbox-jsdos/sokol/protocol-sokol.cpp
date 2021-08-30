@@ -116,6 +116,18 @@ void client_stdout(const char* data, uint32_t amount) {
   }
 }
 
+void client_log(const char* tag, const char* message) {
+  printf("[%s] %s\n", tag, message);
+}
+
+void client_warn(const char* tag, const char* message) {
+  printf("WARN! [%s] %s\n", tag, message);
+}
+
+void client_error(const char* tag, const char* message) {
+  printf("ERR! [%s] %s\n", tag, message);
+}
+
 void client_sound_init(int freq) {
   saudio_desc audioDescription = {};
   audioDescription.sample_rate = static_cast<int>(freq);

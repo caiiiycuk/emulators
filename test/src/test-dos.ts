@@ -54,7 +54,7 @@ function testServer(factory: CIFactory, name: string) {
             const ci = await factory(new Uint8Array(buffer as ArrayBuffer));
             assert.fail();
         } catch (e) {
-            assert.equal("[\"Broken bundle, .jsdos/dosbox.conf not found\"]\n", e.message);
+            assert.equal("[\"Broken bundle, .jsdos/dosbox.conf not found\"]", e.message);
         }
     });
 

@@ -5,17 +5,8 @@ import { MessagesQueue } from "../../../protocol/messages-queue";
 export async function dosDirect(wasmModule: WasmModule, sessionId: string): Promise<TransportLayer> {
     const messagesQueue = new MessagesQueue();
     let handler: MessageHandler = messagesQueue.handler.bind(messagesQueue);
-    let startupErrorLog = "";
 
-    const startupErrFn = (...args: any[]) => {
-        console.error(...args);
-        startupErrorLog += JSON.stringify(args) + "\n";
-    }
-
-    const module: any = {
-        err: startupErrFn,
-        printErr: startupErrFn,
-    };
+    const module: any = {};
 
     module.postMessage = (name: ServerMessage, props: {[key: string]: any}) => {
         handler(name, props);
@@ -49,14 +40,6 @@ export async function dosDirect(wasmModule: WasmModule, sessionId: string): Prom
     }
 
     await wasmModule.instantiate(module);
-    if (startupErrorLog.length > 0) {
-        transportLayer.sendMessageToServer("wc-exit", {});
-        throw new Error(startupErrorLog);
-    }
-
-    module.err = console.error;
-    module.printErr = console.error;
-
     module.callMain([sessionId]);
 
     return transportLayer;

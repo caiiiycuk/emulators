@@ -14,6 +14,10 @@ void client_sound_init(int freq);
 void client_sound_push(const float* samples, int num_samples);
 void client_stdout(const char* data, uint32_t amount);
 
+void client_log(const char* tag, const char* message);
+void client_warn(const char* tag, const char* message);
+void client_error(const char* tag, const char* message);
+
 extern int server_run();
 extern void server_add_key(KBD_KEYS key, bool pressed, uint64_t pressedMs);
 extern void server_mouse_moved(float x, float y, bool relative, uint64_t movedMs);
