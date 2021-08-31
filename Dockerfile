@@ -20,7 +20,6 @@ COPY package-lock.json /app/package-lock.json
 RUN source /emsdk/emsdk_env.sh && npm install && npm install http-server
 
 COPY tsconfig.json /app/tsconfig.json
-COPY tslint.json /app/tslint.json
 COPY CMakeLists.txt /app/CMakeLists.txt
 COPY gulpfile.ts /app/gulpfile.ts
 COPY native /app/native
