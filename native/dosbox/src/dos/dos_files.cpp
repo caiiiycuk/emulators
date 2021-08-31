@@ -437,7 +437,7 @@ void client_stdout_wrapper(const char* data, uint32_t amount) {
   } else {
     for (int i = 0; i < amount; ++i) {
       char next = data[i];
-      if (std::isprint(next) || next == '\n') {
+      if (isascii(next) || next == '\n') {
           line += next;
       }
 
