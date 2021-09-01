@@ -35,6 +35,8 @@ export async function dosDirect(wasmModule: WasmModule, sessionId: string): Prom
         },
     };
 
+    (transportLayer as any).module = module;
+
     if (typeof window !== "undefined") {
         window.addEventListener("message", sleepHandler, { passive: true });
     }
