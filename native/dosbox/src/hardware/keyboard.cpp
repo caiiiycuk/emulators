@@ -215,7 +215,7 @@ static void write_p64(Bitu port,Bitu val,Bitu iolen) {
 		keyb.command=CMD_SETOUTPORT;
 		break;
 	default:
-		LOG(LOG_KEYBOARD,LOG_ERROR)("Port 64 write with val %d",val);
+		LOG(LOG_KEYBOARD,LOG_WARN)("Port 64 write with val %d",val);
 		break;
 	}
 }
