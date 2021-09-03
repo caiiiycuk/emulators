@@ -25,7 +25,7 @@ ZipArchive *readZipArchiveFile(const char *path) {
     char *buffer;
     long length;
 
-    file = fopen(libzipTempArchive, "rb");
+    file = fopen(path, "rb");
     if (!file) {
         fprintf(stderr, "zip_from_fs: can't open file file: '%s', errno: %d\n", path, errno);
         return 0;
@@ -170,6 +170,25 @@ ZipArchive EMSCRIPTEN_KEEPALIVE zip_from_fs(double changedAfterMs) {
 }
 
 int EMSCRIPTEN_KEEPALIVE zip_to_fs(const char *data, uint32_t length) {
+    FILE *archive = fopen(libzipTempArchive, "wb");
+    if (!archive) {
+        fprintf(stderr, "zip_to_fs: unable to create archive file\n");
+        return 1;
+    }
+    fwrite(data, length, 1, archive);
+    fclose(archive);
+
+    zipfile_to_fs(libzipTempArchive);
+
+    if (remove(libzipTempArchive) != 0) {
+        fprintf(stderr, "zip_to_fs: unable to delete archive\n");
+        return 1;
+    }
+
+    return 0;
+}
+
+int EMSCRIPTEN_KEEPALIVE zipfile_to_fs(const char *file) {
     struct zip *zipArchive;
     struct zip_file *zipFile;
     struct zip_stat zipStat;
@@ -179,15 +198,7 @@ int EMSCRIPTEN_KEEPALIVE zip_to_fs(const char *data, uint32_t length) {
     int fd;
     long long sum;
 
-    FILE *archive = fopen(libzipTempArchive, "wb");
-    if (!archive) {
-        fprintf(stderr, "zip_to_fs: unable to create archive file\n");
-        return 1;
-    }
-    fwrite(data, length, 1, archive);
-    fclose(archive);
-
-    if ((zipArchive = zip_open(libzipTempArchive, 0, &err)) == 0) {
+    if ((zipArchive = zip_open(file, 0, &err)) == 0) {
         zip_error_to_str(buf, sizeof(buf), err, errno);
         fprintf(stderr, "zip_to_fs: can't open zip archive: %s\n", buf);
         return 1;
@@ -205,7 +216,8 @@ int EMSCRIPTEN_KEEPALIVE zip_to_fs(const char *data, uint32_t length) {
                 zipFile = zip_fopen_index(zipArchive, i, 0);
                 if (!zipFile) {
                     fprintf(stderr, "zip_to_fs: %s\n", zip_strerror(zipArchive));
-                    fprintf(stderr, "zip_to_fs: Try to repack archive with default zip program, error: '%s'\n",
+                    fprintf(stderr,
+                            "zip_to_fs: Try to repack archive with default zip program, error: '%s'\n",
                             zip_strerror(zipArchive));
                     exit(100);
                 }
@@ -233,11 +245,6 @@ int EMSCRIPTEN_KEEPALIVE zip_to_fs(const char *data, uint32_t length) {
     }
     if (zip_close(zipArchive) == -1) {
         fprintf(stderr, "zip_to_fs: can't close zip archive %s\n", zip_strerror(zipArchive));
-        return 1;
-    }
-
-    if (remove(libzipTempArchive) != 0) {
-        fprintf(stderr, "zip_to_fs: unable to delete archive\n");
         return 1;
     }
 
