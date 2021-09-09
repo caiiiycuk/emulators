@@ -57,9 +57,27 @@ static int is_dir(const char *dir) {
     return S_ISDIR(st.st_mode);
 }
 
+static double getMTimeMs(const char* file) {
+    struct stat fileStat;
+#ifdef EMSCRIPTEN
+    double mTimeMs = getMTimeMs(nameInFs);
+#else
+    if (stat(file, &fileStat) == -1) {
+        fprintf(stderr, "zip_from_fs: getMTimeMs can't stat file %s\n", file);
+        return 0;
+    }
+    double mTimeMs = fileStat.st_mtim.tv_sec * 1000.0 + fileStat.st_mtim.tv_nsec / 1000000.0;
+#endif
+
+    return mTimeMs;
+}
+
+double lastExtractedMTimeMs = 0;
+double EMSCRIPTEN_KEEPALIVE getChangesMTimeMs() {
+    return lastExtractedMTimeMs;
+}
 
 int zip_recursively(zip_t *zipArchive, const char *directory, double changedAfterMs) {
-    struct stat fileStat;
     struct dirent *dirp;
 
     DIR *dp = opendir(directory);
@@ -88,16 +106,7 @@ int zip_recursively(zip_t *zipArchive, const char *directory, double changedAfte
                 }
             } else {
                 if (changedAfterMs > 0) {
-#ifdef EMSCRIPTEN
-                  double mTimeMs = getMTimeMs(nameInFs);
-#else
-                  if (stat(nameInFs, &fileStat) == -1) {
-                    fprintf(stderr, "zip_from_fs: can't stat file %s\n", nameInFs);
-                    return 0;
-                  }                  
-                  double mTimeMs = fileStat.st_mtim.tv_sec * 1000.0 + fileStat.st_mtim.tv_nsec / 1000000.0;
-#endif
-                  if (mTimeMs <= changedAfterMs) {
+                  if (getMTimeMs(nameInFs) <= changedAfterMs) {
                     free(nameInFs);
                     continue;
                   }
@@ -238,6 +247,8 @@ int EMSCRIPTEN_KEEPALIVE zipfile_to_fs(const char *file) {
                 }
                 close(fd);
                 zip_fclose(zipFile);
+
+                lastExtractedMTimeMs = getMTimeMs(zipStat.name);
             }
         } else {
             printf("File[%s] Line[%d]\n", __FILE__, __LINE__);

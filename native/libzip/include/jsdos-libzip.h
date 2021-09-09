@@ -18,6 +18,7 @@ extern "C" {
 ZipArchive EMSCRIPTEN_KEEPALIVE zip_from_fs(double changedAfterMs);
 int EMSCRIPTEN_KEEPALIVE zip_to_fs(const char *data, uint32_t length);
 int EMSCRIPTEN_KEEPALIVE zipfile_to_fs(const char *fileName);
+double EMSCRIPTEN_KEEPALIVE getChangesMTimeMs();
 void EMSCRIPTEN_KEEPALIVE libzip_destroy();
 
 #ifdef __cplusplus
