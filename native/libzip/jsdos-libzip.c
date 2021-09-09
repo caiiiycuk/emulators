@@ -12,7 +12,7 @@
 #include <sys/stat.h>
 
 #ifdef EMSCRIPTEN
-EM_JS(double, getMTimeMs, (const char* path), {
+EM_JS(double, emsc_getMTimeMs, (const char* path), {
   var lookup = FS.lookupPath(UTF8ToString(path));
   return lookup.node.timestamp;
 });
@@ -60,7 +60,7 @@ static int is_dir(const char *dir) {
 static double getMTimeMs(const char* file) {
     struct stat fileStat;
 #ifdef EMSCRIPTEN
-    double mTimeMs = getMTimeMs(nameInFs);
+    double mTimeMs = emsc_getMTimeMs(file);
 #else
     if (stat(file, &fileStat) == -1) {
         fprintf(stderr, "zip_from_fs: getMTimeMs can't stat file %s\n", file);
@@ -73,7 +73,7 @@ static double getMTimeMs(const char* file) {
 }
 
 double lastExtractedMTimeMs = 0;
-double EMSCRIPTEN_KEEPALIVE getChangesMTimeMs() {
+double EMSCRIPTEN_KEEPALIVE get_changes_mtime_ms() {
     return lastExtractedMTimeMs;
 }
 

@@ -220,7 +220,7 @@ EM_JS(void, emsc_extract_bundle_to_fs, (), {
         return;
       }
 
-      Module.fsCreatedAt = Module.fsCreatedAt || Module._getChangesMTimeMS();
+      Module.fsCreatedAt = Module.fsCreatedAt || Module._get_changes_mtime_ms();
 
       const configContentPtr = Module._getConfigContent();
       const configContent = Module.UTF8ToString(configContentPtr);
