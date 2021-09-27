@@ -2709,3 +2709,15 @@ void GFX_GetSize(int &width, int &height, bool &fullscreen) {
 
 void client_stdout(const char* data, uint32_t amount) {
 }
+
+void client_log(const char* tag, const char* message) {
+  printf("log[%s]: %s\n", tag, message);
+}
+
+void client_warn(const char* tag, const char* message) {
+  printf("warn[%s]: %s\n", tag, message);
+}
+
+void client_error(const char* tag, const char* message) {
+  printf("error[%s]: %s\n", tag, message);
+}

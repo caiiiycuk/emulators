@@ -57,7 +57,7 @@ void CALLBACK_DeAllocate(Bitu in) {
 }
 
 
-void CALLBACK_Idle(void) {
+extern "C" void CALLBACK_Idle(void) {
 /* this makes the cpu execute instructions to handle irq's and then come back */
 	Bitu oldIF=GETFLAG(IF);
 	SETFLAGBIT(IF,true);

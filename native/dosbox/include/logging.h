@@ -29,7 +29,8 @@ enum LOG_TYPES {
 	LOG_IO,
 	LOG_PCI,
 	LOG_MSG,
-	LOG_MAX
+        LOG_NET,
+        LOG_MAX,
 };
 
 enum LOG_SEVERITIES {

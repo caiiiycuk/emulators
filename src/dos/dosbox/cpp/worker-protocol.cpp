@@ -1,8 +1,15 @@
 #include <emscripten.h>
 #include <protocol.h>
+#include <timer.h>
 
-#include <stdio.h>
-#include <stdlib.h>
+#include <cstdio>
+#include <cstdlib>
+#include <string>
+
+NetworkType connectNetwork = NETWORK_NA;
+std::string connectToAddress("");
+uint32_t connectToPort(0);
+
 
 int frameHeight = 0;
 int frameWidth = 0;
@@ -37,6 +44,12 @@ EM_JS(void, ws_init_runtime, (const char* sessionId), {
     };
     Module.print = Module.log;
     Module.printErr = Module.err;
+    Module.mallocString = function(value) {
+        const valueLength = Module['lengthBytesUTF8'](value) + 1;
+        const valueBuffer = Module['_malloc'](valueLength);
+        Module.stringToUTF8(value, valueBuffer, valueLength);
+        return valueBuffer;
+    };
 
     function messageHandler(e) {
       var data = e.data;
@@ -50,6 +63,10 @@ EM_JS(void, ws_init_runtime, (const char* sessionId), {
         return;
       }
 
+      processMessage(data);
+    }
+
+    function processMessage(data) {
       switch (data.name) {
         case "wc-run": {
           Module.bundles = data.props.bundles;
@@ -104,6 +121,14 @@ EM_JS(void, ws_init_runtime, (const char* sessionId), {
         } break;
         case "wc-sync-sleep": {
           // ignore
+        } break;
+        case "wc-connect": {
+          const buffer = Module.mallocString(data.props.address);
+          Module._networkConnect(data.props.networkType, buffer, data.props.port);
+          Module._free(buffer);
+        } break;
+        case "wc-disconnect": {
+          Module._networkDisconnect(data.props.networkType);
         } break;
         default: {
           console.log("Unknown client message (wc): " + JSON.stringify(data));
@@ -186,6 +211,14 @@ EM_JS(void, ws_client_warn, (const char* tag, const char* message), {
 
 EM_JS(void, ws_client_error, (const char* tag, const char* message), {
     Module.sendMessage("ws-err", { tag: UTF8ToString(tag), message: UTF8ToString(message) });
+  });
+
+EM_JS(void, ws_client_network_connected, (NetworkType networkType, const char* address, uint32_t port), {
+    Module.sendMessage("ws-connected", { networkType, address: UTF8ToString(address), port });
+  });
+
+EM_JS(void, ws_client_network_disconnected, (NetworkType networkType), {
+    Module.sendMessage("ws-disconnected", { networkType });
   });
 
 EM_JS(void, emsc_exit_runtime, (), {
@@ -292,6 +325,28 @@ void client_sound_init(int freq) {
 void client_sound_push(const float *samples, int num_samples) {
   emsc_ws_client_sound_push(samples, num_samples);
 }
+
+void client_network_connected(NetworkType networkType, const char* address, uint32_t port) {
+  ws_client_network_connected(networkType, address, port);
+}
+
+void client_network_disconnected(NetworkType networkType) {
+  ws_client_network_disconnected(networkType);
+}
+
+extern "C" void EMSCRIPTEN_KEEPALIVE networkConnect(NetworkType networkType, const char* address, uint32_t port) {
+  connectNetwork = networkType;
+  connectToAddress = address;
+  connectToPort = port;
+}
+
+extern "C" void EMSCRIPTEN_KEEPALIVE networkDisconnect(NetworkType networkType) {
+  connectNetwork = NETWORK_NA;
+  connectToAddress = "";
+  connectToPort = 0;
+  server_network_disconnect(networkType);
+}
+
 extern "C" void EMSCRIPTEN_KEEPALIVE extractBundleToFs() {
   emsc_extract_bundle_to_fs();
 }
@@ -320,7 +375,24 @@ extern "C" void EMSCRIPTEN_KEEPALIVE exitRuntime() {
   emsc_exit_runtime();
 }
 
+void workerTickHandler() {
+  static bool reentranceLock = false;
+  if (reentranceLock) {
+    return;
+  }
+
+  reentranceLock = true;
+  if (connectNetwork != NETWORK_NA) {
+    server_network_connect(connectNetwork, connectToAddress.c_str(), connectToPort);
+    connectNetwork = NETWORK_NA;
+    connectToAddress = "";
+    connectToPort = 0;
+  }
+  reentranceLock = false;
+}
+
 extern "C" void EMSCRIPTEN_KEEPALIVE runRuntime() {
+  TIMER_AddTickHandler(&workerTickHandler);
   server_run();
   emsc_ws_exit_runtime();
   exitRuntime();

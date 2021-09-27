@@ -1,5 +1,5 @@
 import { DosConfig } from "../dos/bundle/dos-conf";
-import { CommandInterface } from "../emulators";
+import { CommandInterface, NetworkType } from "../emulators";
 import { CommandInterfaceEventsImpl } from "../impl/ci-impl";
 
 export type ClientMessage =
@@ -15,7 +15,9 @@ export type ClientMessage =
     "wc-pause" |
     "wc-resume" |
     "wc-mute" |
-    "wc-unmute";
+    "wc-unmute" |
+    "wc-connect" |
+    "wc-disconnect";
 
 export type ServerMessage =
     "ws-ready" |
@@ -31,13 +33,15 @@ export type ServerMessage =
     "ws-sound-init" |
     "ws-sound-push" |
     "ws-config" |
-    "ws-sync-sleep";
+    "ws-sync-sleep" |
+    "ws-connected" |
+    "ws-disconnected";
 
-export type MessageHandler =  (name: ServerMessage, props: {[key: string]: any}) => void;
+export type MessageHandler = (name: ServerMessage, props: { [key: string]: any }) => void;
 
 export interface TransportLayer {
     sessionId: string;
-    sendMessageToServer(name: ClientMessage, props?: {[key: string]: any}): void;
+    sendMessageToServer(name: ClientMessage, props?: { [key: string]: any }): void;
     initMessageHandler(handler: MessageHandler): void;
     exit?: () => void;
 }
@@ -66,15 +70,22 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
 
     private eventsImpl = new CommandInterfaceEventsImpl();
 
-    private keyMatrix: {[keyCode: number]: boolean} = {};
+    private keyMatrix: { [keyCode: number]: boolean } = {};
 
     private configPromise: Promise<DosConfig>;
-    private configResolve: (config: DosConfig) => void = () => {/**/};
+    private configResolve: (config: DosConfig) => void = () => {/**/ };
     private panicMessages: string[] = [];
 
+    private connectPromise: Promise<void> | null = null;
+    private connectResolve: () => void = () => { /**/ };
+    private connectReject: () => void = () => { /**/ };
+
+    private disconnectPromise: Promise<void> | null = null;
+    private disconnectResolve: () => void = () => { /**/ };
+
     constructor(bundles: Uint8Array[],
-                transport: TransportLayer,
-                ready: (err: Error | null) => void) {
+        transport: TransportLayer,
+        ready: (err: Error | null) => void) {
         this.bundles = bundles;
         this.transport = transport;
         this.ready = ready;
@@ -82,13 +93,13 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
         this.transport.initMessageHandler(this.onServerMessage.bind(this));
     }
 
-    private sendClientMessage(name: ClientMessage, props?: {[key: string]: any}) {
+    private sendClientMessage(name: ClientMessage, props?: { [key: string]: any }) {
         props = props || {};
         props.sessionId = props.sessionId || this.transport.sessionId;
         this.transport.sendMessageToServer(name, props);
     }
 
-    private onServerMessage(name: ServerMessage, props: {[key: string]: any}) {
+    private onServerMessage(name: ServerMessage, props: { [key: string]: any }) {
         if (name === undefined || name.length < 3 ||
             name[0] !== "w" || name[1] !== "s" || name[2] !== "-") {
             return;
@@ -155,6 +166,26 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
             case "ws-sync-sleep": {
                 this.sendClientMessage("wc-sync-sleep", props);
             } break;
+            case "ws-connected": {
+                this.connectResolve();
+                this.connectPromise = null;
+                this.connectResolve = () => { /**/ };
+                this.connectReject = () => { /**/ };
+                this.eventsImpl.fireNetworkConnected(props.networkType, props.address, props.port);
+            } break;
+            case "ws-disconnected": {
+                if (this.connectPromise !== null) {
+                    this.connectReject();
+                    this.connectPromise = null;
+                    this.connectResolve = () => { /**/ };
+                    this.connectReject = () => { /**/ };
+                } else {
+                    this.disconnectResolve();
+                    this.disconnectPromise = null;
+                    this.disconnectResolve = () => { /**/ };
+                }
+                this.eventsImpl.fireNetworkDisconnected(props.networkType);
+            } break;
             default: {
                 // eslint-disable-next-line
                 console.log("Unknown server message (ws):", name);
@@ -203,9 +234,9 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
     private onErr(tag: string, message: string) {
         if (tag === "panic") {
             this.panicMessages.push(message);
-			console.error("[" + tag + "]" + message);
+            console.error("[" + tag + "]" + message);
         } else {
-			console.log("[" + tag + "]" + message);
+            console.log("[" + tag + "]" + message);
         }
         this.eventsImpl.fireMessage("error", "[" + tag + "]" + message);
     }
@@ -351,4 +382,35 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
         return this.eventsImpl;
     }
 
+    public networkConnect(networkType: NetworkType, address: string, port: number): Promise<void> {
+        if (this.connectPromise !== null || this.disconnectPromise !== null) {
+            return Promise.reject(new Error("Already prefoming connection or disconnection..."));
+        }
+
+        this.connectPromise = new Promise<void>((resolve, reject) => {
+            this.connectResolve = resolve;
+            this.connectReject = reject;
+            this.sendClientMessage("wc-connect", {
+                networkType,
+                address,
+                port,
+            });
+        });
+        return this.connectPromise;
+    }
+
+    public networkDisconnect(networkType: NetworkType): Promise<void> {
+        if (this.connectPromise !== null || this.disconnectPromise !== null) {
+            return Promise.reject(new Error("Already prefoming connection or disconnection..."));
+        }
+
+        this.disconnectPromise = new Promise<void>((resolve) => {
+            this.disconnectResolve = resolve;
+
+            this.sendClientMessage("wc-disconnect", {
+                networkType,
+            });
+        });
+        return this.disconnectPromise;
+    }
 }

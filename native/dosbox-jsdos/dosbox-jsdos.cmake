@@ -6,15 +6,23 @@ else ()
     include_directories("${CMAKE_CURRENT_LIST_DIR}/jsdos/linux")
 endif ()
 
-add_definitions(-DHAVE_CONFIG_H -DGET_X86_FUNCTIONS -DJSDOS)
+add_definitions(
+        -DHAVE_CONFIG_H
+        -DGET_X86_FUNCTIONS
+        -DJSDOS
+        -DC_IPX
+        -DWITHOUT_SDL
+)
 
 include_directories(
+        "${CMAKE_CURRENT_LIST_DIR}/sdl2net"
         "${CMAKE_CURRENT_LIST_DIR}/jsdos/include"
         "${CMAKE_CURRENT_LIST_DIR}/../dosbox/include"
         "${CMAKE_CURRENT_LIST_DIR}/../dosbox"
 )
 
 set(SOURCES_CORE_CXX11
+        "${CMAKE_CURRENT_LIST_DIR}/jsdos/jsdos-log.cpp"
         "${CMAKE_CURRENT_LIST_DIR}/jsdos/jsdos-asyncify.cpp"
         "${CMAKE_CURRENT_LIST_DIR}/jsdos/jsdos-timer.cpp"
         "${CMAKE_CURRENT_LIST_DIR}/../dosbox/src/dosbox.cpp"
@@ -25,8 +33,6 @@ set(SOURCES_CORE_CXX11
 
 
 set(SOURCES_CORE_CXX03
-        "${CMAKE_CURRENT_LIST_DIR}/jsdos/jsdos-log.cpp"
-
         "${CMAKE_CURRENT_LIST_DIR}/../dosbox/src/cpu/core_simple.cpp"
         "${CMAKE_CURRENT_LIST_DIR}/../dosbox/src/cpu/paging.cpp"
         "${CMAKE_CURRENT_LIST_DIR}/../dosbox/src/cpu/core_prefetch.cpp"
@@ -94,7 +100,6 @@ set(SOURCES_CORE_CXX03
         "${CMAKE_CURRENT_LIST_DIR}/../dosbox/src/hardware/gus.cpp"
         "${CMAKE_CURRENT_LIST_DIR}/../dosbox/src/hardware/vga_attr.cpp"
         "${CMAKE_CURRENT_LIST_DIR}/../dosbox/src/hardware/vga_paradise.cpp"
-        "${CMAKE_CURRENT_LIST_DIR}/../dosbox/src/hardware/ipxserver.cpp"
         "${CMAKE_CURRENT_LIST_DIR}/../dosbox/src/hardware/dma.cpp"
         "${CMAKE_CURRENT_LIST_DIR}/../dosbox/src/hardware/vga_xga.cpp"
         "${CMAKE_CURRENT_LIST_DIR}/../dosbox/src/hardware/timer.cpp"
@@ -108,7 +113,6 @@ set(SOURCES_CORE_CXX03
         "${CMAKE_CURRENT_LIST_DIR}/../dosbox/src/hardware/vga.cpp"
         "${CMAKE_CURRENT_LIST_DIR}/../dosbox/src/hardware/hardware.cpp"
         "${CMAKE_CURRENT_LIST_DIR}/../dosbox/src/hardware/vga_draw.cpp"
-        "${CMAKE_CURRENT_LIST_DIR}/../dosbox/src/hardware/ipx.cpp"
         "${CMAKE_CURRENT_LIST_DIR}/../dosbox/src/hardware/adlib.cpp"
         "${CMAKE_CURRENT_LIST_DIR}/../dosbox/src/hardware/iohandler.cpp"
         "${CMAKE_CURRENT_LIST_DIR}/../dosbox/src/hardware/joystick.cpp"
@@ -153,6 +157,8 @@ set(SOURCES_SDL_CXX03
         "${CMAKE_CURRENT_LIST_DIR}/../dosbox/src/hardware/mixer.cpp"
         "${CMAKE_CURRENT_LIST_DIR}/../dosbox/src/gui/sdl_mapper.cpp"
         "${CMAKE_CURRENT_LIST_DIR}/../dosbox/src/ints/mouse.cpp"
+        "${CMAKE_CURRENT_LIST_DIR}/../dosbox/src/hardware/ipxserver.cpp"
+        "${CMAKE_CURRENT_LIST_DIR}/../dosbox/src/hardware/ipx.cpp"
         #"${CMAKE_CURRENT_LIST_DIR}/jsdos-cpp/gui/sdlmain.cpp"
         )
 
@@ -162,7 +168,15 @@ set(SOURCES_JSDOS_CXX11
         "${CMAKE_CURRENT_LIST_DIR}/jsdos/jsdos-mapper-noop.cpp"
         "${CMAKE_CURRENT_LIST_DIR}/jsdos/jsdos-noop.cpp"
         "${CMAKE_CURRENT_LIST_DIR}/jsdos/jsdos-mouse.cpp"
+
+        ${CMAKE_CURRENT_LIST_DIR}/jsdos/jsdos-ipx.cpp
         )
+
+set(SOURCES_JSDOS_NET_C
+        ${CMAKE_CURRENT_LIST_DIR}/sdl2net/SDLnet.c
+        ${CMAKE_CURRENT_LIST_DIR}/sdl2net/SDLnetTCP.c
+        ${CMAKE_CURRENT_LIST_DIR}/sdl2net/SDLnetselect.c
+)
 
 set_source_files_properties(${SOURCES_CORE_CXX03} PROPERTIES COMPILE_FLAGS "${CORE_FLAGS} -std=c++03 -Wno-switch")
 set_source_files_properties(${SOURCES_CORE_CXX11} PROPERTIES COMPILE_FLAGS "${CORE_FLAGS} -std=c++11")
@@ -171,4 +185,4 @@ set_source_files_properties(${SOURCES_JSDOS_CXX11} PROPERTIES COMPILE_FLAGS "${C
 
 set(SOURCES_SERVER_CORE ${SOURCES_CORE_CXX11} ${SOURCES_CORE_CXX03})
 set(SOURCES_SERVER_SDL ${SOURCES_SERVER_CORE} ${SOURCES_SDL_CXX03})
-set(SOURCES_SERVER_JSDOS ${SOURCES_SERVER_CORE} ${SOURCES_JSDOS_CXX11})
+set(SOURCES_SERVER_JSDOS ${SOURCES_SERVER_CORE} ${SOURCES_JSDOS_CXX11} ${SOURCES_JSDOS_NET_C})

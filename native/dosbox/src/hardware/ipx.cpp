@@ -40,6 +40,7 @@
 #include "SDL_net.h"
 #include "programs.h"
 #include "pic.h"
+#include <cstdlib>
 
 #define SOCKTABLESIZE	150 // DOS IPX driver was limited to 150 open sockets
 

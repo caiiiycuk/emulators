@@ -1,7 +1,7 @@
 add_executable(sdl ${SOURCES_SERVER_SDL})
 target_link_libraries(sdl
         X11 z ncurses dl GL pthread asound
-        SDL SDL_mixer
+        SDL SDL_mixer SDL2_net
         )
 
 if (X86_64)

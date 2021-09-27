@@ -9,7 +9,6 @@ import { HTTPRequest } from "../../src/http";
 import { CacheNoop } from "../../src/cache";
 
 import { Keys } from "../../src/keys";
-import { createDosConfig } from "../../src/dos/bundle/dos-conf";
 
 type CIFactory = (bundle: Uint8Array | Uint8Array[]) => Promise<CommandInterface>;
 

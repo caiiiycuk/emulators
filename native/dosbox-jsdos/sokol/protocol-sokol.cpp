@@ -141,6 +141,14 @@ void client_sound_push(const float *samples, int num_samples) {
   saudio_push(samples, num_samples);
 }
 
+void client_network_connected(NetworkType networkType, const char* address, uint32_t port) {
+  printf("Network %d connected to %s:%d\n", networkType, address, port);
+}
+
+void client_network_disconnected(NetworkType networkType) {
+  printf("Network %d disconnected\n", networkType);
+}
+
 void sokolInit() {
   sg_desc gfxDescription = {};
   gfxDescription.buffer_pool_size = 4;
