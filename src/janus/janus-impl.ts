@@ -1,4 +1,4 @@
-import { CommandInterface } from "../emulators";
+import { CommandInterface, NetworkType } from "../emulators";
 import { CommandInterfaceEventsImpl } from "../impl/ci-impl";
 
 import { JanusJS } from "./janus";
@@ -371,6 +371,14 @@ class JanusBackendImpl implements JanusCommandInterface {
 
     events() {
         return this.eventsImpl;
+    }
+
+    networkConnect(networkType: NetworkType, ip: string, port: number): Promise<void> {
+        return Promise.reject("Not supported");
+    }
+    
+    networkDisconnect(networkType: NetworkType): Promise<void> {
+        return Promise.reject("Not supported");
     }
 }
 

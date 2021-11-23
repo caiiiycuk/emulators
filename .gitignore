@@ -48,3 +48,4 @@ build
 build-emterp
 src/dos/sokol/sokol
 dist
+bench

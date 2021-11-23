@@ -254,7 +254,7 @@ keyboardlayout=auto
 [ipx]
 # ipx: Enable ipx over UDP/IP emulation.
 
-ipx=false
+ipx=true
 [autoexec]
 echo off
 mount c .

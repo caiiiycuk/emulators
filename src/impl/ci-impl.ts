@@ -1,15 +1,20 @@
-import { CommandInterfaceEvents, MessageType } from "../emulators";
+import { CommandInterfaceEvents, MessageType, NetworkType } from "../emulators";
 
 export class CommandInterfaceEventsImpl implements CommandInterfaceEvents {
 
-    private delayedStdout: string[] = [];
     private onStdoutConsumers: ((message: string) => void)[] = [];
+    private delayedStdout: string[] = [];
+
     private onFrameSizeConsumers: ((width: number, height: number) => void)[] = [];
     private onFrameConsumers: ((rgb: Uint8Array) => void)[] = [];
     private onSoundPushConsumers: ((samples: Float32Array) => void)[] = [];
     private onExitConsumers: (() => void)[] = [];
 
     private onMessageConsumers: ((msgType: MessageType, ...args: any[]) => void)[] = [];
+    private delayedMessages: {msgType: MessageType, args: any[]}[] = [];
+
+    private onNetworkConnectedConsumers: ((networkType: NetworkType, address: string, port: number) => void)[] = [];
+    private onNetworkDisconnectedConsumers: ((networkType: NetworkType) => void)[] = [];
 
     onStdout = (consumer: (message: string) => void) => {
         this.onStdoutConsumers.push(consumer);
@@ -40,6 +45,21 @@ export class CommandInterfaceEventsImpl implements CommandInterfaceEvents {
 
     onMessage = (consumer: (msgType: MessageType, ...args: any[]) => void) => {
         this.onMessageConsumers.push(consumer);
+
+        if (this.onMessageConsumers.length === 1) {
+           for (const next of this.delayedMessages) {
+               consumer(next.msgType, ...next.args);
+           }
+           this.delayedMessages = [];
+        }
+    }
+
+    onNetworkConnected(consumer: (networkType: NetworkType, address: string, port: number) => void) {
+        this.onNetworkConnectedConsumers.push(consumer);
+    }
+
+    onNetworkDisconnected(consumer: (networkType: NetworkType) => void) {
+        this.onNetworkDisconnectedConsumers.push(consumer);
     }
 
     fireStdout = (message: string) => {
@@ -85,8 +105,25 @@ export class CommandInterfaceEventsImpl implements CommandInterfaceEvents {
     }
 
     fireMessage = (msgType: MessageType, ...args: any[]) => {
+        if (this.onMessageConsumers.length === 0) {
+            this.delayedMessages.push({ msgType, args });
+            return;
+        }
+
         for (const next of this.onMessageConsumers) {
             next(msgType, ...args);
+        }
+    }
+
+    fireNetworkConnected = (networkType: NetworkType, address: string, port: number) => {
+        for (const next of this.onNetworkConnectedConsumers) {
+            next(networkType, address, port);
+        }
+    }
+    
+    fireNetworkDisconnected = (networkType: NetworkType) => {
+        for (const next of this.onNetworkDisconnectedConsumers) {
+            next(networkType);
         }
     }
 

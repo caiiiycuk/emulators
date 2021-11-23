@@ -24,13 +24,13 @@ const char* LOG_TYPE_NAMES[] = {
     "LOG_FCB", "LOG_FILES",      "LOG_IOCTL",  "LOG_EXEC",    "LOG_DOSMISC",
     "LOG_PIT", "LOG_KEYBOARD",   "LOG_PIC",    "LOG_MOUSE",   "LOG_BIOS",
     "LOG_GUI", "LOG_MISC",       "LOG_IO",     "LOG_PCI",     "LOG_MSG",
-    "LOG_MAX"};
+          "LOG_NET", "LOG_MAX"};
 
 Logger::Logger(LOG_TYPES type, LOG_SEVERITIES severity)
     : d_type(type), d_severity(severity) {}
 
 void Logger::operator()(char const* format, ...) {
-  if (d_severity != LOG_ERROR) {
+  if (d_severity != LOG_ERROR && d_type != LOG_NET) {
     return;
   }
 

@@ -57,7 +57,7 @@ static INLINE PhysPt CALLBACK_GetBase(void) {
 
 Bitu CALLBACK_Allocate();
 
-void CALLBACK_Idle(void);
+extern "C" void CALLBACK_Idle(void);
 
 
 void CALLBACK_RunRealInt(Bit8u intnum);

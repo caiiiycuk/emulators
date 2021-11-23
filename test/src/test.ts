@@ -3,14 +3,20 @@ import { testLibZip } from "./test-libzip";
 import { testConf } from "./test-conf";
 import { testDosBundle } from "./test-bundle";
 import { testDos } from "./test-dos";
+import { testNet } from "./test-net";
 
 import emulatorsImpl from "../../src/impl/emulators-impl";
 
 emulatorsImpl.pathPrefix = "/";
 
-testLoader();
-testLibZip();
-testConf();
+export function createTests() {
+	testLoader();
+	testLibZip();
+	testConf();
 
-testDosBundle();
-testDos();
+	testDosBundle();
+	testDos();
+	testNet();
+}
+
+(window as any).createTests = createTests;

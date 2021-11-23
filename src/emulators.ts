@@ -5,6 +5,10 @@ import { Cache } from "./cache";
 import { DosConfig } from "./dos/bundle/dos-conf";
 import { TransportLayer } from "./protocol/protocol";
 
+export enum NetworkType {
+    NETWORK_DOSBOX_IPX = 0,
+}
+
 export interface Emulators {
     // * pathPrefix - by default emulators will load wasm modules relatively from current path,
     // you should specify path prefix if you want to load them from different place
@@ -89,6 +93,10 @@ export interface CommandInterface {
 
     // events
     events(): CommandInterfaceEvents;
+
+    networkConnect(networkType: NetworkType, address: string, port: number): Promise<void>;
+    
+    networkDisconnect(networkType: NetworkType): Promise<void>;
 }
 
 export type MessageType = "log" | "warn" | "error" | string;
@@ -101,6 +109,9 @@ export interface CommandInterfaceEvents {
     onExit: (consumer: () => void) => void;
 
     onMessage: (consumer: (msgType: MessageType, ...args: any[]) => void) => void;
+
+    onNetworkConnected: (consumer: (networkType: NetworkType, address: string, port: number) => void) => void;
+    onNetworkDisconnected: (consumer: (networkType: NetworkType) => void) => void;
 }
 
 if (typeof window !== "undefined") {

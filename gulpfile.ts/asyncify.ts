@@ -53,6 +53,7 @@ export async function asyncifyAdd() {
 }
 
 function extractFnSignature(next: string): string {
+    next = next.trim();
     if (next.length === 0) {
         return "";
     }
@@ -67,7 +68,7 @@ function extractFnSignature(next: string): string {
 
     // case 2
     if (fnSig.length === 0) {
-        const matched = /at\s+(.*)\s+\(</.exec(next);
+        const matched = /at\s+(.*)\s+\([<|\d]/.exec(next);
         if (matched) {
             fnSig = matched[1];
         }
