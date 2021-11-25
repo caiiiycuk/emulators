@@ -542,6 +542,10 @@ void DrawCursor() {
 }
 
 void Mouse_CursorMoved(float xrel,float yrel,float x,float y,bool emulate) {
+	if (CurMode == nullptr) {
+		return;
+	}
+
 	relativeMode = emulate;
 	if (emulate) {
 		float dx = xrel * mouse.pixelPerMickey_x;
