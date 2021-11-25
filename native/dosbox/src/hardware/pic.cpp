@@ -24,6 +24,12 @@
 #include "timer.h"
 #include "setup.h"
 
+#ifndef EMSCRIPTEN
+#include <mutex>
+
+std::recursive_mutex picMutex;
+#endif
+
 #define PIC_QUEUESIZE 512
 
 struct PIC_Controller {
@@ -404,6 +410,10 @@ static bool InEventService = false;
 static float srv_lag = 0;
 
 void PIC_AddEvent(PIC_EventHandler handler,float delay,Bitu val) {
+#ifndef EMSCRIPTEN
+	std::lock_guard<std::recursive_mutex> g(picMutex);
+#endif
+
 	if (GCC_UNLIKELY(!pic_queue.free_entry)) {
 		LOG(LOG_PIC,LOG_ERROR)("Event queue full");
 		return;
@@ -419,6 +429,10 @@ void PIC_AddEvent(PIC_EventHandler handler,float delay,Bitu val) {
 }
 
 void PIC_RemoveSpecificEvents(PIC_EventHandler handler, Bitu val) {
+#ifndef EMSCRIPTEN
+	std::lock_guard<std::recursive_mutex> g(picMutex);
+#endif
+
 	PICEntry * entry=pic_queue.next_entry;
 	PICEntry * prev_entry;
 	prev_entry = 0;
@@ -444,6 +458,10 @@ void PIC_RemoveSpecificEvents(PIC_EventHandler handler, Bitu val) {
 }
 
 void PIC_RemoveEvents(PIC_EventHandler handler) {
+#ifndef EMSCRIPTEN
+	std::lock_guard<std::recursive_mutex> g(picMutex);
+#endif
+
 	PICEntry * entry=pic_queue.next_entry;
 	PICEntry * prev_entry;
 	prev_entry=0;
@@ -476,33 +494,39 @@ bool PIC_RunQueue(void) {
 	if (CPU_CycleLeft<=0) {
 		return false;
 	}
-	/* Check the queue for an entry */
-	Bits index_nd=PIC_TickIndexND();
-	InEventService = true;
-	while (pic_queue.next_entry && (pic_queue.next_entry->index*CPU_CycleMax<=index_nd)) {
-		PICEntry * entry=pic_queue.next_entry;
-		pic_queue.next_entry=entry->next;
 
-		srv_lag = entry->index;
-		(entry->pic_event)(entry->value); // call the event handler
+	{
+#ifndef EMSCRIPTEN
+		std::lock_guard<std::recursive_mutex> g(picMutex);
+#endif
+		/* Check the queue for an entry */
+		Bits index_nd = PIC_TickIndexND();
+		InEventService = true;
+		while (pic_queue.next_entry && (pic_queue.next_entry->index * CPU_CycleMax <= index_nd)) {
+			PICEntry *entry = pic_queue.next_entry;
+			pic_queue.next_entry = entry->next;
 
-		/* Put the entry in the free list */
-		entry->next=pic_queue.free_entry;
-		pic_queue.free_entry=entry;
-	}
-	InEventService = false;
+			srv_lag = entry->index;
+			(entry->pic_event)(entry->value); // call the event handler
 
-	/* Check when to set the new cycle end */
-	if (pic_queue.next_entry) {
-		Bits cycles=(Bits)(pic_queue.next_entry->index*CPU_CycleMax-index_nd);
-		if (GCC_UNLIKELY(!cycles)) cycles=1;
-		if (cycles<CPU_CycleLeft) {
-			CPU_Cycles=cycles;
-		} else {
-			CPU_Cycles=CPU_CycleLeft;
+			/* Put the entry in the free list */
+			entry->next = pic_queue.free_entry;
+			pic_queue.free_entry = entry;
 		}
-	} else CPU_Cycles=CPU_CycleLeft;
-	CPU_CycleLeft-=CPU_Cycles;
+		InEventService = false;
+
+		/* Check when to set the new cycle end */
+		if (pic_queue.next_entry) {
+			Bits cycles = (Bits) (pic_queue.next_entry->index * CPU_CycleMax - index_nd);
+			if (GCC_UNLIKELY(!cycles)) cycles = 1;
+			if (cycles < CPU_CycleLeft) {
+				CPU_Cycles = cycles;
+			} else {
+				CPU_Cycles = CPU_CycleLeft;
+			}
+		} else CPU_Cycles = CPU_CycleLeft;
+		CPU_CycleLeft -= CPU_Cycles;
+	}
 	if 	(PIC_IRQCheck)	PIC_runIRQs();
 	return true;
 }
@@ -542,11 +566,17 @@ void TIMER_AddTick(void) {
 	CPU_CycleLeft=CPU_CycleMax;
 	CPU_Cycles=0;
 	PIC_Ticks++;
-	/* Go through the list of scheduled events and lower their index with 1000 */
-	PICEntry * entry=pic_queue.next_entry;
-	while (entry) {
-		entry->index -= 1.0;
-		entry=entry->next;
+
+	{
+#ifndef EMSCRIPTEN
+		std::lock_guard<std::recursive_mutex> g(picMutex);
+#endif
+		/* Go through the list of scheduled events and lower their index with 1000 */
+		PICEntry *entry = pic_queue.next_entry;
+		while (entry) {
+			entry->index -= 1.0;
+			entry = entry->next;
+		}
 	}
 	/* Call our list of ticker handlers */
 	TickerBlock * ticker=firstticker;
@@ -600,13 +630,19 @@ public:
 		ReadHandler[3].Install(0xa1,read_data,IO_MB);
 		WriteHandler[2].Install(0xa0,write_command,IO_MB);
 		WriteHandler[3].Install(0xa1,write_data,IO_MB);
-		/* Initialize the pic queue */
-		for (i=0;i<PIC_QUEUESIZE-1;i++) {
-			pic_queue.entries[i].next=&pic_queue.entries[i+1];
+
+		{
+#ifndef EMSCRIPTEN
+			std::lock_guard<std::recursive_mutex> g(picMutex);
+#endif
+			/* Initialize the pic queue */
+			for (i = 0; i < PIC_QUEUESIZE - 1; i++) {
+				pic_queue.entries[i].next = &pic_queue.entries[i + 1];
+			}
+			pic_queue.entries[PIC_QUEUESIZE - 1].next = 0;
+			pic_queue.free_entry = &pic_queue.entries[0];
+			pic_queue.next_entry = 0;
 		}
-		pic_queue.entries[PIC_QUEUESIZE-1].next=0;
-		pic_queue.free_entry=&pic_queue.entries[0];
-		pic_queue.next_entry=0;
 	}
 
 	~PIC_8259A(){
