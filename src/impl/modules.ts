@@ -176,7 +176,7 @@ function loadWasmModuleBrowser(url: string,
             throw new Error("Starting from js-dos 6.22.60 js environment is not supported");
         }
 
-        const wasmUrl = url.replace(".js", ".wasm");
+        const wasmUrl = url.substr(0, url.lastIndexOf('.js')) + ".wasm";
         const binaryPromise = HTTPRequest(wasmUrl, {
             cache,
             responseType: "arraybuffer",
