@@ -16,6 +16,7 @@ if(${EMSCRIPTEN})
 	set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} \
 		${USE_PORTS} \
 		${OPT_FLAGS} \
+        -s WEBSOCKET_URL=\"wss://\" \
 		-s TOTAL_STACK=1MB \
 		-s MALLOC=emmalloc \
 		--emit-symbol-map \
