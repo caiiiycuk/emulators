@@ -223,10 +223,10 @@ void client_run() {
         keyEvent(event);
         break;
       case SAPP_EVENTTYPE_MOUSE_MOVE: {
-//        server_mouse_moved(event->mouse_x / WINDOW_WIDTH,
-//                           event->mouse_y / WINDOW_HEIGHT,
-//                           false,
-//                           GetMsPassedFromStart());
+        server_mouse_moved(event->mouse_x / WINDOW_WIDTH,
+                           event->mouse_y / WINDOW_HEIGHT,
+                           false,
+                           GetMsPassedFromStart());
       } break;
       case SAPP_EVENTTYPE_MOUSE_UP:
       case SAPP_EVENTTYPE_MOUSE_DOWN: {

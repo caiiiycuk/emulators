@@ -29,6 +29,7 @@ set(SOURCES_CORE_CXX11
         "${CMAKE_CURRENT_LIST_DIR}/jsdos/jsdos-support.cpp"
         "${CMAKE_CURRENT_LIST_DIR}/../dosbox/src/dos/dos_files.cpp"
         "${CMAKE_CURRENT_LIST_DIR}/../dosbox/src/dos/cdrom_image.cpp"
+        "${CMAKE_CURRENT_LIST_DIR}/../dosbox/src/hardware/pic.cpp"
         )
 
 
@@ -104,7 +105,6 @@ set(SOURCES_CORE_CXX03
         "${CMAKE_CURRENT_LIST_DIR}/../dosbox/src/hardware/vga_xga.cpp"
         "${CMAKE_CURRENT_LIST_DIR}/../dosbox/src/hardware/timer.cpp"
         "${CMAKE_CURRENT_LIST_DIR}/../dosbox/src/hardware/vga_dac.cpp"
-        "${CMAKE_CURRENT_LIST_DIR}/../dosbox/src/hardware/pic.cpp"
         "${CMAKE_CURRENT_LIST_DIR}/../dosbox/src/hardware/vga_s3.cpp"
         "${CMAKE_CURRENT_LIST_DIR}/../dosbox/src/hardware/cmos.cpp"
         "${CMAKE_CURRENT_LIST_DIR}/../dosbox/src/hardware/vga_memory.cpp"
