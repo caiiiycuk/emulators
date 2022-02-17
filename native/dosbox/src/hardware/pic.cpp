@@ -332,7 +332,11 @@ static void slave_startIRQ(){
 		}
 	}
 	// Maybe change the E_Exit to a return
-	if (GCC_UNLIKELY(pic1_irq == 8)) E_Exit("irq 2 is active, but no irq active on the slave PIC.");
+	if (GCC_UNLIKELY(pic1_irq == 8)) {
+		LOG(LOG_PIC,LOG_ERROR)("irq 2 is active, but no irq active on the slave PIC.");
+		return;
+		// E_Exit("irq 2 is active, but no irq active on the slave PIC.");
+	}
 
 	slave.start_irq(pic1_irq);
 	master.start_irq(2);
