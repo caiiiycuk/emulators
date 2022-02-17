@@ -8,6 +8,10 @@
 #include <sys/time.h>
 #include <jsdos-asyncify.h>
 
+#ifdef EMSCRIPTEN
+#include <emscripten.h>
+#endif
+
 #if C_IPX
 
 #include <stdio.h>
@@ -762,7 +766,12 @@ bool _ConnectToServer(char const *strAddr) {
     // octets and then using the actual IP address for the last 4 octets.
     // This idea is from the IPX over IP implementation as specified in RFC 1234:
     // http://www.faqs.org/rfcs/rfc1234.html
-
+#ifdef EMSCRIPTEN
+    EM_ASM(({
+        Module["websocket"]["url"] = (window.location.protocol === "http:" ? "ws://" : "wss://") + 
+            UTF8ToString($0) + ":" + $1;
+    }), strAddr, udpPort);
+#endif
     ipxClientSocket = SDLNet_TCP_Open(&ipxServConnIp);
     if(ipxClientSocket) {
       // Bind UDP port to address to channel
