@@ -44,4 +44,8 @@ extern void server_exit();
 extern void server_network_connect(NetworkType networkType, const char* address, uint32_t port);
 extern void server_network_disconnect(NetworkType networkType);
 
+#ifndef EMSCRIPTEN
+extern void server_loop();
+#endif
+
 #endif  // JS_DOS_JS_DOS_PROTOCOL_H
