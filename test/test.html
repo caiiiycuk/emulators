@@ -40,7 +40,7 @@
     
     <div id="test-config" class="test-config">
         <div class="test-config-row">
-            <p>IPX Server IP:&nbsp;</p>
+            <p>IPX Server Address:&nbsp;</p>
             <input id="ipx-ip" type="text" value="127.0.0.1"></input>
         </div>
         <button id="start-button">Start tests</button>
@@ -52,7 +52,7 @@
         startButton.addEventListener("click", () => {
             testConfig.style.display = "none";
 
-            window.ipxServerIp = document.getElementById("ipx-ip").value;
+            window.ipxServerAddress = document.getElementById("ipx-ip").value.trim();
             window.createTests();
             mocha.run();
         });

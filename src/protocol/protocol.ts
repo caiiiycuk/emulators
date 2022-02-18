@@ -388,6 +388,10 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
         }
 
         this.connectPromise = new Promise<void>((resolve, reject) => {
+            if (!address.startsWith("wss://") && !address.startsWith("ws://")) {
+                address = (window.location.protocol === "http:" ? "ws://" : "wss://") + address;
+            }
+
             this.connectResolve = resolve;
             this.connectReject = reject;
             this.sendClientMessage("wc-connect", {

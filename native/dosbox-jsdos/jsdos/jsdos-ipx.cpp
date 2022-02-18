@@ -768,8 +768,7 @@ bool _ConnectToServer(char const *strAddr) {
     // http://www.faqs.org/rfcs/rfc1234.html
 #ifdef EMSCRIPTEN
     EM_ASM(({
-        Module["websocket"]["url"] = (window.location.protocol === "http:" ? "ws://" : "wss://") + 
-            UTF8ToString($0) + ":" + $1;
+        Module["websocket"]["url"] = UTF8ToString($0) + ":" + $1;
     }), strAddr, udpPort);
 #endif
     ipxClientSocket = SDLNet_TCP_Open(&ipxServConnIp);

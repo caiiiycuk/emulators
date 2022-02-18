@@ -6,8 +6,9 @@ import emulatorsImpl from "../../src/impl/emulators-impl";
 
 type CIFactory = (bundle: Uint8Array | Uint8Array[]) => Promise<CommandInterface>;
 
-const defaultIpxServerIp = "127.0.0.1";
+const defaultIpxServerAddress = "127.0.0.1";
 const defaultIpxServerPort = 1901;
+const wsPrefix = (window.location.protocol === "http:" ? "ws://" : "wss://");
 
 export function testNet() {
     testServer((bundle) => emulatorsImpl.dosboxDirect(bundle), "dosboxDirect");
@@ -16,9 +17,9 @@ export function testNet() {
 
 function testServer(factory: CIFactory, name: string) {
     const ipxServerPort = defaultIpxServerPort;
-    const globalIpxServerIp = (window as any).ipxServerIp;
-    const ipxServerIp = typeof globalIpxServerIp === "string" ? globalIpxServerIp : defaultIpxServerIp;
-    const ipxServerAddress = ipxServerIp + " " + ipxServerPort;
+    const globalIpxServerAddress = (window as any).ipxServerAddress;
+    const ipxServerAddress = typeof globalIpxServerAddress === "string" ? globalIpxServerAddress : defaultIpxServerAddress;
+    const ipxnetServerAddress = wsPrefix + ipxServerAddress + " " + ipxServerPort;
 
     suite(name + ".ipx");
 
@@ -49,7 +50,7 @@ function testServer(factory: CIFactory, name: string) {
         }
     });
 
-    test(name + " should connect to port " + ipxServerAddress + " (jsapi)", async () => {
+    test(name + " should connect to port " + ipxnetServerAddress + " (jsapi)", async () => {
         let notifiedConnected = false;
         let notifiedDisconnected = false;
         let connected = false;
@@ -67,7 +68,7 @@ function testServer(factory: CIFactory, name: string) {
             notifiedDisconnected = true;
         });
 
-        await ci.networkConnect(NetworkType.NETWORK_DOSBOX_IPX, ipxServerIp, ipxServerPort);
+        await ci.networkConnect(NetworkType.NETWORK_DOSBOX_IPX, ipxServerAddress, ipxServerPort);
         await ci.exit();
 
         assert.ok(connected, JSON.stringify(messages, null, 2));
@@ -75,13 +76,13 @@ function testServer(factory: CIFactory, name: string) {
         assert.ok(notifiedDisconnected, "Disconnected is not notified");
     });
 
-    test(name + " should connect to " + ipxServerAddress + " (ipxnet)", async () => {
+    test(name + " should connect to " + ipxnetServerAddress + " (ipxnet)", async () => {
         let notifiedConnected = false;
         let notifiedDisconnected = false;
         let connected = false;
         const messages: string[] = [];
         const ci = await CI((await emulatorsImpl.dosBundle())
-            .autoexec("ipxnet connect " + ipxServerAddress));
+            .autoexec("ipxnet connect " + ipxnetServerAddress));
         assert.ok(ci);
         ci.events().onMessage((mType, message: string) => {
             messages.push(message);
@@ -109,12 +110,12 @@ function testServer(factory: CIFactory, name: string) {
         const regex = new RegExp(/\[LOG_NET\]\d+:.*port\s+(\d+)\s+time=(\d+)ms/);
         const messages: string[] = [];
         const one = await CI((await emulatorsImpl.dosBundle())
-            .autoexec("ipxnet connect " + ipxServerAddress));
+            .autoexec("ipxnet connect " + ipxnetServerAddress));
         assert.ok(one);
         await sleep(300);
 
         const two = await CI((await emulatorsImpl.dosBundle())
-            .autoexec("ipxnet connect " + ipxServerAddress + "\nipxnet ping"));
+            .autoexec("ipxnet connect " + ipxnetServerAddress + "\nipxnet ping"));
         assert.ok(two);
         two.events().onMessage((mType, message: string) => {
             messages.push(message);
@@ -134,7 +135,7 @@ function testServer(factory: CIFactory, name: string) {
         assert(usedPorts.length === 1,
             "Should be 1 used port, but have " + JSON.stringify(usedPorts) + ":\n" + JSON.stringify(messages, null, 2));
 
-        console.log("PING avg", ipxServerAddress, "is", Math.round(timeSumMs / timeSamples), "ms");
+        console.log("PING avg", ipxnetServerAddress, "is", Math.round(timeSumMs / timeSamples), "ms");
     });
 }
 
