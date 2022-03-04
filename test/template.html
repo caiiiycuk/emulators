@@ -84,7 +84,7 @@
 
         function downloadBundleAndRun(options) {
             document.getElementById("controls").style.display = "none";
-            const bundleUrl = "temp.jsdos";
+            const bundleUrl = "temp.jsdos?timestamp=" + Date.now();
 
             // we need to download bundle, emulators accept only Uint8Array
             const xhr = new XMLHttpRequest();
