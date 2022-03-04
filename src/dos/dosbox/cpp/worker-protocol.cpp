@@ -149,15 +149,26 @@ EM_JS(void, ws_init_runtime, (const char* sessionId), {
       }
     }
 
-    sendMessage("ws-ready");
+    if (worker) {
+    } else {
+        Module.sharedMemory = Module.HEAPU8.buffer;
+    }
+    
+    sendMessage("ws-ready", { sharedMemory: Module.sharedMemory });
   });
 
 EM_JS(void, emsc_ws_client_frame_set_size, (int width, int height), {
     Module.sendMessage("ws-frame-set-size", {width : width, height : height});
   });
 
-EM_JS(void, emsc_start_frame_update, (), {
+EM_JS(bool, emsc_start_frame_update, (void* rgba), {
+    if (Module.sharedMemory !== undefined) {
+        Module.sendMessage("ws-update-lines", { rgba });
+        return false;
+    }
+
     Module.frame_update_lines = [];
+    return true;
   });
 
 EM_JS(void, emsc_add_frame_line, (uint32_t start, char* ptr, uint32_t bpp4len), {
@@ -290,7 +301,10 @@ void client_frame_set_size(int width, int height) {
 }
 
 void client_frame_update_lines(uint32_t *lines, uint32_t batchCount, void *rgba) {
-  emsc_start_frame_update();
+  if (!emsc_start_frame_update(rgba)) {
+      return;
+  }
+
   for (uint32_t i = 0; i < batchCount; ++i) {
     uint32_t base = i * 3;
     uint32_t start = lines[base];

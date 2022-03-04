@@ -174,9 +174,11 @@ void main(void) {
             onResizeFrame(ci.width(), ci.height());
 
             let requestAnimationFrameId = null;
-            let frameRgb = null;
-            ci.events().onFrame((rgb) => {
-                frameRgb = rgb;
+            let frame = null;
+            let frameFormat;
+            ci.events().onFrame((rgb, rgba) => {
+                frame = rgb != null ? rgb : rgba;
+                frameFormat = rgb != null ? gl.RGB : gl.RGBA;
                 if (requestAnimationFrameId === null) {
                     requestAnimationFrameId = requestAnimationFrame(updateTexture);
                 }
@@ -185,13 +187,13 @@ void main(void) {
             function updateTexture() {
                 stats.update();
 
-                gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB,
-                    frameWidth, frameHeight, 0, gl.RGB, gl.UNSIGNED_BYTE,
-                    frameRgb);
+                gl.texImage2D(gl.TEXTURE_2D, 0, frameFormat,
+                    frameWidth, frameHeight, 0, frameFormat, gl.UNSIGNED_BYTE,
+                    frame);
                 gl.drawArrays(gl.TRIANGLES, 0, 6);
 
                 requestAnimationFrameId = null;
-                frameRgb = null;
+                frame = null;
             }
         }
 

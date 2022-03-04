@@ -55,7 +55,8 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
     private startedAt = Date.now();
     private frameWidth = 0;
     private frameHeight = 0;
-    private rgb: Uint8Array = new Uint8Array();
+    private rgb: Uint8Array | null = null;
+    private rgba: Uint8Array | null = null;
     private freq = 0;
 
     private bundles?: Uint8Array[];
@@ -82,6 +83,8 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
 
     private disconnectPromise: Promise<void> | null = null;
     private disconnectResolve: () => void = () => { /**/ };
+
+    private sharedMemory?: SharedArrayBuffer;
 
     constructor(bundles: Uint8Array[],
         transport: TransportLayer,
@@ -111,6 +114,7 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
 
         switch (name) {
             case "ws-ready": {
+                this.sharedMemory = props.sharedMemory;
                 this.sendClientMessage("wc-run", {
                     bundles: this.bundles,
                 });
@@ -131,7 +135,7 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
                 this.onFrameSize(props.width, props.height);
             } break;
             case "ws-update-lines": {
-                this.onFrameLines(props.lines);
+                this.onFrameLines(props.lines, props.rgba);
             } break;
             case "ws-exit": {
                 this.onExit();
@@ -204,15 +208,25 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
 
         this.frameWidth = width;
         this.frameHeight = height;
-        this.rgb = new Uint8Array(width * height * 3);
+        if (this.sharedMemory === undefined) {
+            this.rgb = new Uint8Array(width * height * 3);
+        }
         this.eventsImpl.fireFrameSize(width, height);
     }
 
-    private onFrameLines(lines: FrameLine[]) {
-        for (const line of lines) {
-            this.rgb.set(line.heapu8, line.start * this.frameWidth * 3);
+    private onFrameLines(lines: FrameLine[], rgbaPtr: number) {
+        if (this.sharedMemory !== undefined) {
+            this.rgba = new Uint8Array(
+                this.sharedMemory, rgbaPtr, 
+                this.frameWidth * this.frameHeight * 4
+            );
+        } else {
+            for (const line of (lines as FrameLine[])) {
+                (this.rgb as Uint8Array).set(line.heapu8, line.start * this.frameWidth * 3);
+            }
         }
-        this.eventsImpl.fireFrame(this.rgb);
+
+        this.eventsImpl.fireFrame(this.rgb, this.rgba);
     }
 
     private onSoundInit(freq: number) {
@@ -262,19 +276,28 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
     }
 
     public screenshot(): Promise<ImageData> {
-        const rgba = new Uint8ClampedArray(this.rgb.length / 3 * 4);
+        if (this.rgb !== null || this.rgba !== null) {
+            const rgba = new Uint8ClampedArray(this.frameWidth * this.frameHeight * 4);
+            const frame = (this.rgb !== null ? this.rgb : this.rgba) as Uint8Array;
 
-        let rgbOffset = 0;
-        let rgbaOffset = 0
+            let frameOffset = 0;
+            let rgbaOffset = 0
 
-        while (rgbaOffset < rgba.length) {
-            rgba[rgbaOffset++] = this.rgb[rgbOffset++];
-            rgba[rgbaOffset++] = this.rgb[rgbOffset++];
-            rgba[rgbaOffset++] = this.rgb[rgbOffset++];
-            rgba[rgbaOffset++] = 255;
+            while (rgbaOffset < rgba.length) {
+                rgba[rgbaOffset++] = frame[frameOffset++];
+                rgba[rgbaOffset++] = frame[frameOffset++];
+                rgba[rgbaOffset++] = frame[frameOffset++];
+                rgba[rgbaOffset++] = 255;
+
+                if (frame.length === rgba.length) {
+                    frameOffset++;
+                }
+            }
+
+            return Promise.resolve(new ImageData(rgba, this.frameWidth, this.frameHeight));
+        } else {
+            return Promise.reject(new Error("No frame received"));
         }
-
-        return Promise.resolve(new ImageData(rgba, this.frameWidth, this.frameHeight));
     }
 
     public simulateKeyPress(...keyCodes: number[]) {

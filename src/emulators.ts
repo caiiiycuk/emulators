@@ -104,7 +104,7 @@ export type MessageType = "log" | "warn" | "error" | string;
 export interface CommandInterfaceEvents {
     onStdout: (consumer: (message: string) => void) => void;
     onFrameSize: (consumer: (width: number, height: number) => void) => void;
-    onFrame: (consumer: (rgb: Uint8Array) => void) => void;
+    onFrame: (consumer: (rgb: Uint8Array | null, rgba: Uint8Array | null) => void) => void;
     onSoundPush: (consumer: (samples: Float32Array) => void) => void;
     onExit: (consumer: () => void) => void;
 
