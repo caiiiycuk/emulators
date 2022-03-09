@@ -150,6 +150,10 @@ EM_JS(void, ws_init_runtime, (const char* sessionId), {
     }
 
     if (worker) {
+        if (typeof SharedArrayBuffer !== "undefined" &&
+            Module.HEAPU8.buffer instanceof SharedArrayBuffer) {
+            Module.sharedMemory = Module.HEAPU8.buffer;
+        }
     } else {
         Module.sharedMemory = Module.HEAPU8.buffer;
     }

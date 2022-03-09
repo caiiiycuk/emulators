@@ -13,6 +13,8 @@ import { TransportLayer, CommandInterfaceOverTransportLayer } from "../protocol/
 
 class EmulatorsImpl implements Emulators {
     pathPrefix = "";
+    wdosboxJs = (typeof window !== "undefined" &&
+     (window as any).crossOriginIsolated === true) ? "wdosbox.shared.js" : "wdosbox.js";
     cacheSeed = "";
 
     private cachePromises: {[cacheName: string]: Promise<Cache>} = {};
@@ -57,7 +59,7 @@ class EmulatorsImpl implements Emulators {
     async dosboxWorker(bundle: Uint8Array | Uint8Array[]): Promise<CommandInterface> {
         const modules = await this.wasmModules();
         const dosboxWasm = await modules.dosbox();
-        const transportLayer = await dosWorker(this.pathPrefix + "wdosbox.js", dosboxWasm, "session-" + Date.now());
+        const transportLayer = await dosWorker(this.pathPrefix + this.wdosboxJs, dosboxWasm, "session-" + Date.now());
         return this.backend(bundle, transportLayer);
     }
 
@@ -89,7 +91,7 @@ class EmulatorsImpl implements Emulators {
 
         const make = async () => {
             const cache = await this.cache();
-            return new WasmModulesImpl(this.pathPrefix, cache);
+            return new WasmModulesImpl(this.pathPrefix, this.wdosboxJs, cache);
         }
 
         this.wasmModulesPromise = make();

@@ -54,6 +54,8 @@
                 emulators.dosWorker(bundle) :
                 emulators.dosDirect(bundle));
 
+            window.ci = ci;
+
             webGl(canvas, ci);
 
             ci.events().onStdout((message) => {
