@@ -1,3 +1,6 @@
+"use strict";
+exports.__esModule = true;
+exports.audioNode = void 0;
 var SamplesQueue = /** @class */ (function () {
     function SamplesQueue() {
         this.samplesQueue = [];
@@ -72,74 +75,61 @@ function audioNode(ci) {
     var audioNode = audioContext.createScriptProcessor(bufferSize, 0, channels);
     var started = false;
     var active = 0;
-    audioNode.onaudioprocess = function (event) {
+    var directSound = ci.directSound;
+    var onDirectProcess = function (event) {
+        if (!started) {
+            var buffer_1 = directSound.buffer[0];
+            started = Math.ceil(buffer_1[buffer_1.length - 1]) > 0;
+        }
+        if (!started) {
+            return;
+        }
         var offset = 0;
         var numFrames = event.outputBuffer.length;
         var numChannels = event.outputBuffer.numberOfChannels;
-        if (ci.directSound !== undefined) {
-            if (!started) {
-                var buffer = ci.directSound.buffer[0];
-                started = Math.ceil(buffer[buffer.length - 1]) > 0;
-            }
-
-            if (!started) {
-                return;
-            }
-            
-            var numSamples;
-            var buffer = ci.directSound.buffer[active];
-            while (numFrames > 0 && (numSamples = Math.ceil(buffer[buffer.length - 1])) > 0) {
-                if (numFrames >= numSamples) {
-                    var source = buffer.subarray(0, numSamples);
-                    for (var channel = 0; channel < numChannels; ++channel) {
-                        var channelData = event.outputBuffer.getChannelData(channel);
-                        channelData.set(source, offset);
-                    }
-
-                    offset += numSamples;
-                    numFrames -= numSamples;
-                        
-                    buffer[buffer.length - 1] = 0;
-                    active = (active + 1) % ci.directSound.ringSize;
-                    buffer = ci.directSound.buffer[active];
-                } else {
-                    var source = buffer.subarray(0, numFrames);
-                    for (var channel = 0; channel < numChannels; ++channel) {
-                        var channelData = event.outputBuffer.getChannelData(channel);
-                        channelData.set(source, offset);
-                    }
-
-                    buffer[buffer.length - 1] = numSamples - numFrames;
-                    buffer.set(buffer.subarray(numFrames, numFrames + buffer[buffer.length - 1]));
-                    numFrames = 0;
+        var numSamples;
+        var buffer = directSound.buffer[active];
+        while (numFrames > 0 && (numSamples = Math.ceil(buffer[buffer.length - 1])) > 0) {
+            if (numFrames >= numSamples) {
+                var source = buffer.subarray(0, numSamples);
+                for (var channel = 0; channel < numChannels; ++channel) {
+                    var channelData = event.outputBuffer.getChannelData(channel);
+                    channelData.set(source, offset);
                 }
+                offset += numSamples;
+                numFrames -= numSamples;
+                buffer[buffer.length - 1] = 0;
+                active = (active + 1) % directSound.ringSize;
+                buffer = directSound.buffer[active];
             }
-
-            // if (numFrames > 0) {
-                // console.log("no sound data, expected", numFrames, "frames");
-                // for (var channel = 0; channel < numChannels; ++channel) {
-                //    var channelData = event.outputBuffer.getChannelData(channel);
-                //    channelData.fill(0, offset);
-                //}
-            // }
-
-            return;
+            else {
+                var source = buffer.subarray(0, numFrames);
+                for (var channel = 0; channel < numChannels; ++channel) {
+                    var channelData = event.outputBuffer.getChannelData(channel);
+                    channelData.set(source, offset);
+                }
+                buffer[buffer.length - 1] = numSamples - numFrames;
+                buffer.set(buffer.subarray(numFrames, numFrames + buffer[buffer.length - 1]));
+                numFrames = 0;
+            }
         }
-
+    };
+    var onQueueProcess = function (event) {
+        var numFrames = event.outputBuffer.length;
+        var numChannels = event.outputBuffer.numberOfChannels;
         var samplesCount = samplesQueue.length();
         if (!started) {
             started = samplesCount >= preBufferSize;
         }
-        
         if (!started) {
             return;
         }
-        
         for (var channel = 0; channel < numChannels; channel++) {
             var channelData = event.outputBuffer.getChannelData(channel);
             samplesQueue.writeTo(channelData, numFrames);
         }
     };
+    audioNode.onaudioprocess = ci.directSound !== undefined ? onDirectProcess : onQueueProcess;
     audioNode.connect(audioContext.destination);
     var resumeWebAudio = function () {
         if (audioContext !== null && audioContext.state === "suspended") {
@@ -159,3 +149,4 @@ function audioNode(ci) {
         document.removeEventListener("keydown", resumeWebAudio);
     });
 }
+exports.audioNode = audioNode;
