@@ -18,6 +18,7 @@
         }
     </style>
     <script src="../emulators.js"></script>
+    <script src="audio-node.js"></script>
     <script src="stats.min.js"></script>
 </head>
 
@@ -57,6 +58,7 @@
             window.ci = ci;
 
             webGl(canvas, ci);
+            audioNode(ci);
 
             ci.events().onStdout((message) => {
                 stdout.innerHTML += message;

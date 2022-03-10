@@ -13,8 +13,7 @@ import { TransportLayer, CommandInterfaceOverTransportLayer } from "../protocol/
 
 class EmulatorsImpl implements Emulators {
     pathPrefix = "";
-    wdosboxJs = (typeof window !== "undefined" &&
-     (window as any).crossOriginIsolated === true) ? "wdosbox.shared.js" : "wdosbox.js";
+    wdosboxJs = "wdosbox.js";
     cacheSeed = "";
 
     private cachePromises: {[cacheName: string]: Promise<Cache>} = {};

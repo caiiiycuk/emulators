@@ -51,6 +51,12 @@ export interface FrameLine {
     heapu8: Uint8Array;
 }
 
+export interface DirectSound {
+    ringSize: number,
+    bufferSize: number,
+    buffer: Float32Array[],
+}
+
 export class CommandInterfaceOverTransportLayer implements CommandInterface {
     private startedAt = Date.now();
     private frameWidth = 0;
@@ -84,7 +90,8 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
     private disconnectPromise: Promise<void> | null = null;
     private disconnectResolve: () => void = () => { /**/ };
 
-    private sharedMemory?: SharedArrayBuffer;
+    public sharedMemory?: SharedArrayBuffer;
+    public directSound?: DirectSound;
 
     constructor(bundles: Uint8Array[],
         transport: TransportLayer,
@@ -159,7 +166,7 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
                 this.onPersist(props.bundle);
             } break;
             case "ws-sound-init": {
-                this.onSoundInit(props.freq);
+                this.onSoundInit(props.freq, props.directSound);
             } break;
             case "ws-sound-push": {
                 this.onSoundPush(props.samples);
@@ -229,8 +236,14 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
         this.eventsImpl.fireFrame(this.rgb, this.rgba);
     }
 
-    private onSoundInit(freq: number) {
+    private onSoundInit(freq: number, directSound: DirectSound | undefined) {
         this.freq = freq;
+        this.directSound = directSound;
+        if (this.directSound !== undefined) {
+            for (let i = 0; i < this.directSound.ringSize; ++i) {
+                this.directSound.buffer[i] = new Float32Array(this.directSound.buffer[i]);
+            }
+        }
     }
 
     private onSoundPush(samples: Float32Array) {
