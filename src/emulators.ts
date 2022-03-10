@@ -38,6 +38,12 @@ export interface Emulators {
     backend: (bundle: Uint8Array | Uint8Array[], transportLayer: TransportLayer) => Promise<CommandInterface>;
 }
 
+export interface DirectSound {
+    ringSize: number,
+    bufferSize: number,
+    buffer: Float32Array[],
+}
+
 export interface CommandInterface {
     // * get bundle config
     config: () => Promise<DosConfig>;
@@ -97,6 +103,10 @@ export interface CommandInterface {
     networkConnect(networkType: NetworkType, address: string, port: number): Promise<void>;
     
     networkDisconnect(networkType: NetworkType): Promise<void>;
+
+    sharedMemory?: SharedArrayBuffer;
+
+    directSound?: DirectSound;
 }
 
 export type MessageType = "log" | "warn" | "error" | string;

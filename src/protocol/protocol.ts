@@ -1,5 +1,5 @@
 import { DosConfig } from "../dos/bundle/dos-conf";
-import { CommandInterface, NetworkType } from "../emulators";
+import { DirectSound, CommandInterface, NetworkType } from "../emulators";
 import { CommandInterfaceEventsImpl } from "../impl/ci-impl";
 
 export type ClientMessage =
@@ -49,12 +49,6 @@ export interface TransportLayer {
 export interface FrameLine {
     start: number;
     heapu8: Uint8Array;
-}
-
-export interface DirectSound {
-    ringSize: number,
-    bufferSize: number,
-    buffer: Float32Array[],
 }
 
 export class CommandInterfaceOverTransportLayer implements CommandInterface {

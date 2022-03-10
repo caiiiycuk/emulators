@@ -5,7 +5,7 @@ import { CommandInterface } from "../../src/emulators";
 // =======
 // Compare image from url, and screenshot from DosBox
 
-export function compareAndExit(imageUrl: string, ci: CommandInterface, threshold: number = 0) {
+export function compareAndExit(imageUrl: string, ci: CommandInterface, threshold = 0) {
     return new Promise((resolve, reject) => {
         const fn = () => {
             compare(imageUrl, ci, threshold)
@@ -93,7 +93,7 @@ function renderComparsion(img: HTMLImageElement, actualImage: HTMLImageElement) 
     div.innerHTML = '^=expected, v=actual';
     document.body.appendChild(div);
     document.body.appendChild(actualImage); // to grab it for creating the test reference
-};
+}
 
 export function renderComparsionOf(a: ImageData, b: ImageData) {
     const aUrl = imageDataToUrl(a);

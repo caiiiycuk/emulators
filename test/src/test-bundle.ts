@@ -10,7 +10,7 @@ import emulators from "../../src/impl/emulators-impl";
 
 async function toFs(bundle: DosBundle,
                     cb: (libzip: LibZip) => Promise<void>,
-                    overwriteConfig: boolean = false) {
+                    overwriteConfig = false) {
     const packer = await makeLibZip();
     const array = await bundle.toUint8Array(overwriteConfig);
     destroy(packer);
