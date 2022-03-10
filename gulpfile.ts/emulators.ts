@@ -53,4 +53,11 @@ function dosboxJs() {
         .pipe(dest("dist"));
 }
 
-export const emulators = series(clean, parallel(js, dosboxJs));
+function dosboxSharedJs() {
+    return src("dist/wdosbox.shared.js")
+        .pipe(footer(fs.readFileSync("src/dos/dosbox/ts/worker-server.js")))
+        .pipe(dest("dist"));
+
+}
+
+export const emulators = series(clean, parallel(js, dosboxJs, dosboxSharedJs));

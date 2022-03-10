@@ -87,6 +87,7 @@ export const host = new Host();
 
 export class WasmModulesImpl implements IWasmModules {
     private pathPrefix: string;
+    private wdosboxJs: string;
     private cache: Cache;
 
     private libzipPromise?: Promise<WasmModule>;
@@ -95,12 +96,14 @@ export class WasmModulesImpl implements IWasmModules {
     public wasmSupported = false;
 
     constructor(pathPrefix: string,
+                wdosboxJs: string,
                 cache: Cache) {
         if (pathPrefix.length > 0 && pathPrefix[pathPrefix.length - 1] !== "/") {
             pathPrefix += "/";
         }
 
         this.pathPrefix = pathPrefix;
+        this.wdosboxJs = wdosboxJs;
         this.cache = cache;
     }
 
@@ -118,7 +121,8 @@ export class WasmModulesImpl implements IWasmModules {
             return this.dosboxPromise;
         }
 
-        this.dosboxPromise = this.loadModule(this.pathPrefix + "wdosbox.js", "WDOSBOX");
+        this.dosboxPromise = this.loadModule(this.pathPrefix + this.wdosboxJs, "WDOSBOX");
+
         return this.dosboxPromise;
     }
 

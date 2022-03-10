@@ -115,6 +115,13 @@ function testServer(factory: CIFactory, name: string) {
             ci.events().onSoundPush((samples: Float32Array) => {
                 resolve(samples);
             });
+
+            if (ci.directSound !== undefined) {
+                setTimeout(() => {
+                    const buffer = ci.directSound.buffer[0];
+                    resolve(new Float32Array(Math.ceil(buffer[buffer.length - 1])));
+                }, 1000);
+            }
         });
 
         assert.ok(samples.byteLength > 0, "samples is empty");

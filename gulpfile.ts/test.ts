@@ -18,7 +18,7 @@ function copyAssetsTest() {
                 "test/dhry2-node.js",
                 "test/mocha.css", "test/mocha.js", "test/chai.js",
                 "test/janus.js", "test/adapter-latest.js",
-                "test/stats.min.js"])
+                "test/stats.min.js", "test/audio-node.js"])
         .pipe(dest("dist/test"));
 }
 

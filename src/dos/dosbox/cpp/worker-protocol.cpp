@@ -149,15 +149,52 @@ EM_JS(void, ws_init_runtime, (const char* sessionId), {
       }
     }
 
-    sendMessage("ws-ready");
+    var soundRingSize = 32;
+    var soundBufferSize = 2048 + 1; // should be greater then defined in jsdos-mixer.cpp
+
+    if (worker) {
+        if (typeof SharedArrayBuffer !== "undefined" &&
+            Module.HEAPU8.buffer instanceof SharedArrayBuffer) {
+            Module.sharedMemory = Module.HEAPU8.buffer;
+            Module.directSound = {
+                ringSize: soundRingSize,
+                bufferSize: soundBufferSize,
+                buffer: [],
+                active: 0,
+            };
+            for (var i = 0; i < Module.directSound.ringSize; ++i) {
+                var sharedBuffer = new SharedArrayBuffer(Module.directSound.bufferSize * 4);
+                Module.directSound.buffer.push(new Float32Array(sharedBuffer));
+            }
+        }
+    } else {
+        Module.sharedMemory = Module.HEAPU8.buffer;
+        Module.directSound = {
+            ringSize: soundRingSize,
+            bufferSize: soundBufferSize,
+            buffer: [],
+            active: 0,
+        };
+        for (var i = 0; i < Module.directSound.ringSize; ++i) {
+            Module.directSound.buffer.push(new Float32Array(Module.directSound.bufferSize));
+        }
+    }
+    
+    sendMessage("ws-ready", { sharedMemory: Module.sharedMemory });
   });
 
 EM_JS(void, emsc_ws_client_frame_set_size, (int width, int height), {
     Module.sendMessage("ws-frame-set-size", {width : width, height : height});
   });
 
-EM_JS(void, emsc_start_frame_update, (), {
+EM_JS(bool, emsc_start_frame_update, (void* rgba), {
+    if (Module.sharedMemory !== undefined) {
+        Module.sendMessage("ws-update-lines", { rgba });
+        return false;
+    }
+
     Module.frame_update_lines = [];
+    return true;
   });
 
 EM_JS(void, emsc_add_frame_line, (uint32_t start, char* ptr, uint32_t bpp4len), {
@@ -184,12 +221,33 @@ EM_JS(void, emsc_end_frame_update, (), {
   });
 
 EM_JS(void, emsc_ws_client_sound_init, (int freq), {
-    Module.sendMessage("ws-sound-init", { freq : freq });
+    if (Module.directSound !== undefined) {
+        var directSound = {
+            ringSize: Module.directSound.ringSize,
+            bufferSize: Module.directSound.bufferSize,
+            buffer: [],
+        };
+        for (var i = 0; i < directSound.ringSize; ++i) {
+            directSound.buffer.push(Module.directSound.buffer[i].buffer);
+        }
+        Module.sendMessage("ws-sound-init", { freq : freq, directSound });
+    } else {
+        Module.sendMessage("ws-sound-init", { freq : freq });
+    }
   });
 
 EM_JS(void, emsc_ws_client_sound_push, (const float *samples, int num_samples), {
-    if (num_samples > 0) {
-      Module.sendMessage("ws-sound-push", { samples: Module.HEAPF32.slice(samples / 4, samples / 4 + num_samples) });
+    if (num_samples <= 0) {
+        return;
+    }
+  
+    if (Module.directSound !== undefined) {
+        var buffer = Module.directSound.buffer[Module.directSound.active];
+        buffer[buffer.length - 1] = num_samples;
+        buffer.set(Module.HEAPF32.subarray(samples / 4, samples / 4 + num_samples), 0);
+        Module.directSound.active = (Module.directSound.active + 1) % Module.directSound.ringSize;
+    } else {
+        Module.sendMessage("ws-sound-push", { samples: Module.HEAPF32.slice(samples / 4, samples / 4 + num_samples) });
     }
   });
 
@@ -290,7 +348,10 @@ void client_frame_set_size(int width, int height) {
 }
 
 void client_frame_update_lines(uint32_t *lines, uint32_t batchCount, void *rgba) {
-  emsc_start_frame_update();
+  if (!emsc_start_frame_update(rgba)) {
+      return;
+  }
+
   for (uint32_t i = 0; i < batchCount; ++i) {
     uint32_t base = i * 3;
     uint32_t start = lines[base];
