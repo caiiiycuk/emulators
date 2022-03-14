@@ -6,7 +6,6 @@ import { CommandInterface } from "../../src/emulators";
 import emulatorsImpl from "../../src/impl/emulators-impl";
 
 import { HTTPRequest } from "../../src/http";
-import { CacheNoop } from "../../src/cache";
 
 import { Keys } from "../../src/keys";
 
@@ -47,7 +46,6 @@ function testServer(factory: CIFactory, name: string) {
     test(name + " should not start without jsdos conf", async () => {
         try {
             const buffer = await HTTPRequest("digger.zip", {
-                cache: new CacheNoop(),
                 responseType: "arraybuffer",
             });
             const ci = await factory(new Uint8Array(buffer as ArrayBuffer));
@@ -71,7 +69,6 @@ function testServer(factory: CIFactory, name: string) {
     let cachedBundle: Uint8Array = new Uint8Array();
     test(name + " should store fs updates between sessions [empty db]", async () => {
         const buffer = await HTTPRequest("digger.jsdos", {
-            cache: new CacheNoop(),
             responseType: "arraybuffer",
         });
 
@@ -84,7 +81,6 @@ function testServer(factory: CIFactory, name: string) {
 
     test(name + " should store fs updates between sessions [existent db]", async () => {
         const buffer = await HTTPRequest("digger.jsdos", {
-            cache: new CacheNoop(),
             responseType: "arraybuffer",
         });
 
@@ -249,7 +245,6 @@ function testServer(factory: CIFactory, name: string) {
 
     test(name + " can simulate mouse events", async () => {
         const buffer = await HTTPRequest("mousetst.jsdos", {
-            cache: new CacheNoop(),
             responseType: "arraybuffer",
         });
 

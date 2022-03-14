@@ -4,8 +4,8 @@
 // gulpfile.ts/wasm.ts --> generateBuildInfo
 
 export const Build = {
-    version: "0.73.0 (38254baec02202b9c438edd5fbe61712)",
-    buildSeed: 1646900453234,
+    version: "0.73.0 (5f8c5fec20ef96014744a5566169c658)",
+    buildSeed: 1647248365181,
     "wdosbox.shared.wasm": {
         "size": 1494972,
         "gzSize": 502858

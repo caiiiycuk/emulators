@@ -1,7 +1,6 @@
 import DosBundle from "./dos/bundle/dos-bundle";
 import emulatorsImpl from "./impl/emulators-impl";
 
-import { Cache } from "./cache";
 import { DosConfig } from "./dos/bundle/dos-conf";
 import { TransportLayer } from "./protocol/protocol";
 
@@ -14,12 +13,13 @@ export interface Emulators {
     // you should specify path prefix if you want to load them from different place
     pathPrefix: string;
 
-    // * cacheSeed
-    cacheSeed: string;
+    // * version - version of emulators build
+    version: string;
 
-    // * cache - by default cache that store wasm binaries, this cache is wiped on any js-dos version change
-    cache: (cacheName?: string) => Promise<Cache>;
+    // * wdosboxJs - a file name to load
+    wdosboxJs: string;
 
+    // * dosBundle - create empty DosBundle
     dosBundle: () => Promise<DosBundle>;
 
     // * dosboxNode - createDOSBOX Node emulator backend

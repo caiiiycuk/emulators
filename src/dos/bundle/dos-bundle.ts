@@ -5,7 +5,6 @@ import { DosConfig, createDosConfig, toDosboxConf } from "./dos-conf";
 import LibZip from "../../libzip/libzip";
 
 import { HTTPRequest } from "../../http";
-import { Cache } from "../../cache";
 
 import { WasmModule } from "../../impl/modules";
 
@@ -29,13 +28,11 @@ export default class DosBundle {
     public sources: DosArchiveSource[];
 
     private libzipWasm: WasmModule;
-    private cache: Cache;
 
-    constructor(libzipWasm: WasmModule, cache: Cache) {
+    constructor(libzipWasm: WasmModule) {
         this.config = createDosConfig();
         this.sources = [];
         this.libzipWasm = libzipWasm;
-        this.cache = cache;
     }
 
     autoexec(...lines: string[]): DosBundle {
@@ -75,7 +72,6 @@ export default class DosBundle {
             }
 
             const resource = HTTPRequest(source.url, {
-                cache: this.cache,
                 responseType: "arraybuffer",
             }).then((buffer: string | ArrayBuffer) => {
                 return {

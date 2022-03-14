@@ -1,6 +1,5 @@
 import { Build } from "../build";
 import { Emulators, CommandInterface } from "../emulators";
-import { Cache, CacheDb } from "../cache";
 
 import { IWasmModules, WasmModulesImpl } from "./modules";
 
@@ -13,35 +12,15 @@ import { TransportLayer, CommandInterfaceOverTransportLayer } from "../protocol/
 
 class EmulatorsImpl implements Emulators {
     pathPrefix = "";
+    version = Build.version;
     wdosboxJs = "wdosbox.js";
-    cacheSeed = "";
 
-    private cachePromises: {[cacheName: string]: Promise<Cache>} = {};
     private wasmModulesPromise?: Promise<IWasmModules>;
-
-    cache(cacheName?: string): Promise<Cache> {
-        if (cacheName === undefined || cacheName === null || cacheName.length === 0) {
-            cacheName = Build.version + " " + this.cacheSeed;
-        }
-
-        const cachePromise = this.cachePromises[cacheName];
-
-        if (cachePromise === undefined) {
-            const promise = CacheDb(cacheName, {
-                onErr: console.error,
-            });
-
-            this.cachePromises[cacheName] = promise;
-        }
-
-        return this.cachePromises[cacheName];
-    }
 
     async dosBundle(): Promise<DosBundle> {
         const modules = await this.wasmModules();
         const libzipWasm = await modules.libzip();
-        const cache = await this.cache();
-        return new DosBundle(libzipWasm, cache);
+        return new DosBundle(libzipWasm);
     }
 
     async dosboxNode(bundle: Uint8Array | Uint8Array[]): Promise<CommandInterface> {
@@ -89,8 +68,7 @@ class EmulatorsImpl implements Emulators {
         }
 
         const make = async () => {
-            const cache = await this.cache();
-            return new WasmModulesImpl(this.pathPrefix, this.wdosboxJs, cache);
+            return new WasmModulesImpl(this.pathPrefix, this.wdosboxJs);
         }
 
         this.wasmModulesPromise = make();

@@ -1,7 +1,4 @@
-import { Cache, CacheNoop } from "./cache";
-
 export interface XhrOptions {
-    cache: Cache;
     method?: string;
     progress?: (total: number, loaded: number) => void;
     data?: string;
@@ -36,7 +33,6 @@ interface XhrOptionsInternal extends XhrOptions {
 
 // Class Xhr does not have any public methods
 class Xhr {
-    private cache: Cache;
     private resource: string;
     private options: XhrOptionsInternal;
     private xhr: XMLHttpRequest | null = null;
@@ -47,19 +43,12 @@ class Xhr {
         this.resource = url;
         this.options = options;
         this.options.method = options.method || "GET";
-        this.cache = options.cache || new CacheNoop();
 
-        if (this.options.method  === "GET") {
-            this.cache.get(this.resource)
-                .then((data: string | ArrayBuffer) => {
-                    if (this.options.success !== undefined) {
-                        this.options.success(data);
-                    }
-                })
-                .catch(() => {
-                    this.makeHttpRequest();
-                });
+        if (this.options.method  !== "GET") {
+            throw new Error("Method " + this.options.method + " is not supported");
         }
+        
+        this.makeHttpRequest();
     }
 
     private makeHttpRequest() {
@@ -107,10 +96,6 @@ class Xhr {
                     const total = Math.max(this.total, this.loaded);
                     if (this.options.progress !== undefined) {
                         this.options.progress(total, total);
-                    }
-
-                    if (this.options.method === "GET" && this.resource.indexOf("?") < 0) {
-                        this.cache.put(this.resource, xhr.response);
                     }
 
                     return this.options.success(xhr.response);

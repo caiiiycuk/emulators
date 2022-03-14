@@ -1,7 +1,6 @@
 /* eslint no-self-assign: 0 */
 /* eslint @typescript-eslint/no-var-requires: 0 */
 
-import { Cache } from "../cache";
 import { HTTPRequest } from "../http";
 
 export interface WasmModule {
@@ -88,7 +87,6 @@ export const host = new Host();
 export class WasmModulesImpl implements IWasmModules {
     private pathPrefix: string;
     private wdosboxJs: string;
-    private cache: Cache;
 
     private libzipPromise?: Promise<WasmModule>;
     private dosboxPromise?: Promise<WasmModule>;
@@ -96,15 +94,13 @@ export class WasmModulesImpl implements IWasmModules {
     public wasmSupported = false;
 
     constructor(pathPrefix: string,
-                wdosboxJs: string,
-                cache: Cache) {
+                wdosboxJs: string) {
         if (pathPrefix.length > 0 && pathPrefix[pathPrefix.length - 1] !== "/") {
             pathPrefix += "/";
         }
 
         this.pathPrefix = pathPrefix;
         this.wdosboxJs = wdosboxJs;
-        this.cache = cache;
     }
 
     libzip() {
@@ -129,25 +125,22 @@ export class WasmModulesImpl implements IWasmModules {
     private loadModule(url: string,
                        moduleName: string) {
         // eslint-disable-next-line
-        return loadWasmModule(url, moduleName, this.cache, () => {});
+        return loadWasmModule(url, moduleName, () => {});
     }
 }
 
 export function loadWasmModule(url: string,
                                moduleName: string,
-                               cache: Cache,
                                onprogress: (stage: string, total: number, loaded: number) => void): Promise<WasmModule> {
     if (typeof XMLHttpRequest === "undefined") {
-        return loadWasmModuleNode(url, moduleName, cache, onprogress);
+        return loadWasmModuleNode(url, moduleName, onprogress);
     } else {
-        return loadWasmModuleBrowser(url, moduleName, cache, onprogress);
+        return loadWasmModuleBrowser(url, moduleName, onprogress);
     }
 }
 
 function loadWasmModuleNode(url: string,
                             moduleName: string,
-                            // eslint-disable-next-line
-                            cache: Cache,
                             // eslint-disable-next-line
                             onprogress: (stage: string, total: number, loaded: number) => void) {
     if (host.globals.compiled[moduleName] !== undefined) {
@@ -165,7 +158,6 @@ function loadWasmModuleNode(url: string,
 
 function loadWasmModuleBrowser(url: string,
                           moduleName: string,
-                          cache: Cache,
                           onprogress: (stage: string, total: number, loaded: number) => void) {
     if (host.globals.compiled[moduleName] !== undefined) {
         return host.globals.compiled[moduleName];
@@ -182,14 +174,12 @@ function loadWasmModuleBrowser(url: string,
 
         const wasmUrl = url.substr(0, url.lastIndexOf('.js')) + ".wasm";
         const binaryPromise = HTTPRequest(wasmUrl, {
-            cache,
             responseType: "arraybuffer",
             progress: (total, loaded) => {
                 onprogress("Resolving DosBox (" + url + ")", total, loaded);
             },
         });
         const scriptPromise = HTTPRequest(url, {
-            cache,
             progress: (total, loaded) => {
                 onprogress("Resolving DosBox", total, loaded);
             },
