@@ -19,15 +19,15 @@ EM_JS(void, ws_init_runtime, (const char* sessionId), {
     var worker = typeof importScripts === "function";
     Module.sessionId = UTF8ToString(sessionId);
 
-    function sendMessage(name, props) {
+    function sendMessage(name, props, transfer) {
       props = props || {};
       props.sessionId = Module.sessionId;
       if (Module.postMessage) {
-        Module.postMessage(name, props);
+        Module.postMessage(name, props, transfer);
       } else if (worker) {
-        postMessage({ name, props });
+        postMessage({ name, props }, transfer);
       } else {
-        window.postMessage({ name, props }, "*");
+        window.postMessage({ name, props }, "*", transfer);
       }
     };
     Module.sendMessage = sendMessage;
@@ -99,7 +99,7 @@ EM_JS(void, ws_init_runtime, (const char* sessionId), {
         case "wc-pack-fs-to-bundle": {
           try {
             Module.persist = function(archive) {
-              sendMessage("ws-persist", { bundle: archive });
+              sendMessage("ws-persist", { bundle: archive }, [ archive.buffer ]);
             };
             Module._packFsToBundle();
             delete Module.persist;
@@ -194,6 +194,7 @@ EM_JS(bool, emsc_start_frame_update, (void* rgba), {
     }
 
     Module.frame_update_lines = [];
+    Module.frame_update_lines_transferable = [];
     return true;
   });
 
@@ -211,13 +212,17 @@ EM_JS(void, emsc_add_frame_line, (uint32_t start, char* ptr, uint32_t bpp4len), 
     }
 
     Module.frame_update_lines.push({start : start, heapu8 : bpp3});
+    Module.frame_update_lines_transferable.push(bpp3.buffer);
   });
 
 EM_JS(void, emsc_end_frame_update, (), {
     if (Module.frame_update_lines.length > 0) {
-      Module.sendMessage("ws-update-lines", { lines: Module.frame_update_lines });
+      Module.sendMessage("ws-update-lines", 
+        { lines: Module.frame_update_lines },
+        Module.frame_update_lines_transferable);
     }
     delete Module.frame_update_lines;
+    delete Module.frame_update_lines_transferable;
   });
 
 EM_JS(void, emsc_ws_client_sound_init, (int freq), {
@@ -247,7 +252,10 @@ EM_JS(void, emsc_ws_client_sound_push, (const float *samples, int num_samples), 
         buffer.set(Module.HEAPF32.subarray(samples / 4, samples / 4 + num_samples), 0);
         Module.directSound.active = (Module.directSound.active + 1) % Module.directSound.ringSize;
     } else {
-        Module.sendMessage("ws-sound-push", { samples: Module.HEAPF32.slice(samples / 4, samples / 4 + num_samples) });
+        const heapf32 = Module.HEAPF32.slice(samples / 4, samples / 4 + num_samples);
+        Module.sendMessage("ws-sound-push", 
+            { samples: heapf32 },
+            [ heapf32.buffer ]);
     }
   });
 
