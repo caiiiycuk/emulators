@@ -20,11 +20,6 @@
 #ifdef EMSCRIPTEN
 #include <emscripten.h>
 #include <emscripten/html5.h>
-#else
-#include <thread>
-#include <mutex>
-
-std::mutex eventsMutex;
 #endif
 
 struct KBDHash {
@@ -350,9 +345,6 @@ std::list<KeyEvent> keyEvents;
 double executeNextKeyEventAt = 0;
 
 void GFX_Events() {
-#ifndef EMSCRIPTEN
-    std::lock_guard<std::mutex> g(eventsMutex);
-#endif
   if (keyEvents.empty()) {
       return;
     }
@@ -378,9 +370,6 @@ void GFX_Events() {
 
 
 void server_add_key(KBD_KEYS key, bool pressed, uint64_t pressedMs) {
-#ifndef EMSCRIPTEN
-    std::lock_guard<std::mutex> g(eventsMutex);
-#endif
     keyEvents.push_back({ key, pressed, pressedMs });
     if (keyEvents.size() == 1 && pressed) {
       executeNextKeyEventAt = GetMsPassedFromStart();
@@ -388,9 +377,6 @@ void server_add_key(KBD_KEYS key, bool pressed, uint64_t pressedMs) {
 }
 
 void server_mouse_moved(float x, float y, bool relative, uint64_t movedMs) {
-#ifndef EMSCRIPTEN
-  std::lock_guard<std::mutex> g(eventsMutex);
-#endif
   if (relative) {
     Mouse_CursorMoved(x,
                     y,
@@ -410,9 +396,6 @@ void server_mouse_moved(float x, float y, bool relative, uint64_t movedMs) {
 }
 
 void server_mouse_button(int button, bool pressed, uint64_t pressedMs) {
-#ifndef EMSCRIPTEN
-  std::lock_guard<std::mutex> g(eventsMutex);
-#endif
   if (pressed) {
     Mouse_ButtonPressed(button);
   } else {
@@ -422,9 +405,6 @@ void server_mouse_button(int button, bool pressed, uint64_t pressedMs) {
 
 extern void mickeySync();
 void server_mouse_sync(uint64_t syncMs) {
-#ifndef EMSCRIPTEN
-  std::lock_guard<std::mutex> g(eventsMutex);
-#endif
   mickeySync();
 }
 
