@@ -1,3 +1,5 @@
+[![build emulators](https://github.com/js-dos/emulators/actions/workflows/build.js.yml/badge.svg)](https://github.com/js-dos/emulators/actions/workflows/build.js.yml)
+
 Emulators for [js-dos 7.xx](https://js-dos.com/v7/build/)
 
 
