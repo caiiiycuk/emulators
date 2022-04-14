@@ -17,6 +17,7 @@ jobs:
     strategy:
       matrix:
         node-version: [14.x]
+        emsdk-version: [3.1.8]
 
     steps:
     - uses: actions/checkout@v3
@@ -26,8 +27,7 @@ jobs:
         node-version: ${{ matrix.node-version }}
         cache: 'npm'
     - run: git clone https://github.com/emscripten-core/emsdk.git
-    - run: cd emsdk && git pull && git checkout main && ./emsdk install 3.1.8 && ./emsdk activate 3.1.8 && cd ..
-    - run: source /emsdk/emsdk_env.sh
+    - run: cd emsdk && ./emsdk install ${{ matrix.emsdk-version }} && ./emsdk activate ${{ matrix.emsdk-version }} && source emsdk/emsdk_env.sh && cd ..
     - run: npm install -g yarn
     - run: yarn
     - run: yarn run gulp
