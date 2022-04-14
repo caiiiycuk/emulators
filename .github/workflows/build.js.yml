@@ -26,7 +26,7 @@ jobs:
         node-version: ${{ matrix.node-version }}
         cache: 'npm'
     - run: git clone https://github.com/emscripten-core/emsdk.git
-    - run: cd emsdk && git pull && git checkout main && ./emsdk install 3.1.8 && ./emsdk activate 3.1.8
+    - run: cd emsdk && git pull && git checkout main && ./emsdk install 3.1.8 && ./emsdk activate 3.1.8 && cd ..
     - run: source /emsdk/emsdk_env.sh
     - run: npm install -g yarn
     - run: yarn
