@@ -1,10 +1,9 @@
-name: build
+name: publish npm package
 
 on:
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
+  release:
+    types: [created]
+  workflow_dispatch:
 
 jobs:
   build:
@@ -20,6 +19,9 @@ jobs:
       with:
         node-version: ${{ matrix.node-version }}
         cache: 'npm'
+        registry-url: https://registry.npmjs.org/
+      env:
+        NODE_AUTH_TOKEN: ${{secrets.npm_token}}
     - run: npm install -g yarn
     - run: yarn
     - run: yarn run eslint src --ext ts,tsx --max-warnings 0
@@ -28,8 +30,4 @@ jobs:
     - run: git clone https://github.com/emscripten-core/emsdk.git
     - run: cd emsdk && ./emsdk install ${{ matrix.emsdk-version }} && ./emsdk activate ${{ matrix.emsdk-version }} && cd ..
     - run: source ./emsdk/emsdk_env.sh && yarn run gulp
-    - name: upload
-      uses: actions/upload-artifact@v3.0.0
-      with:
-        name: 'dist'
-        path: 'dist'
+    - run: npm publish --dry-run
