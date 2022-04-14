@@ -31,3 +31,8 @@ jobs:
     - run: cd emsdk && ./emsdk install ${{ matrix.emsdk-version }} && ./emsdk activate ${{ matrix.emsdk-version }} && cd ..
     - run: source ./emsdk/emsdk_env.sh && yarn run gulp
     - run: npm publish
+    - name: upload
+      uses: actions/upload-artifact@v3.0.0
+      with:
+        name: 'dist'
+        path: 'dist'
