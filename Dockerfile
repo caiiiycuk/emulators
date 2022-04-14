@@ -10,14 +10,14 @@ RUN apt-get -yqq update && \
     apt-get clean -y
 
 RUN git clone https://github.com/emscripten-core/emsdk.git
-RUN cd emsdk && git pull && git checkout main && ./emsdk install 2.0.14 && ./emsdk activate 2.0.14
-RUN source /emsdk/emsdk_env.sh && npm install -g gulp
+RUN cd emsdk && git pull && git checkout main && ./emsdk install 3.1.8 && ./emsdk activate 3.1.8
+RUN source /emsdk/emsdk_env.sh && npm install -g http-server yarn
 
 WORKDIR /app
 
 COPY package.json /app/package.json
-COPY package-lock.json /app/package-lock.json
-RUN source /emsdk/emsdk_env.sh && npm install && npm install http-server
+COPY yarn.lock /app/yarn.lock
+RUN source /emsdk/emsdk_env.sh && yarn
 
 COPY tsconfig.json /app/tsconfig.json
 COPY .eslintrc.json /app/.eslintrc.json
@@ -27,10 +27,10 @@ COPY native /app/native
 COPY src /app/src
 COPY test /app/test
 
-RUN source /emsdk/emsdk_env.sh && gulp wasm
-RUN source /emsdk/emsdk_env.sh && gulp
+RUN source /emsdk/emsdk_env.sh && yarn run gulp wasm
+RUN source /emsdk/emsdk_env.sh && yarn run gulp
 
 EXPOSE 8080
 
-CMD source /emsdk/emsdk_env.sh && ./node_modules/.bin/hs dist
+CMD source /emsdk/emsdk_env.sh && hs dist
 
