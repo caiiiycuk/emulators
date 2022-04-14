@@ -4,8 +4,7 @@
         "es2021": true
     },
     "extends": [
-        "eslint:recommended",
-        "plugin:@typescript-eslint/recommended"
+        "google"
     ],
     "parser": "@typescript-eslint/parser",
     "parserOptions": {
@@ -16,7 +15,29 @@
         "@typescript-eslint"
     ],
     "rules": {
-        "@typescript-eslint/no-explicit-any": 0,
-        "@typescript-eslint/explicit-module-boundary-types": 0
-    }
+        "object-curly-spacing": [
+            "error",
+            "always"
+        ],
+        "require-jsdoc": "off",
+        "quotes": [
+            "error",
+            "double"
+        ],
+        "indent": [
+            "error",
+            4,
+            {
+                "SwitchCase": 1,
+                "FunctionDeclaration": {
+                    "parameters": "first"
+                }
+            }
+        ],
+        "max-len": [
+            "error",
+            120
+        ]
+    },
+    "ignorePatterns": ["dist/**/*"]
 }

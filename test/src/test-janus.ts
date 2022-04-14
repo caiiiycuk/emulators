@@ -59,7 +59,7 @@ test("Should provide js-dos config", async () => {
     await ci.exit();
 });
 
-test("should render playable video game", async() => {
+test("should render playable video game", async () => {
     const ci = await emulators.janus(restUrl()) as JanusCommandInterface;
     assert.ok(ci);
 
@@ -87,7 +87,7 @@ test("should render playable video game", async() => {
     });
     videoEl.addEventListener("mousemove", (e) => {
         ci.sendMouseMotion(e.offsetX / 320,
-                           e.offsetY / 240);
+            e.offsetY / 240);
     });
     videoEl.addEventListener("mouseup", () => {
         ci.sendMouseButton(0, false);
@@ -111,7 +111,8 @@ test("should render playable video game", async() => {
             for (const signal of signals) {
                 for (const color of colors) {
                     if (message.startsWith(color + "-" + signal + ":")) {
-                        document.getElementById(color + "-" + signal).innerHTML = message.substr((color + "-" + signal + ":").length);
+                        document.getElementById(color + "-" + signal).innerHTML =
+                            message.substr((color + "-" + signal + ":").length);
                     }
                 }
             }

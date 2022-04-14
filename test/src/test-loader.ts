@@ -10,7 +10,7 @@ export function testLoader() {
     test("loader should rejects when wasm not supported", async () => {
         host.wasmSupported = false;
         try {
-            await loadWasmModule("wrongurl.js", "", () => { /**/ });
+            await loadWasmModule("wrongurl.js", "", () => {/**/});
             host.wasmSupported = true;
             assert.fail();
         } catch (e) {
@@ -21,7 +21,7 @@ export function testLoader() {
 
     test("loader should rejects when js file not exists", async () => {
         try {
-            await loadWasmModule("wrongurl.js", "", () => { /**/ });
+            await loadWasmModule("wrongurl.js", "", () => {/**/});
             assert.fail();
         } catch (e) {
             assert.equal("Unable to download 'wrongurl.wasm', code: 404", e.message);
@@ -29,12 +29,11 @@ export function testLoader() {
     });
 
     test("loader should show progress loading", async () => {
-        const moduleUrl = "/wdosbox.js"
+        const moduleUrl = "/wdosbox.js";
 
-        const module =
-            await loadWasmModule(moduleUrl, "",
-                                 (stage: string, total: number, loaded: number) => {
-                                     assert.equal(true, loaded <= total, "onprgoress: " + loaded + "<=" + total);
-                                 });
+        await loadWasmModule(moduleUrl, "",
+            (stage: string, total: number, loaded: number) => {
+                assert.equal(true, loaded <= total, "onprgoress: " + loaded + "<=" + total);
+            });
     });
 }

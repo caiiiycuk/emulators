@@ -33,7 +33,7 @@ export async function asyncifyAdd() {
         log("No new entires, exiting...");
     }
 
-    log("== asyncify list")
+    log("== asyncify list");
     const sorted = Object.keys(functionsSet).sort();
     let outcome = "[";
     for (const next of sorted) {

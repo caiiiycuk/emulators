@@ -1,7 +1,8 @@
+/* eslint-disable no-invalid-this */
+
 import { CommandInterfaceEvents, MessageType, NetworkType } from "../emulators";
 
 export class CommandInterfaceEventsImpl implements CommandInterfaceEvents {
-
     private onStdoutConsumers: ((message: string) => void)[] = [];
     private delayedStdout: string[] = [];
 
@@ -47,10 +48,10 @@ export class CommandInterfaceEventsImpl implements CommandInterfaceEvents {
         this.onMessageConsumers.push(consumer);
 
         if (this.onMessageConsumers.length === 1) {
-           for (const next of this.delayedMessages) {
-               consumer(next.msgType, ...next.args);
-           }
-           this.delayedMessages = [];
+            for (const next of this.delayedMessages) {
+                consumer(next.msgType, ...next.args);
+            }
+            this.delayedMessages = [];
         }
     }
 
@@ -81,7 +82,7 @@ export class CommandInterfaceEventsImpl implements CommandInterfaceEvents {
 
     fireFrame = (rgb: Uint8Array | null, rgba: Uint8Array | null) => {
         for (const next of this.onFrameConsumers) {
-           next(rgb, rgba);
+            next(rgb, rgba);
         }
     }
 
@@ -120,11 +121,10 @@ export class CommandInterfaceEventsImpl implements CommandInterfaceEvents {
             next(networkType, address, port);
         }
     }
-    
+
     fireNetworkDisconnected = (networkType: NetworkType) => {
         for (const next of this.onNetworkDisconnectedConsumers) {
             next(networkType);
         }
     }
-
 }

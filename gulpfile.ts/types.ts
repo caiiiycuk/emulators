@@ -9,7 +9,7 @@ function clean() {
 
 async function types() {
     await execute("./node_modules/.bin/tsc", "--emitDeclarationOnly", "--declaration",
-            "src/emulators.ts", "--outDir", "dist/types");
+        "src/emulators.ts", "--outDir", "dist/types");
 }
 
 export const emitTypes = series(clean, types);

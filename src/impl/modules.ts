@@ -1,7 +1,4 @@
-/* eslint no-self-assign: 0 */
-/* eslint @typescript-eslint/no-var-requires: 0 */
-
-import { HTTPRequest } from "../http";
+import { httpRequest } from "../http";
 
 export interface WasmModule {
     instantiate: (module?: any) => Promise<any>;
@@ -35,7 +32,6 @@ class Host {
         if (typeof WebAssembly === "object" &&
             typeof WebAssembly.instantiate === "function" &&
             typeof WebAssembly.compile === "function") {
-
             const wmodule = new WebAssembly.Module(Uint8Array.of(0x0, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00));
             if (wmodule instanceof WebAssembly.Module) {
                 this.wasmSupported = new WebAssembly.Instance(wmodule) instanceof WebAssembly.Instance;
@@ -57,7 +53,9 @@ class Host {
             Math.imul = Math.imul;
 
             if (!Math.fround) {
-                Math.fround = function(x) { return x; };
+                Math.fround = function(x) {
+                    return x;
+                };
             }
             Math.fround = Math.fround;
 
@@ -65,7 +63,9 @@ class Host {
                 Math.clz32 = function(x) {
                     x = x >>> 0;
                     for (let i = 0; i < 32; i++) {
-                        if (x & (1 << (31 - i))) { return i; }
+                        if (x & (1 << (31 - i))) {
+                            return i;
+                        }
                     }
                     return 32;
                 };
@@ -94,7 +94,7 @@ export class WasmModulesImpl implements IWasmModules {
     public wasmSupported = false;
 
     constructor(pathPrefix: string,
-                wdosboxJs: string) {
+        wdosboxJs: string) {
         if (pathPrefix.length > 0 && pathPrefix[pathPrefix.length - 1] !== "/") {
             pathPrefix += "/";
         }
@@ -123,7 +123,7 @@ export class WasmModulesImpl implements IWasmModules {
     }
 
     private loadModule(url: string,
-                       moduleName: string) {
+        moduleName: string) {
         // eslint-disable-next-line
         return loadWasmModule(url, moduleName, () => {});
     }
@@ -131,7 +131,8 @@ export class WasmModulesImpl implements IWasmModules {
 
 export function loadWasmModule(url: string,
                                moduleName: string,
-                               onprogress: (stage: string, total: number, loaded: number) => void): Promise<WasmModule> {
+                               onprogress: (stage: string, total: number, loaded: number) => void,
+): Promise<WasmModule> {
     if (typeof XMLHttpRequest === "undefined") {
         return loadWasmModuleNode(url, moduleName, onprogress);
     } else {
@@ -157,8 +158,8 @@ function loadWasmModuleNode(url: string,
 }
 
 function loadWasmModuleBrowser(url: string,
-                          moduleName: string,
-                          onprogress: (stage: string, total: number, loaded: number) => void) {
+                               moduleName: string,
+                               onprogress: (stage: string, total: number, loaded: number) => void) {
     if (host.globals.compiled[moduleName] !== undefined) {
         return host.globals.compiled[moduleName];
     }
@@ -172,14 +173,14 @@ function loadWasmModuleBrowser(url: string,
             throw new Error("Starting from js-dos 6.22.60 js environment is not supported");
         }
 
-        const wasmUrl = url.substr(0, url.lastIndexOf('.js')) + ".wasm";
-        const binaryPromise = HTTPRequest(wasmUrl, {
+        const wasmUrl = url.substr(0, url.lastIndexOf(".js")) + ".wasm";
+        const binaryPromise = httpRequest(wasmUrl, {
             responseType: "arraybuffer",
             progress: (total, loaded) => {
                 onprogress("Resolving DosBox (" + url + ")", total, loaded);
             },
         });
-        const scriptPromise = HTTPRequest(url, {
+        const scriptPromise = httpRequest(url, {
             progress: (total, loaded) => {
                 onprogress("Resolving DosBox", total, loaded);
             },
@@ -197,8 +198,8 @@ function loadWasmModuleBrowser(url: string,
         eval.call(window, script as string);
 
         return new CompiledBrowserModule(wasmModule,
-                                         host.globals.exports[moduleName],
-                                         instantiateWasm);
+            host.globals.exports[moduleName],
+            instantiateWasm);
     }
 
     const promise = load();
@@ -222,6 +223,7 @@ class CompiledNodeModule implements WasmModule {
                 resolve();
             };
 
+            // eslint-disable-next-line new-cap
             new this.emModule(initialModule);
         });
     }
@@ -244,6 +246,7 @@ class CompiledBrowserModule implements WasmModule {
             initialModule.onRuntimeInitialized = () => {
                 resolve();
             };
+            // eslint-disable-next-line new-cap
             new this.module(initialModule);
         });
     }

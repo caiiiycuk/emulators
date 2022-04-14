@@ -1,11 +1,13 @@
+/* eslint-disable new-cap */
+
 import { assert } from "chai";
-import { compareAndExit, renderComparsionOf } from "./compare"
+import { compareAndExit, renderComparsionOf } from "./compare";
 
 import DosBundle from "../../src/dos/bundle/dos-bundle";
 import { CommandInterface } from "../../src/emulators";
 import emulatorsImpl from "../../src/impl/emulators-impl";
 
-import { HTTPRequest } from "../../src/http";
+import { httpRequest } from "../../src/http";
 
 import { Keys } from "../../src/keys";
 
@@ -45,10 +47,10 @@ function testServer(factory: CIFactory, name: string) {
 
     test(name + " should not start without jsdos conf", async () => {
         try {
-            const buffer = await HTTPRequest("digger.zip", {
+            const buffer = await httpRequest("digger.zip", {
                 responseType: "arraybuffer",
             });
-            const ci = await factory(new Uint8Array(buffer as ArrayBuffer));
+            await factory(new Uint8Array(buffer as ArrayBuffer));
             assert.fail();
         } catch (e) {
             assert.equal("[\"Broken bundle, .jsdos/dosbox.conf not found\"]", e.message);
@@ -68,7 +70,7 @@ function testServer(factory: CIFactory, name: string) {
 
     let cachedBundle: Uint8Array = new Uint8Array();
     test(name + " should store fs updates between sessions [empty db]", async () => {
-        const buffer = await HTTPRequest("digger.jsdos", {
+        const buffer = await httpRequest("digger.jsdos", {
             responseType: "arraybuffer",
         });
 
@@ -80,7 +82,7 @@ function testServer(factory: CIFactory, name: string) {
     });
 
     test(name + " should store fs updates between sessions [existent db]", async () => {
-        const buffer = await HTTPRequest("digger.jsdos", {
+        const buffer = await httpRequest("digger.jsdos", {
             responseType: "arraybuffer",
         });
 
@@ -102,8 +104,8 @@ function testServer(factory: CIFactory, name: string) {
 
     test(name + " can play sound", async () => {
         const ci = await CI((await emulatorsImpl.dosBundle())
-                                .extract("digger.zip")
-                                .autoexec("DIGGER.COM"));
+            .extract("digger.zip")
+            .autoexec("DIGGER.COM"));
         assert.ok(ci);
         assert.equal(ci.soundFrequency(), 44100, "sound frequency should be 22050");
 
@@ -122,12 +124,12 @@ function testServer(factory: CIFactory, name: string) {
 
         assert.ok(samples.byteLength > 0, "samples is empty");
         await ci.exit();
-    })
+    });
 
     test(name + " exit event", async () => {
         const ci = await CI((await emulatorsImpl.dosBundle())
-                                .extract("digger.zip")
-                                .autoexec("DIGGER.COM"));
+            .extract("digger.zip")
+            .autoexec("DIGGER.COM"));
         assert.ok(ci);
         const exitPromise = new Promise<void>((resolve) => {
             ci.events().onExit(() => {
@@ -137,7 +139,7 @@ function testServer(factory: CIFactory, name: string) {
         await ci.exit();
         await exitPromise;
         assert.ok(true);
-    })
+    });
 
     test(name + " can pause/resume emulation", async () => {
         const ci = await CI((await emulatorsImpl.dosBundle())
@@ -156,7 +158,7 @@ function testServer(factory: CIFactory, name: string) {
         ci.resume();
 
         await new Promise((resolve) => setTimeout(resolve, 300));
-        const third  = await ci.screenshot();
+        const third = await ci.screenshot();
 
         await ci.exit();
 
@@ -217,9 +219,9 @@ function testServer(factory: CIFactory, name: string) {
                 initialTime = timeMs;
             }
             addKeyEventCalled.push([keyCode, pressed, timeMs]);
-        }
+        };
 
-        await new Promise((resolve, reject) => {
+        await new Promise<void>((resolve, reject) => {
             const keyPress = () => {
                 ci.simulateKeyPress(Keys.KBD_left, Keys.KBD_leftctrl, Keys.KBD_leftshift);
             };
@@ -244,7 +246,7 @@ function testServer(factory: CIFactory, name: string) {
     });
 
     test(name + " can simulate mouse events", async () => {
-        const buffer = await HTTPRequest("mousetst.jsdos", {
+        const buffer = await httpRequest("mousetst.jsdos", {
             responseType: "arraybuffer",
         });
 
@@ -255,7 +257,7 @@ function testServer(factory: CIFactory, name: string) {
             const sendFn = () => {
                 ci.sendMouseMotion(380 / 640, 250 / 400);
                 ci.sendMouseButton(0, true);
-            }
+            };
 
             const screenshot = () => {
                 compareAndExit("mousetst.png", ci, 2)

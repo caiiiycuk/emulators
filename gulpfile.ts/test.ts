@@ -15,10 +15,10 @@ function clean() {
 
 function copyAssetsTest() {
     return src(["test/*.html", "test/*.png", "test/*.zip", "test/*.jsdos",
-                "test/dhry2-node.js",
-                "test/mocha.css", "test/mocha.js", "test/chai.js",
-                "test/janus.js", "test/adapter-latest.js",
-                "test/stats.min.js", "test/audio-node.js", "test/webgl.js"])
+        "test/dhry2-node.js",
+        "test/mocha.css", "test/mocha.js", "test/chai.js",
+        "test/janus.js", "test/adapter-latest.js",
+        "test/stats.min.js", "test/audio-node.js", "test/webgl.js"])
         .pipe(dest("dist/test"));
 }
 
@@ -27,7 +27,7 @@ function testJs() {
         debug: true,
         entries: ["test/src/test.ts"],
         cache: {},
-        packageCache: {}
+        packageCache: {},
     })
         .plugin(tsify, {
             "target": "esnext",
@@ -36,14 +36,14 @@ function testJs() {
             "strict": false,
             "forceConsistentCasingInFileNames": false,
             "resolveJsonModule": true,
-            "isolatedModules": false
+            "isolatedModules": false,
         })
         .transform("babelify", {
             presets: [["@babel/preset-env", {
                 "useBuiltIns": "usage",
-                "corejs": 2,
+                "corejs": 3,
             }]],
-            extensions: [".ts"]
+            extensions: [".ts"],
         })
         .bundle()
         .pipe(source("test.js"))
@@ -57,7 +57,7 @@ function testJanusJs() {
         debug: true,
         entries: ["test/src/test-janus.ts"],
         cache: {},
-        packageCache: {}
+        packageCache: {},
     })
         .plugin(tsify, {
             "target": "esnext",
@@ -66,14 +66,14 @@ function testJanusJs() {
             "strict": false,
             "forceConsistentCasingInFileNames": false,
             "resolveJsonModule": true,
-            "isolatedModules": false
+            "isolatedModules": false,
         })
         .transform("babelify", {
             presets: [["@babel/preset-env", {
                 "useBuiltIns": "usage",
-                "corejs": 2,
+                "corejs": 3,
             }]],
-            extensions: [".ts"]
+            extensions: [".ts"],
         })
         .bundle()
         .pipe(source("test-janus.js"))

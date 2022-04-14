@@ -11,10 +11,10 @@ async function wasm() {
 }
 
 function copyAssets() {
-    return src(['build/wasm/wlibzip.js',
-                'build/wasm/wlibzip.js.symbols',
-                'build/wasm/wlibzip.wasm'])
-        .pipe(dest('dist'));
+    return src(["build/wasm/wlibzip.js",
+        "build/wasm/wlibzip.js.symbols",
+        "build/wasm/wlibzip.wasm"])
+        .pipe(dest("dist"));
 }
 
 export const libzip = series(clean, wasm, copyAssets);

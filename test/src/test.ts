@@ -10,13 +10,13 @@ import emulatorsImpl from "../../src/impl/emulators-impl";
 emulatorsImpl.pathPrefix = "/";
 
 export function createTests() {
-	testLoader();
-	testLibZip();
-	testConf();
+    testLoader();
+    testLibZip();
+    testConf();
 
-	testDosBundle();
-	testDos();
-	testNet();
+    testDosBundle();
+    testDos();
+    testNet();
 }
 
 (window as any).createTests = createTests;

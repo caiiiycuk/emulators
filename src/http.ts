@@ -5,7 +5,7 @@ export interface XhrOptions {
     responseType?: XMLHttpRequestResponseType;
 }
 
-export const HTTPRequest = XhrRequest;
+export const httpRequest = XhrRequest;
 
 // # XhrRequest
 // `XhrRequest` is small wrapper over XMLHttpRequest, that provides some
@@ -17,7 +17,7 @@ function XhrRequest(url: string, options: XhrOptions): Promise<string | ArrayBuf
             success: resolve,
             fail: (message: string) => {
                 reject(new Error(message));
-            }
+            },
         });
     });
 }
@@ -44,10 +44,10 @@ class Xhr {
         this.options = options;
         this.options.method = options.method || "GET";
 
-        if (this.options.method  !== "GET") {
+        if (this.options.method !== "GET") {
             throw new Error("Method " + this.options.method + " is not supported");
         }
-        
+
         this.makeHttpRequest();
     }
 
@@ -74,7 +74,8 @@ class Xhr {
         if (typeof (errorListener = this.xhr).addEventListener === "function") {
             errorListener.addEventListener("error", () => {
                 if (this.options.fail) {
-                    this.options.fail("Unalbe to download '" + this.resource + "', code: " + (this.xhr as XMLHttpRequest).status);
+                    this.options.fail("Unalbe to download '" + this.resource +
+                        "', code: " + (this.xhr as XMLHttpRequest).status);
                     return delete this.options.fail;
                 }
             });
@@ -106,6 +107,5 @@ class Xhr {
             }
         }
     }
-
 }
 

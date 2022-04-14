@@ -1,3 +1,4 @@
+/* eslint-disable new-cap */
 import { assert } from "chai";
 
 import DosBundle from "../../src/dos/bundle/dos-bundle";
@@ -18,7 +19,8 @@ export function testNet() {
 function testServer(factory: CIFactory, name: string) {
     const ipxServerPort = defaultIpxServerPort;
     const globalIpxServerAddress = (window as any).ipxServerAddress;
-    const ipxServerAddress = typeof globalIpxServerAddress === "string" ? globalIpxServerAddress : defaultIpxServerAddress;
+    const ipxServerAddress = typeof globalIpxServerAddress === "string" ?
+        globalIpxServerAddress : defaultIpxServerAddress;
     const ipxnetServerAddress = wsPrefix + ipxServerAddress + " " + ipxServerPort;
 
     suite(name + ".ipx");
@@ -27,7 +29,7 @@ function testServer(factory: CIFactory, name: string) {
         bundle = await Promise.resolve(bundle);
         return await factory(await bundle.toUint8Array());
     }
-    
+
     test(name + " should not freeze when connecting to wrong address (jsapi)", async () => {
         let notifiedDisconnected = false;
         const messages: string[] = [];
@@ -43,7 +45,7 @@ function testServer(factory: CIFactory, name: string) {
         try {
             await ci.networkConnect(NetworkType.NETWORK_DOSBOX_IPX, "127.0.0.1", ipxServerPort + 1);
             assert.ok(false, JSON.stringify(messages, null, 2));
-        } catch(e) {
+        } catch (e) {
             assert.ok(notifiedDisconnected, "Disconnected is not notified");
         } finally {
             await ci.exit();
@@ -106,7 +108,7 @@ function testServer(factory: CIFactory, name: string) {
     test(name + " 2 clients can ping each other (ipxnet)", async () => {
         let timeSumMs = 0;
         let timeSamples = 0;
-        const portMap: {[port: string]: boolean} = {}
+        const portMap: {[port: string]: boolean} = {};
         const regex = new RegExp(/\[LOG_NET\]\d+:.*port\s+(\d+)\s+time=(\d+)ms/);
         const messages: string[] = [];
         const one = await CI((await emulatorsImpl.dosBundle())
@@ -142,5 +144,5 @@ function testServer(factory: CIFactory, name: string) {
 async function sleep(timeMs: number) {
     return new Promise<void>((resolve) => {
         setTimeout(resolve, timeMs);
-    })
+    });
 }

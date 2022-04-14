@@ -3,8 +3,8 @@ import { TransportLayer, MessageHandler, ClientMessage } from "../../../protocol
 import { MessagesQueue } from "../../../protocol/messages-queue";
 
 export async function dosWorker(workerUrl: string,
-                                 wasmModule: WasmModule,
-                                 sessionId: string): Promise<TransportLayer> {
+                                wasmModule: WasmModule,
+                                sessionId: string): Promise<TransportLayer> {
     const messagesQueue = new MessagesQueue();
     let handler: MessageHandler = messagesQueue.handler.bind(messagesQueue);
 
@@ -17,7 +17,7 @@ export async function dosWorker(workerUrl: string,
         if (data?.name !== undefined) {
             handler(data.name, data.props);
         }
-    }
+    };
 
     await wasmModule.instantiate({});
 

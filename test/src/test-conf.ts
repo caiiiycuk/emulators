@@ -35,19 +35,19 @@ export function testConf() {
 
     test("should validate values", async () => {
         await check((c) => delete c.output,
-                    "Category 'output' is missed");
+            "Category 'output' is missed");
         await check((c) => c.output.name = "output",
-                    "Incorrect category name 'output' should be 'sdl'");
+            "Incorrect category name 'output' should be 'sdl'");
         await check((c) => (c.cpu.options as any).core22 = "not-a-core",
-                    "Unknown option 'core22' in 'cpu'");
+            "Unknown option 'core22' in 'cpu'");
         await check((c) => delete c.cpu.options.core.value,
-                    "Incorrect value 'undefined' (undefined) for 'cpu.core' allowed is [\"auto\",\"normal\",\"simple\"]");
+            "Incorrect value 'undefined' (undefined) for 'cpu.core' allowed is [\"auto\",\"normal\",\"simple\"]");
         await check((c) => c.cpu.options.core.value = "not-a-core",
-                    "Incorrect value 'not-a-core' (string) for 'cpu.core' allowed is [\"auto\",\"normal\",\"simple\"]");
+            "Incorrect value 'not-a-core' (string) for 'cpu.core' allowed is [\"auto\",\"normal\",\"simple\"]");
         await check((c) => delete c.cpu.options.core,
-                    "Option 'core' is missed in 'cpu'");
+            "Option 'core' is missed in 'cpu'");
         await check((c) => c.cpu.options.cycles.value = "fixed asd",
-                    "Fixed value should conatain number");
+            "Fixed value should conatain number");
     });
 
     test("test cpu can set auto, max, fixed", async () => {
@@ -71,6 +71,7 @@ export function testConf() {
     });
 }
 
+/* eslint-disable max-len */
 const defaultConfig = `[sdl]
 autolock=false
 
@@ -280,3 +281,5 @@ echo on
 # █ ▀▀▀ █ ▄▀▀█▀█▀▄ ▀▀▄▄█▄█
 # ▀▀▀▀▀▀▀ ▀   ▀▀ ▀  ▀   ▀▀▀
 `;
+
+/* eslint-enable max-len */

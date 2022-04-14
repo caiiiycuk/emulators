@@ -42,6 +42,7 @@ class EmulatorsImpl implements Emulators {
     }
 
     async janus(restUrl: string): Promise<CommandInterface> {
+        // eslint-disable-next-line new-cap
         return Janus(restUrl);
     }
 
@@ -57,9 +58,9 @@ class EmulatorsImpl implements Emulators {
                         // can be called from ctor, without timeout can be undefined
                         setTimeout(() => resolve(ci), 4);
                     }
-                }
+                },
             );
-        })
+        });
     }
 
     wasmModules(): Promise<IWasmModules> {
@@ -69,7 +70,7 @@ class EmulatorsImpl implements Emulators {
 
         const make = async () => {
             return new WasmModulesImpl(this.pathPrefix, this.wdosboxJs);
-        }
+        };
 
         this.wasmModulesPromise = make();
         return this.wasmModulesPromise;
@@ -82,7 +83,6 @@ class EmulatorsImpl implements Emulators {
     async dosWorker(bundle: Uint8Array | Uint8Array[]): Promise<CommandInterface> {
         return this.dosboxWorker(bundle);
     }
-
 }
 
 const emulators = new EmulatorsImpl();

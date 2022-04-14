@@ -74,15 +74,15 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
     private keyMatrix: { [keyCode: number]: boolean } = {};
 
     private configPromise: Promise<DosConfig>;
-    private configResolve: (config: DosConfig) => void = () => {/**/ };
+    private configResolve: (config: DosConfig) => void = () => {/**/};
     private panicMessages: string[] = [];
 
     private connectPromise: Promise<void> | null = null;
-    private connectResolve: () => void = () => { /**/ };
-    private connectReject: () => void = () => { /**/ };
+    private connectResolve: () => void = () => {/**/};
+    private connectReject: () => void = () => {/**/};
 
     private disconnectPromise: Promise<void> | null = null;
-    private disconnectResolve: () => void = () => { /**/ };
+    private disconnectResolve: () => void = () => {/**/};
 
     public sharedMemory?: SharedArrayBuffer;
     public directSound?: DirectSound;
@@ -174,20 +174,20 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
             case "ws-connected": {
                 this.connectResolve();
                 this.connectPromise = null;
-                this.connectResolve = () => { /**/ };
-                this.connectReject = () => { /**/ };
+                this.connectResolve = () => {/**/};
+                this.connectReject = () => {/**/};
                 this.eventsImpl.fireNetworkConnected(props.networkType, props.address, props.port);
             } break;
             case "ws-disconnected": {
                 if (this.connectPromise !== null) {
                     this.connectReject();
                     this.connectPromise = null;
-                    this.connectResolve = () => { /**/ };
-                    this.connectReject = () => { /**/ };
+                    this.connectResolve = () => {/**/};
+                    this.connectReject = () => {/**/};
                 } else {
                     this.disconnectResolve();
                     this.disconnectPromise = null;
-                    this.disconnectResolve = () => { /**/ };
+                    this.disconnectResolve = () => {/**/};
                 }
                 this.eventsImpl.fireNetworkDisconnected(props.networkType);
             } break;
@@ -218,8 +218,8 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
     private onFrameLines(lines: FrameLine[], rgbaPtr: number) {
         if (this.sharedMemory !== undefined) {
             this.rgba = new Uint8Array(
-                this.sharedMemory, rgbaPtr, 
-                this.frameWidth * this.frameHeight * 4
+                this.sharedMemory, rgbaPtr,
+                this.frameWidth * this.frameHeight * 4,
             );
         } else {
             for (const line of (lines as FrameLine[])) {
@@ -288,7 +288,7 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
             const frame = (this.rgb !== null ? this.rgb : this.rgba) as Uint8Array;
 
             let frameOffset = 0;
-            let rgbaOffset = 0
+            let rgbaOffset = 0;
 
             while (rgbaOffset < rgba.length) {
                 rgba[rgbaOffset++] = frame[frameOffset++];
@@ -309,8 +309,8 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
 
     public simulateKeyPress(...keyCodes: number[]) {
         const timeMs = Date.now() - this.startedAt;
-        keyCodes.forEach(keyCode => this.addKey(keyCode, true, timeMs));
-        keyCodes.forEach(keyCode => this.addKey(keyCode, false, timeMs + 16));
+        keyCodes.forEach((keyCode) => this.addKey(keyCode, true, timeMs));
+        keyCodes.forEach((keyCode) => this.addKey(keyCode, false, timeMs + 16));
     }
 
     public sendKeyEvent(keyCode: number, pressed: boolean) {
@@ -328,11 +328,11 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
     }
 
     public sendMouseMotion(x: number, y: number) {
-        this.sendClientMessage("wc-mouse-move", { x, y, relative: false, timeMs: Date.now() - this.startedAt })
+        this.sendClientMessage("wc-mouse-move", { x, y, relative: false, timeMs: Date.now() - this.startedAt });
     }
 
     public sendMouseRelativeMotion(x: number, y: number) {
-        this.sendClientMessage("wc-mouse-move", { x, y, relative: true, timeMs: Date.now() - this.startedAt })
+        this.sendClientMessage("wc-mouse-move", { x, y, relative: true, timeMs: Date.now() - this.startedAt });
     }
 
     public sendMouseButton(button: number, pressed: boolean) {

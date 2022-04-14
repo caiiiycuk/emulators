@@ -4,9 +4,11 @@ import emulatorsImpl from "./impl/emulators-impl";
 import { DosConfig } from "./dos/bundle/dos-conf";
 import { TransportLayer } from "./protocol/protocol";
 
+/* eslint-disable no-unused-vars */
 export enum NetworkType {
     NETWORK_DOSBOX_IPX = 0,
 }
+/* eslint-enable no-unused-vars */
 
 export interface Emulators {
     // * pathPrefix - by default emulators will load wasm modules relatively from current path,
@@ -91,7 +93,7 @@ export interface CommandInterface {
     // * `simulateMouseButton` - sends mouse button event (press or release) to backend
     sendMouseButton: (button: number, pressed: boolean) => void;
 
-    // * `sendMouseSync` - sends mouse sync event 
+    // * `sendMouseSync` - sends mouse sync event
     sendMouseSync: () => void;
 
     // dump **changed** FS as Uint8Array <zip archive>
@@ -101,7 +103,7 @@ export interface CommandInterface {
     events(): CommandInterfaceEvents;
 
     networkConnect(networkType: NetworkType, address: string, port: number): Promise<void>;
-    
+
     networkDisconnect(networkType: NetworkType): Promise<void>;
 
     sharedMemory?: SharedArrayBuffer;

@@ -40,8 +40,10 @@ const compare = (imageUrl: string, ci: CommandInterface, threshold: number) => {
                     if (img.width !== actualImage.width ||
                         img.height !== actualImage.height) {
                         renderComparsion(img, actualImage);
-                        assert(img.width === actualImage.width, "Invalid width: " + actualImage.width + ", should be " + img.width);
-                        assert(img.height === actualImage.height, "Invalid height: " + actualImage.height + ", should be " + img.height);
+                        assert(img.width === actualImage.width,
+                            "Invalid width: " + actualImage.width + ", should be " + img.width);
+                        assert(img.height === actualImage.height,
+                            "Invalid height: " + actualImage.height + ", should be " + img.height);
                     }
 
                     const actualCanvas = document.createElement("canvas");
@@ -72,7 +74,7 @@ const compare = (imageUrl: string, ci: CommandInterface, threshold: number) => {
                 actualImage.src = actualUrl;
             };
             img.src = imageUrl;
-        }))
+        }));
 };
 
 function imageDataToUrl(imageData: ImageData) {
@@ -89,8 +91,8 @@ function imageDataToUrl(imageData: ImageData) {
 function renderComparsion(img: HTMLImageElement, actualImage: HTMLImageElement) {
     document.body.appendChild(document.createElement("hr"));
     document.body.appendChild(img); // for comparisons
-    const div = document.createElement('div');
-    div.innerHTML = '^=expected, v=actual';
+    const div = document.createElement("div");
+    div.innerHTML = "^=expected, v=actual";
     document.body.appendChild(div);
     document.body.appendChild(actualImage); // to grab it for creating the test reference
 }

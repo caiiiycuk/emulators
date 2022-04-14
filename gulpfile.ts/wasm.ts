@@ -10,7 +10,7 @@ import { error } from "./log";
 import getRepoInfo from "git-repo-info";
 import md5File from "md5-file";
 
-import { execute } from "./execute"
+import { execute } from "./execute";
 
 // eslint-disable-next-line
 const MD5 = require("md5.js");
@@ -23,15 +23,15 @@ function clean() {
 
 async function makeWasm() {
     return await make(".", "build/wasm",
-                      "wlibzip",
-                      "wdosbox",
-                      "wdosbox.shared");
+        "wlibzip",
+        "wdosbox",
+        "wdosbox.shared");
 }
 
 function copyAssets() {
     return src(["build/wasm/w*.js",
-                "build/wasm/w*.wasm",
-                "build/wasm/w*.symbols"])
+        "build/wasm/w*.wasm",
+        "build/wasm/w*.symbols"])
         .pipe(dest("dist"));
 }
 

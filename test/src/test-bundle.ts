@@ -65,7 +65,7 @@ export function testDosBundle() {
     test("bundle conf can be overwritten", async () => {
         const dosBundle = await (await emulators.dosBundle());
         const testPhrase = "overwritten by test";
-        dosBundle.config.autoexec.options.script.value = testPhrase; 
+        dosBundle.config.autoexec.options.script.value = testPhrase;
         dosBundle.extract("digger.jsdos", "/");
 
         await toFs(dosBundle, async (fs) => {
@@ -88,7 +88,7 @@ export function testDosBundle() {
             const conf = await fs.readFile(".jsdos/dosbox.conf");
             const digger = await fs.readFile("/test/DIGGER.COM", "binary");
             assert.ok(conf);
-            assert.ok(digger)
+            assert.ok(digger);
         });
     });
 
