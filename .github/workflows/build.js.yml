@@ -27,7 +27,7 @@ jobs:
         node-version: ${{ matrix.node-version }}
         cache: 'npm'
     - run: git clone https://github.com/emscripten-core/emsdk.git
-    - run: cd emsdk && ./emsdk install ${{ matrix.emsdk-version }} && ./emsdk activate ${{ matrix.emsdk-version }} && source emsdk/emsdk_env.sh && cd ..
+    - run: cd emsdk && ./emsdk install ${{ matrix.emsdk-version }} && ./emsdk activate ${{ matrix.emsdk-version }} && source ./emsdk_env.sh && cd ..
     - run: npm install -g yarn
     - run: yarn
     - run: yarn run gulp
