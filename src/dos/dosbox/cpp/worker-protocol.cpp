@@ -301,7 +301,13 @@ EM_JS(void, emsc_exit_runtime, (), {
 EM_JS(void, emsc_extract_bundle_to_fs, (), {
     Module.FS.chdir("/home/web_user");
 
-    for (const bytes of Module.bundles) {
+    let index;
+    Module.libzip_progress = function(file, extracted, count) {
+        Module.sendMessage("ws-extract-progress", { index, file, extracted, count });
+    };
+
+    for (index = 0; index < Module.bundles.length; ++index) {
+      const bytes = Module.bundles[index];
       const buffer = Module._malloc(bytes.length);
       Module.HEAPU8.set(bytes, buffer);
       const retcode = Module._zip_to_fs(buffer, bytes.length);
@@ -312,21 +318,25 @@ EM_JS(void, emsc_extract_bundle_to_fs, (), {
         return;
       }
 
-      try {
-        Module.FS.readFile("/home/web_user/.jsdos/dosbox.conf");
-      } catch (e) {
-        Module.err("Broken bundle, .jsdos/dosbox.conf not found");
-        return;
+        
+      if (index === 0) {
+        try {
+            Module.FS.readFile("/home/web_user/.jsdos/dosbox.conf");
+        } catch (e) {
+            Module.err("Broken bundle, .jsdos/dosbox.conf not found");
+            return;
+        }
+        
+        Module.fsCreatedAt = Module._get_changes_mtime_ms();
       }
-
-      Module.fsCreatedAt = Module.fsCreatedAt || Module._get_changes_mtime_ms();
-
-      const configContentPtr = Module._getConfigContent();
-      const configContent = Module.UTF8ToString(configContentPtr);
-      Module._free(configContentPtr);
-      Module.sendMessage("ws-config", { content: configContent });
     }
 
+    const configContentPtr = Module._getConfigContent();
+    const configContent = Module.UTF8ToString(configContentPtr);
+    Module._free(configContentPtr);
+    Module.sendMessage("ws-config", { content: configContent });
+
+    delete Module.libzip_progress;
     delete Module.bundles;
   });
 

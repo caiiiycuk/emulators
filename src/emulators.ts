@@ -10,6 +10,10 @@ export enum NetworkType {
 }
 /* eslint-enable no-unused-vars */
 
+export interface BackendOptions {
+    onExtractProgress?: (bundleIndex: number, file: string, extracted: number, total: number) => void;
+}
+
 export interface Emulators {
     // * pathPrefix - by default emulators will load wasm modules relatively from current path,
     // you should specify path prefix if you want to load them from different place
@@ -25,19 +29,20 @@ export interface Emulators {
     dosBundle: () => Promise<DosBundle>;
 
     // * dosboxNode - createDOSBOX Node emulator backend
-    dosboxNode: (bundle: Uint8Array | Uint8Array[]) => Promise<CommandInterface>;
+    dosboxNode: (bundle: Uint8Array | Uint8Array[], options?: BackendOptions) => Promise<CommandInterface>;
 
     // * dosboxDirect - create DOSBOX Direct emulator backend
-    dosboxDirect: (bundle: Uint8Array | Uint8Array[]) => Promise<CommandInterface>;
+    dosboxDirect: (bundle: Uint8Array | Uint8Array[], options?: BackendOptions) => Promise<CommandInterface>;
 
     // * dosboxWorker - create DOSBOX Worker emulator backend
-    dosboxWorker: (bundle: Uint8Array | Uint8Array[]) => Promise<CommandInterface>;
+    dosboxWorker: (bundle: Uint8Array | Uint8Array[], options?: BackendOptions) => Promise<CommandInterface>;
 
     // * janus - create janus backend for given url
     janus: (restUrl: string) => Promise<CommandInterface>;
 
     // * backend - create abstract emulation backend by given TransportLayer
-    backend: (bundle: Uint8Array | Uint8Array[], transportLayer: TransportLayer) => Promise<CommandInterface>;
+    backend: (bundle: Uint8Array | Uint8Array[], transportLayer: TransportLayer,
+        options?: BackendOptions) => Promise<CommandInterface>;
 }
 
 export interface DirectSound {

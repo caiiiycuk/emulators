@@ -1,5 +1,5 @@
 import { DosConfig } from "../dos/bundle/dos-conf";
-import { DirectSound, CommandInterface, NetworkType } from "../emulators";
+import { DirectSound, CommandInterface, NetworkType, BackendOptions } from "../emulators";
 import { CommandInterfaceEventsImpl } from "../impl/ci-impl";
 
 export type ClientMessage =
@@ -20,6 +20,7 @@ export type ClientMessage =
     "wc-disconnect";
 
 export type ServerMessage =
+    "ws-extract-progress" |
     "ws-ready" |
     "ws-server-ready" |
     "ws-frame-set-size" |
@@ -86,10 +87,13 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
 
     public sharedMemory?: SharedArrayBuffer;
     public directSound?: DirectSound;
+    public options: BackendOptions;
 
     constructor(bundles: Uint8Array[],
         transport: TransportLayer,
-        ready: (err: Error | null) => void) {
+        ready: (err: Error | null) => void,
+        options: BackendOptions) {
+        this.options = options;
         this.bundles = bundles;
         this.transport = transport;
         this.ready = ready;
@@ -190,6 +194,11 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
                     this.disconnectResolve = () => {/**/};
                 }
                 this.eventsImpl.fireNetworkDisconnected(props.networkType);
+            } break;
+            case "ws-extract-progress": {
+                if (this.options.onExtractProgress) {
+                    this.options.onExtractProgress(props.index, props.file, props.extracted, props.count);
+                }
             } break;
             default: {
                 // eslint-disable-next-line

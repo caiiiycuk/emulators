@@ -4,27 +4,43 @@ import { assert } from "chai";
 import { compareAndExit, renderComparsionOf } from "./compare";
 
 import DosBundle from "../../src/dos/bundle/dos-bundle";
-import { CommandInterface } from "../../src/emulators";
+import { BackendOptions, CommandInterface } from "../../src/emulators";
 import emulatorsImpl from "../../src/impl/emulators-impl";
 
 import { httpRequest } from "../../src/http";
 
 import { Keys } from "../../src/keys";
 
-type CIFactory = (bundle: Uint8Array | Uint8Array[]) => Promise<CommandInterface>;
+type CIFactory = (bundle: Uint8Array | Uint8Array[], options?: BackendOptions) => Promise<CommandInterface>;
 
 export function testDos() {
-    testServer((bundle) => emulatorsImpl.dosboxDirect(bundle), "dosboxDirect");
-    testServer((bundle) => emulatorsImpl.dosboxWorker(bundle), "dosboxWorker");
+    testServer((bundle, options) => emulatorsImpl.dosboxDirect(bundle, options), "dosboxDirect");
+    testServer((bundle, options) => emulatorsImpl.dosboxWorker(bundle, options), "dosboxWorker");
 }
 
 function testServer(factory: CIFactory, name: string) {
     suite(name + ".common");
 
-    async function CI(bundle: DosBundle | Promise<DosBundle>) {
+    async function CI(bundle: DosBundle | Promise<DosBundle>, options?: BackendOptions) {
         bundle = await Promise.resolve(bundle);
-        return await factory(await bundle.toUint8Array());
+        return await factory(await bundle.toUint8Array(), options);
     }
+
+    test(name + " can track extract progress", async () => {
+        const actual: string[] = [];
+        const ci = await CI(emulatorsImpl.dosBundle(), {
+            onExtractProgress: (index, file, extracted, count) => {
+                actual.push(index + " " + file + " " + extracted + " " + count);
+            },
+        });
+        assert.ok(ci);
+        assert.deepEqual(actual, [
+            "0 .jsdos/ 1 4",
+            "0 .jsdos/dosbox.conf 2 4",
+            "0 .jsdos/readme.txt 3 4",
+            "0 .jsdos/jsdos.json 4 4",
+        ]);
+    });
 
     test(name + " can take screenshot of dosbox", async () => {
         const ci = await CI(emulatorsImpl.dosBundle());

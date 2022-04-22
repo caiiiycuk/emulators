@@ -1,5 +1,5 @@
 import { Build } from "../build";
-import { Emulators, CommandInterface } from "../emulators";
+import { Emulators, CommandInterface, BackendOptions } from "../emulators";
 
 import { IWasmModules, WasmModulesImpl } from "./modules";
 
@@ -23,22 +23,22 @@ class EmulatorsImpl implements Emulators {
         return new DosBundle(libzipWasm);
     }
 
-    async dosboxNode(bundle: Uint8Array | Uint8Array[]): Promise<CommandInterface> {
-        return this.dosboxDirect(bundle);
+    async dosboxNode(bundle: Uint8Array | Uint8Array[], options?: BackendOptions): Promise<CommandInterface> {
+        return this.dosboxDirect(bundle, options);
     }
 
-    async dosboxDirect(bundle: Uint8Array | Uint8Array[]): Promise<CommandInterface> {
+    async dosboxDirect(bundle: Uint8Array | Uint8Array[], options?: BackendOptions): Promise<CommandInterface> {
         const modules = await this.wasmModules();
         const dosboxWasm = await modules.dosbox();
         const transportLayer = await dosDirect(dosboxWasm, "session-" + Date.now());
-        return this.backend(bundle, transportLayer);
+        return this.backend(bundle, transportLayer, options);
     }
 
-    async dosboxWorker(bundle: Uint8Array | Uint8Array[]): Promise<CommandInterface> {
+    async dosboxWorker(bundle: Uint8Array | Uint8Array[], options?: BackendOptions): Promise<CommandInterface> {
         const modules = await this.wasmModules();
         const dosboxWasm = await modules.dosbox();
         const transportLayer = await dosWorker(this.pathPrefix + this.wdosboxJs, dosboxWasm, "session-" + Date.now());
-        return this.backend(bundle, transportLayer);
+        return this.backend(bundle, transportLayer, options);
     }
 
     async janus(restUrl: string): Promise<CommandInterface> {
@@ -46,7 +46,8 @@ class EmulatorsImpl implements Emulators {
         return Janus(restUrl);
     }
 
-    async backend(bundle: Uint8Array | Uint8Array[], transportLayer: TransportLayer): Promise<CommandInterface> {
+    async backend(bundle: Uint8Array | Uint8Array[], transportLayer: TransportLayer,
+        options?: BackendOptions): Promise<CommandInterface> {
         return new Promise<CommandInterface>((resolve, reject) => {
             const ci = new CommandInterfaceOverTransportLayer(
                 Array.isArray(bundle) ? bundle : [bundle],
@@ -59,6 +60,7 @@ class EmulatorsImpl implements Emulators {
                         setTimeout(() => resolve(ci), 4);
                     }
                 },
+                options || {},
             );
         });
     }
