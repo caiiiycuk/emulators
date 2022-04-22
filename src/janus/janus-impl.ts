@@ -193,7 +193,7 @@ class JanusBackendImpl implements JanusCommandInterface {
         } else {
             this.eventsImpl.fireStdout(data);
         }
-    }
+    };
 
     private onJanusMessage = (handle: JanusJS.PluginHandle, message: JanusJS.Message, jsep?: JanusJS.JSEP) => {
         if (jsep !== undefined && jsep !== null) {
@@ -216,11 +216,11 @@ class JanusBackendImpl implements JanusCommandInterface {
                 error: this.onError,
             });
         }
-    }
+    };
 
     onError = (error: any) => {
         this.fireMessage("error", error);
-    }
+    };
 
     onDestroyed() {
         this.fireMessage("destroyed");

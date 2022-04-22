@@ -26,23 +26,23 @@ export class CommandInterfaceEventsImpl implements CommandInterfaceEvents {
             }
             this.delayedStdout = [];
         }
-    }
+    };
 
     onFrameSize = (consumer: (width: number, height: number) => void) => {
         this.onFrameSizeConsumers.push(consumer);
-    }
+    };
 
     onFrame = (consumer: (rgb: Uint8Array | null, rgba: Uint8Array | null) => void) => {
         this.onFrameConsumers.push(consumer);
-    }
+    };
 
     onSoundPush = (consumer: (samples: Float32Array) => void) => {
         this.onSoundPushConsumers.push(consumer);
-    }
+    };
 
     onExit = (consumer: () => void) => {
         this.onExitConsumers.push(consumer);
-    }
+    };
 
     onMessage = (consumer: (msgType: MessageType, ...args: any[]) => void) => {
         this.onMessageConsumers.push(consumer);
@@ -53,7 +53,7 @@ export class CommandInterfaceEventsImpl implements CommandInterfaceEvents {
             }
             this.delayedMessages = [];
         }
-    }
+    };
 
     onNetworkConnected(consumer: (networkType: NetworkType, address: string, port: number) => void) {
         this.onNetworkConnectedConsumers.push(consumer);
@@ -72,25 +72,25 @@ export class CommandInterfaceEventsImpl implements CommandInterfaceEvents {
         for (const next of this.onStdoutConsumers) {
             next(message);
         }
-    }
+    };
 
     fireFrameSize = (width: number, height: number) => {
         for (const next of this.onFrameSizeConsumers) {
             next(width, height);
         }
-    }
+    };
 
     fireFrame = (rgb: Uint8Array | null, rgba: Uint8Array | null) => {
         for (const next of this.onFrameConsumers) {
             next(rgb, rgba);
         }
-    }
+    };
 
     fireSoundPush = (samples: Float32Array) => {
         for (const next of this.onSoundPushConsumers) {
             next(samples);
         }
-    }
+    };
 
     fireExit = () => {
         for (const next of this.onExitConsumers) {
@@ -103,7 +103,7 @@ export class CommandInterfaceEventsImpl implements CommandInterfaceEvents {
         this.onSoundPushConsumers = [];
         this.onExitConsumers = [];
         this.onMessageConsumers = [];
-    }
+    };
 
     fireMessage = (msgType: MessageType, ...args: any[]) => {
         if (this.onMessageConsumers.length === 0) {
@@ -114,17 +114,17 @@ export class CommandInterfaceEventsImpl implements CommandInterfaceEvents {
         for (const next of this.onMessageConsumers) {
             next(msgType, ...args);
         }
-    }
+    };
 
     fireNetworkConnected = (networkType: NetworkType, address: string, port: number) => {
         for (const next of this.onNetworkConnectedConsumers) {
             next(networkType, address, port);
         }
-    }
+    };
 
     fireNetworkDisconnected = (networkType: NetworkType) => {
         for (const next of this.onNetworkDisconnectedConsumers) {
             next(networkType);
         }
-    }
+    };
 }

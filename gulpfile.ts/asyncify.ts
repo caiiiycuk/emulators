@@ -10,14 +10,14 @@ export async function asyncifyAdd() {
         return;
     }
 
-    const content = fs.readFileSync(asyncifyFile, "UTF-8");
+    const content = fs.readFileSync(asyncifyFile, "utf8");
     const functions = JSON.parse(content);
     const functionsSet: {[name: string]: number} = {};
     for (const next of functions) {
         functionsSet[next] = 1;
     }
 
-    const entries = fs.readFileSync(stackFile, "UTF-8").split("\n");
+    const entries = fs.readFileSync(stackFile, "utf8").split("\n");
     const newEntries: string[] = [];
     for (const next of entries) {
         const fnSig = extractFnSignature(next);
@@ -41,7 +41,7 @@ export async function asyncifyAdd() {
         log("\t'" + next + "'");
     }
     outcome = outcome.substr(0, outcome.length - 1) + "]";
-    fs.writeFileSync(asyncifyFile, outcome, "UTF-8");
+    fs.writeFileSync(asyncifyFile, outcome, "utf8");
 
     log("== New entries:");
     newEntries.sort();
