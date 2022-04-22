@@ -3,9 +3,9 @@ import { assert } from "chai";
 import { WasmModulesImpl } from "../../src/impl/modules";
 import LibZip from "../../src/libzip/libzip";
 
-export async function makeLibZip() {
+export async function makeLibZip(module?: any) {
+    module = module || {};
     const wasm = await new WasmModulesImpl("/", "").libzip();
-    const module = {};
     await wasm.instantiate(module);
     return new LibZip(module, "/home/web_user");
 }

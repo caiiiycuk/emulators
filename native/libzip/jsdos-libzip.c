@@ -17,6 +17,12 @@ EM_JS(double, emsc_getMTimeMs, (const char* path), {
   var lookup = FS.lookupPath(UTF8ToString(path));
   return lookup.node.timestamp;
 });
+
+EM_JS(void, emsc_progress, (const char* file, int32_t extracted, int32_t count), {
+  if (Module.libzip_progress !== undefined) {
+    Module.libzip_progress(UTF8ToString(file), extracted, count);
+  }
+});
 #endif
 
 const char *libzipTempArchive = "libzip-temp-archive.zip";
@@ -217,18 +223,19 @@ int EMSCRIPTEN_KEEPALIVE zipfile_to_fs(const char *file) {
     int fd;
     long long sum;
 
+    int32_t count;
+    int32_t extracted = 0;
+
     if ((zipArchive = zip_open(file, 0, &err)) == 0) {
         zip_error_to_str(buf, sizeof(buf), err, errno);
         fprintf(stderr, "zip_to_fs: can't open zip archive: %s\n", buf);
         return 1;
     }
 
-    for (i = 0; i < zip_get_num_entries(zipArchive, 0); i++) {
+    count = zip_get_num_entries(zipArchive, 0);
+    for (i = 0; i < count; i++) {
         if (zip_stat_index(zipArchive, i, 0, &zipStat) == 0) {
             len = strlen(zipStat.name);
-            printf("extracting: '%s', ", zipStat.name);
-            printf("size: %llu, ", (long long unsigned int) zipStat.size);
-            printf("mtime: %u\n", (unsigned int) zipStat.mtime);
             if (zipStat.name[len - 1] == '/') {
                 safe_create_dir(zipStat.name);
             } else {
@@ -268,6 +275,13 @@ int EMSCRIPTEN_KEEPALIVE zipfile_to_fs(const char *file) {
         } else {
             printf("File[%s] Line[%d]\n", __FILE__, __LINE__);
         }
+
+        extracted += 1;
+#ifdef EMSCRIPTEN
+        emsc_progress(zipStat.name, extracted, count);
+#else
+        printf("extracted: %s %d / %d\n", zipStat.name, extracted, count);
+#endif
     }
     if (zip_close(zipArchive) == -1) {
         fprintf(stderr, "zip_to_fs: can't close zip archive %s\n", zip_strerror(zipArchive));

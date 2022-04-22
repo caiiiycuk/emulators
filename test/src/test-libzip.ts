@@ -53,6 +53,34 @@ export function testLibZip() {
         destroy(libzip);
     });
 
+    test("libzip can track extract progress", async () => {
+        const actual: string[] = [];
+        const libzip = await makeLibZip({
+            libzip_progress: (file: string, extracted: number, count: number) => {
+                actual.push(file + " " + extracted + " " + count);
+            },
+        });
+
+        assert.ok(!libzip.exists("file1"));
+        assert.ok(!libzip.exists("dir1/file1"));
+        assert.ok(!libzip.exists("dir1/file2"));
+        assert.ok(!libzip.exists("dir1/dir2/file1"));
+
+        await libzip.zipToFs(archive);
+
+        assert.deepEqual(actual,
+            [
+                "file1 1 6",
+                "dir1/ 2 6",
+                "dir1/file1 3 6",
+                "dir1/file2 4 6",
+                "dir1/dir2/ 5 6",
+                "dir1/dir2/file1 6 6",
+            ]);
+
+        destroy(libzip);
+    });
+
     test("libzip extract archive to fs [in folder]", async () => {
         const libzip = await makeLibZip();
 
