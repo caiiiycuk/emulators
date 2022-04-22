@@ -8,6 +8,7 @@
 #include <unistd.h>
 #include <dirent.h>
 #include <fcntl.h>
+#include <libgen.h>
 
 #include <sys/stat.h>
 
@@ -49,6 +50,15 @@ void safe_create_dir(const char *dir) {
             exit(1);
         }
     }
+}
+
+void ensure_parent_dir(const char* filename) {
+  char* copy = strdup(filename);
+  char* dir = dirname(copy);
+  if (strlen(dir) > 1) {
+    safe_create_dir(dir);
+  }
+  free(copy);
 }
 
 static int is_dir(const char *dir) {
@@ -232,8 +242,13 @@ int EMSCRIPTEN_KEEPALIVE zipfile_to_fs(const char *file) {
                 }
                 fd = open(zipStat.name, O_RDWR | O_TRUNC | O_CREAT, 0644);
                 if (fd < 0) {
-                    fprintf(stderr, "zip_to_fs: %s\n", zip_file_strerror(zipFile));
-                    exit(101);
+                    ensure_parent_dir(zipStat.name);
+                    fd = open(zipStat.name, O_RDWR | O_TRUNC | O_CREAT, 0644);
+                    if (fd < 0) {
+                      fprintf(stderr, "zip_to_fs: unable to write file %s\n",
+                              zipStat.name);
+                      exit(101);
+                    }
                 }
                 sum = 0;
                 while (sum != zipStat.size) {

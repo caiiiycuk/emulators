@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 3.6)
 
 set(X86 false)
 set(X86_64 false)
+set(BUILD_NATIVE_LIBZIP false)
 set(OPT_FLAGS "-Oz -fno-exceptions -w -Werror=return-type -flto=thin")
 
 if(${EMSCRIPTEN})
