@@ -27,6 +27,13 @@ EM_JS(void, emsc_progress, (const char* file, int32_t extracted, int32_t count),
 
 const char *libzipTempArchive = "libzip-temp-archive.zip";
 
+#ifndef EMSCRIPTEN
+fnOnProgress onProgress = 0;
+void zip_set_on_progress(fnOnProgress newOnProgress) {
+    onProgress = newOnProgress;
+}
+#endif
+
 ZipArchive *readZipArchiveFile(const char *path) {
     FILE *file;
     char *buffer;
@@ -280,7 +287,9 @@ int EMSCRIPTEN_KEEPALIVE zipfile_to_fs(const char *file) {
 #ifdef EMSCRIPTEN
         emsc_progress(zipStat.name, extracted, count);
 #else
-        printf("extracted: %s %d / %d\n", zipStat.name, extracted, count);
+        if (onProgress != 0) {
+            onProgress(zipStat.name, extracted, count);
+        }
 #endif
     }
     if (zip_close(zipArchive) == -1) {
