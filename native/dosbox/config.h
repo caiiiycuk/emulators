@@ -45,13 +45,13 @@
    */
 /* #undef C_DIRECTSERIAL */
 
-#if defined(X86_64) || defined(X86)
+#if (defined(X86_64) || defined(X86)) || defined(__MINGW32__)
 /* Define to 1 to use x86 dynamic cpu core */
 #define C_DYNAMIC_X86 1
 /* Define to 1 to use recompiling cpu core. Can not be used together with the
    dynamic-x86 core */
 /* #undef C_DYNREC */
-#elif defined(__aarch64__) || defined(__arm__) || defined(__x86_64__) || defined(__i386__)
+#elif (defined(__aarch64__) || defined(__arm__) || defined(__x86_64__) || defined(__i386__)) || defined(__MINGW32__)
 #define C_DYNREC 1
 #else
 /* #undef C_DYNAMIC_X86 */
@@ -61,7 +61,7 @@
 /* Define to 1 to enable floating point emulation */
 #define C_FPU 1
 
-#if defined(X86_64) || defined(X86) || defined(__x86_64__) || defined(__i386__)
+#if (defined(X86_64) || defined(X86) || defined(__x86_64__) || defined(__i386__)) || defined(__MINGW32__)
 /* Define to 1 to use a x86/x64 assembly fpu core */
 #define C_FPU_X86 1
 #else
@@ -77,7 +77,9 @@
 #define C_HAS_BUILTIN_EXPECT 1
 
 /* Define to 1 if you have the mprotect function */
+#ifndef __MINGW32__
 #define C_HAVE_MPROTECT 1
+#endif
 
 /* Define to 1 to enable heavy debugging, also have to enable C_DEBUG */
 /* #undef C_HEAVY_DEBUG */
@@ -143,7 +145,9 @@
 /* #undef DB_HAVE_NO_POWF */
 
 /* struct dirent has d_type */
+#ifndef __MINGW32__
 #define DIRENT_HAS_D_TYPE 1
+#endif
 
 /* environ can be included */
 /* #undef ENVIRON_INCLUDED */
@@ -170,7 +174,9 @@
 #define HAVE_NETINET_IN_H 1
 
 /* Define to 1 if you have the <pwd.h> header file. */
+#ifndef __MINGW32__
 #define HAVE_PWD_H 1
+#endif
 
 /* Define to 1 if you have the `realpath' function. */
 #define HAVE_REALPATH 1
@@ -243,7 +249,7 @@
 #define SIZEOF_UNSIGNED_INT 4
 
 /* The size of `unsigned long', as computed by sizeof. */
-#if defined(X86_64) || defined(__aarch64__) || defined(__x86_64__)
+#if (defined(X86_64) || defined(__aarch64__) || defined(__x86_64__)) && !defined(__MINGW32__)
 #define SIZEOF_UNSIGNED_LONG 8
 #else
 #define SIZEOF_UNSIGNED_LONG 4

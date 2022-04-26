@@ -158,7 +158,7 @@ void increaseticks();
 
 #if defined(JSDOS)
 #ifndef EMSCRIPTEN
-extern void server_loop();
+extern void client_tick();
 #endif
 #endif
 
@@ -166,7 +166,7 @@ static Bitu Normal_Loop(void) {
 	Bits ret;
 #if defined(JSDOS)
 #ifndef EMSCRIPTEN
-	server_loop();
+	client_tick();
 #endif
     static mstime lastSleepTime = GetTicks();
     if (GetTicks() - lastSleepTime > LOOP_EXECUTION_TIME) {

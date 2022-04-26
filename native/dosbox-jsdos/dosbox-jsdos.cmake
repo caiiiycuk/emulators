@@ -6,6 +6,10 @@ else ()
     include_directories("${CMAKE_CURRENT_LIST_DIR}/jsdos/linux")
 endif ()
 
+if (MINGW)
+    add_definitions(-DWIN32)
+endif()
+
 add_definitions(
         -DHAVE_CONFIG_H
         -DGET_X86_FUNCTIONS

@@ -57,7 +57,11 @@ ZipArchive *readZipArchiveFile(const char *path) {
 }
 
 void safe_create_dir(const char *dir) {
+#ifdef __MINGW32__
+    if (mkdir(dir) < 0) {
+#else
     if (mkdir(dir, 0755) < 0) {
+#endif
         if (errno != EEXIST) {
             perror(dir);
             exit(1);
@@ -89,7 +93,11 @@ static double getMTimeMs(const char* file) {
         fprintf(stderr, "zip_from_fs: getMTimeMs can't stat file %s\n", file);
         return 0;
     }
-    double mTimeMs = fileStat.st_mtim.tv_sec * 1000.0 + fileStat.st_mtim.tv_nsec / 1000000.0;
+#ifdef WIN32
+    double mTimeMs = (double) fileStat.st_mtime * 1000;
+#else
+    double mTimeMs = (double) fileStat.st_mtim.tv_sec * 1000 + (double) fileStat.st_mtim.tv_nsec / 1000000;
+#endif
 #endif
 
     return mTimeMs;
@@ -220,11 +228,13 @@ int EMSCRIPTEN_KEEPALIVE zip_to_fs(const char *data, uint32_t length) {
     return 0;
 }
 
+#define ZIPTOFS_BUFFER_SIZE 4096
+
 int EMSCRIPTEN_KEEPALIVE zipfile_to_fs(const char *file) {
     struct zip *zipArchive;
     struct zip_file *zipFile;
     struct zip_stat zipStat;
-    char buf[100];
+    char buf[ZIPTOFS_BUFFER_SIZE];
     int err;
     int i, len;
     int fd;
@@ -232,6 +242,12 @@ int EMSCRIPTEN_KEEPALIVE zipfile_to_fs(const char *file) {
 
     int32_t count;
     int32_t extracted = 0;
+
+    int openFlags = O_RDWR | O_TRUNC | O_CREAT;
+
+#ifdef __MINGW32__
+    openFlags = openFlags | O_BINARY;
+#endif
 
     if ((zipArchive = zip_open(file, 0, &err)) == 0) {
         zip_error_to_str(buf, sizeof(buf), err, errno);
@@ -254,10 +270,10 @@ int EMSCRIPTEN_KEEPALIVE zipfile_to_fs(const char *file) {
                             zip_strerror(zipArchive));
                     exit(100);
                 }
-                fd = open(zipStat.name, O_RDWR | O_TRUNC | O_CREAT, 0644);
+                fd = open(zipStat.name, openFlags, 0644);
                 if (fd < 0) {
                     ensure_parent_dir(zipStat.name);
-                    fd = open(zipStat.name, O_RDWR | O_TRUNC | O_CREAT, 0644);
+                    fd = open(zipStat.name, openFlags, 0644);
                     if (fd < 0) {
                       fprintf(stderr, "zip_to_fs: unable to write file %s\n",
                               zipStat.name);
@@ -266,7 +282,7 @@ int EMSCRIPTEN_KEEPALIVE zipfile_to_fs(const char *file) {
                 }
                 sum = 0;
                 while (sum != zipStat.size) {
-                    len = zip_fread(zipFile, buf, 100);
+                    len = zip_fread(zipFile, buf, ZIPTOFS_BUFFER_SIZE);
                     if (len < 0) {
                         fprintf(stderr, "zip_to_fs: %s\n", zip_file_strerror(zipFile));
                         exit(102);

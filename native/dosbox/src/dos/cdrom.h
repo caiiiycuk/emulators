@@ -372,7 +372,9 @@ private:
 	static  struct dxPlayer {
 		CDROM_Interface_Ioctl *cd;
 		MixerChannel	*channel;
+#ifndef JSDOS
 		SDL_mutex		*mutex;
+#endif
 		Bit8u   buffer[8192];
 		int     bufLen;
 		int     currFrame;	

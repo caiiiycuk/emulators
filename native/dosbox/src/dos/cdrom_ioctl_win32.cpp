@@ -37,6 +37,24 @@
 
 #include "cdrom.h"
 
+// With no CD-ROM support on SDL 2.0, we need these. ***Taken off SDL_cdrom.h***
+#ifndef CD_FPS
+#define CD_FPS	75
+#endif
+#ifndef MSF_TO_FRAMES
+#define MSF_TO_FRAMES(M, S, F)	((M)*60*CD_FPS+(S)*CD_FPS+(F))
+#endif
+#ifndef FRAMES_TO_MSF
+#define FRAMES_TO_MSF(f, M,S,F)	{					\
+	int value = f;							\
+	*(F) = value%CD_FPS;						\
+	value /= CD_FPS;						\
+	*(S) = value%60;						\
+	value /= 60;							\
+	*(M) = value;							\
+}
+#endif
+
 // for a more sophisticated implementation of the mci cdda functionality
 // see the SDL sources, which the mci_ functions are based on
 
@@ -173,8 +191,16 @@ bool CDROM_Interface_Ioctl::mci_CDPosition(int *position) {
 }
 
 
-CDROM_Interface_Ioctl::dxPlayer CDROM_Interface_Ioctl::player = {
-	NULL, NULL, NULL, {0}, 0, 0, 0, false, false, false, {0} };
+CDROM_Interface_Ioctl::dxPlayer CDROM_Interface_Ioctl::player =
+{
+#ifndef JSDOS
+        NULL, NULL,  NULL,  {0},   0,  0,
+        0,    false, false, false, {0}
+#else
+        NULL, NULL,  {0},   0,  0,
+        0,    false, false, false, {0}
+#endif
+};
 
 CDROM_Interface_Ioctl::CDROM_Interface_Ioctl(cdioctl_cdatype ioctl_cda) {
 	pathname[0] = 0;
@@ -391,13 +417,17 @@ bool CDROM_Interface_Ioctl::PlayAudioSector	(unsigned long start,unsigned long l
 		return false;
 	}
 	if (use_dxplay) {
+#ifndef JSDOS
 		SDL_mutexP(player.mutex);
+#endif
 		player.cd = this;
 		player.currFrame = start;
 		player.targetFrame = start + len;
 		player.isPlaying = true;
 		player.isPaused = false;
+#ifndef JSDOS
 		SDL_mutexV(player.mutex);
+#endif
 		return true;
 	}
 
@@ -540,7 +570,9 @@ void CDROM_Interface_Ioctl::dx_CDAudioCallBack(Bitu len) {
 		player.channel->AddSilence();
 		return;
 	}
+#ifndef JSDOS
 	SDL_mutexP(player.mutex);
+#endif
 	while (player.bufLen < (Bits)len) {
 		bool success;
 		if (player.targetFrame > player.currFrame)
@@ -556,7 +588,9 @@ void CDROM_Interface_Ioctl::dx_CDAudioCallBack(Bitu len) {
 			player.isPlaying = false;
 		}
 	}
+#ifndef JSDOS
 	SDL_mutexV(player.mutex);
+#endif
 	if (player.ctrlUsed) {
 		Bit16s sample0,sample1;
 		Bit16s * samples=(Bit16s *)&player.buffer;
@@ -590,7 +624,9 @@ bool CDROM_Interface_Ioctl::SetDevice(char* path, int forceCD) {
 			if (!use_mciplay) {
 				if (cdioctl_cda_selected == CDIOCTL_CDA_DX) {
 					// use direct sector access for cd audio routines
+#ifndef JSDOS
 					player.mutex = SDL_CreateMutex();
+#endif
 					if (!player.channel) {
 						player.channel = MIXER_AddChannel(&dx_CDAudioCallBack, 44100, "CDAUDIO");
 					}

@@ -154,11 +154,15 @@ TCPsocket SDLNet_TCP_Open(IPaddress *ip)
 #endif /* TCP_NODELAY */
 
     // @caiiiycuk: force non-blocking mode
+    // TODO: FIX for mingw
+#ifndef __MINGW32__
     int status = fcntl(sock->channel, F_SETFL, fcntl(sock->channel, F_GETFL, 0) | O_NONBLOCK);
     if (status == -1) {
         printf("ERR! Can't switch socket to nonblocking mode");
         abort();
     }
+#endif
+
     /* Fill in the channel host address */
     sock->remoteAddress.host = sock_addr.sin_addr.s_addr;
     sock->remoteAddress.port = sock_addr.sin_port;
