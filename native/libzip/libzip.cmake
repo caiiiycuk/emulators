@@ -2,6 +2,10 @@ if (${EMSCRIPTEN})
     set(LIBZIP_LINK_FLAGS "-s TOTAL_MEMORY=16777216")
 endif ()
 
+if (MINGW)
+    add_definitions(-DZIP_STATIC)
+endif()
+
 SET(SOURCES_LIBZIP
         "${CMAKE_CURRENT_LIST_DIR}/libzip-1.5/lib/zip_add_entry.c"
         "${CMAKE_CURRENT_LIST_DIR}/libzip-1.5/lib/zip_new.c"
@@ -12,7 +16,6 @@ SET(SOURCES_LIBZIP
         "${CMAKE_CURRENT_LIST_DIR}/libzip-1.5/lib/zip_strerror.c"
         # "${CMAKE_CURRENT_LIST_DIR}/libzip-1.5/lib/zip_random_uwp.c"
         "${CMAKE_CURRENT_LIST_DIR}/libzip-1.5/lib/zip_source_layered.c"
-        # "${CMAKE_CURRENT_LIST_DIR}/libzip-1.5/lib/zip_source_win32w.c"
         "${CMAKE_CURRENT_LIST_DIR}/libzip-1.5/lib/zip_set_name.c"
         # "${CMAKE_CURRENT_LIST_DIR}/libzip-1.5/lib/zip_random_win32.c"
         "${CMAKE_CURRENT_LIST_DIR}/libzip-1.5/lib/zip_file_rename.c"
@@ -37,7 +40,6 @@ SET(SOURCES_LIBZIP
         "${CMAKE_CURRENT_LIST_DIR}/libzip-1.5/lib/zip_set_file_compression.c"
         "${CMAKE_CURRENT_LIST_DIR}/libzip-1.5/lib/zip_unchange.c"
         "${CMAKE_CURRENT_LIST_DIR}/libzip-1.5/lib/zip_rename.c"
-        # "${CMAKE_CURRENT_LIST_DIR}/libzip-1.5/lib/zip_source_win32handle.c"
         "${CMAKE_CURRENT_LIST_DIR}/libzip-1.5/lib/zip_fopen_index_encrypted.c"
         "${CMAKE_CURRENT_LIST_DIR}/libzip-1.5/lib/zip_error_get_sys_type.c"
         "${CMAKE_CURRENT_LIST_DIR}/libzip-1.5/lib/zip_source_free.c"
@@ -90,11 +92,9 @@ SET(SOURCES_LIBZIP
         "${CMAKE_CURRENT_LIST_DIR}/libzip-1.5/lib/zip_get_num_entries.c"
         # "${CMAKE_CURRENT_LIST_DIR}/libzip-1.5/lib/zip_source_win32a.c"
         # "${CMAKE_CURRENT_LIST_DIR}/libzip-1.5/lib/zip_fopen_encrypted.c"
-        "${CMAKE_CURRENT_LIST_DIR}/libzip-1.5/lib/zip_source_file.c"
         "${CMAKE_CURRENT_LIST_DIR}/libzip-1.5/lib/zip_add.c"
         "${CMAKE_CURRENT_LIST_DIR}/libzip-1.5/lib/zip_source_buffer.c"
         "${CMAKE_CURRENT_LIST_DIR}/libzip-1.5/lib/zip_stat.c"
-        # "${CMAKE_CURRENT_LIST_DIR}/libzip-1.5/lib/zip_source_win32utf8.c"
         "${CMAKE_CURRENT_LIST_DIR}/libzip-1.5/lib/zip_file_get_comment.c"
         "${CMAKE_CURRENT_LIST_DIR}/libzip-1.5/lib/zip_source_error.c"
         "${CMAKE_CURRENT_LIST_DIR}/libzip-1.5/lib/zip_name_locate.c"
@@ -134,6 +134,18 @@ include_directories(
         "${CMAKE_CURRENT_LIST_DIR}/libzip-1.5/"
         "${CMAKE_CURRENT_LIST_DIR}/libzip-1.5/lib/"
 )
+
+if (MINGW)
+    list(APPEND SOURCES_LIBZIP
+        "${CMAKE_CURRENT_LIST_DIR}/libzip-1.5/lib/zip_source_win32utf8.c"
+        "${CMAKE_CURRENT_LIST_DIR}/libzip-1.5/lib/zip_source_win32w.c"
+        "${CMAKE_CURRENT_LIST_DIR}/libzip-1.5/lib/zip_source_win32handle.c"
+    )
+else()
+    list(APPEND SOURCES_LIBZIP
+        "${CMAKE_CURRENT_LIST_DIR}/libzip-1.5/lib/zip_source_file.c"
+    )
+endif()
 
 if (${EMSCRIPTEN})
     add_executable(wlibzip ${SOURCES_LIBZIP} "${CMAKE_CURRENT_LIST_DIR}/jsdos-libzip-js.c")

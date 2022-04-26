@@ -1,8 +1,13 @@
 add_executable(sdl ${SOURCES_SERVER_SDL})
-target_link_libraries(sdl
-        X11 z ncurses dl GL pthread asound
-        SDL SDL_mixer SDL2_net
-        )
+
+if (MINGW)
+    target_link_libraries(sdl libsdl libsdl_net z ws2_32 mingw32 winmm)
+else()
+    target_link_libraries(sdl
+            X11 z ncurses dl GL pthread asound
+            SDL SDL_mixer SDL2_net
+    )
+endif()
 
 if (X86_64)
     add_definitions(-DX86_64)

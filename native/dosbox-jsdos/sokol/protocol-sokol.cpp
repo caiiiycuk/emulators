@@ -205,7 +205,7 @@ void keyEvent(const sapp_event *event) {
   server_add_key(keyCode, pressed, GetMsPassedFromStart());
 }
 
-void server_loop() {
+void client_tick() {
 }
 
 void client_run() {

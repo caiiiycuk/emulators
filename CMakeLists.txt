@@ -34,11 +34,17 @@ if(${EMSCRIPTEN})
 		-s ERROR_ON_UNDEFINED_SYMBOLS=1")
 else()
 	set(OPT_FLAGS "${OPT_FLAGS} -O0 -g")
+
+	if (MINGW)
+		set(X86_64 true)
+		set(OPT_FLAGS "")
+	else()
+		set(CMAKE_C_COMPILER "/usr/bin/clang")
+		set(CMAKE_CXX_COMPILER "/usr/bin/clang++")
+	endif()
+
 	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OPT_FLAGS}")
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OPT_FLAGS}")
-
-	set(CMAKE_C_COMPILER "/usr/bin/clang")
-	set(CMAKE_CXX_COMPILER "/usr/bin/clang++")
 #	add_definitions(-DC_DEBUG=1 -DC_HEAVY_DEBUG=1)
 endif()
 

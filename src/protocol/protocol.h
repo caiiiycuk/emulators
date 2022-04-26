@@ -28,6 +28,10 @@ void client_error(const char* tag, const char* message);
 void client_network_connected(NetworkType networkType, const char* address, uint32_t port);
 void client_network_disconnected(NetworkType networkType);
 
+#ifndef EMSCRIPTEN
+extern void client_tick();
+#endif
+
 // -- Server (Worker)
 
 extern int server_run();
@@ -43,9 +47,5 @@ extern void server_exit();
 
 extern void server_network_connect(NetworkType networkType, const char* address, uint32_t port);
 extern void server_network_disconnect(NetworkType networkType);
-
-#ifndef EMSCRIPTEN
-extern void server_loop();
-#endif
 
 #endif  // JS_DOS_JS_DOS_PROTOCOL_H
