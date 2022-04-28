@@ -93,7 +93,7 @@ static double getMTimeMs(const char* file) {
         fprintf(stderr, "zip_from_fs: getMTimeMs can't stat file %s\n", file);
         return 0;
     }
-#ifdef WIN32
+#if defined(WIN32) || defined(__APPLE__)
     double mTimeMs = (double) fileStat.st_mtime * 1000;
 #else
     double mTimeMs = (double) fileStat.st_mtim.tv_sec * 1000 + (double) fileStat.st_mtim.tv_nsec / 1000000;
@@ -149,7 +149,7 @@ int zip_recursively(zip_t *zipArchive, const char *directory, double changedAfte
                             zip_strerror(zipArchive));
                     return 0;
                 }
-                auto index = zip_file_add(zipArchive, nameInArchive, source, ZIP_FL_ENC_UTF_8);
+                int index = zip_file_add(zipArchive, nameInArchive, source, ZIP_FL_ENC_UTF_8);
                 if (index == -1) {
                     zip_source_free(source);
                     fprintf(stderr, "zip_from_fs: can't create file %s, cause %s\n", nameInFs,

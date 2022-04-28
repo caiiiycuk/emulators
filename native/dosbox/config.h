@@ -153,7 +153,9 @@
 /* #undef ENVIRON_INCLUDED */
 
 /* environ can be linked */
+#ifndef __APPLE__
 #define ENVIRON_LINKED 1
+#endif
 
 /* Define to 1 to use ALSA for MIDI */
 /* #undef HAVE_ALSA */
