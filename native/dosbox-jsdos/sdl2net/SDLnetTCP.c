@@ -154,8 +154,10 @@ TCPsocket SDLNet_TCP_Open(IPaddress *ip)
 #endif /* TCP_NODELAY */
 
     // @caiiiycuk: force non-blocking mode
-    // TODO: FIX for mingw
-#ifndef __MINGW32__
+#ifdef __MINGW32__
+    u_long arg = 1;
+    ioctlsocket(sock->channel, FIONBIO, &arg);
+#else
     int status = fcntl(sock->channel, F_SETFL, fcntl(sock->channel, F_GETFL, 0) | O_NONBLOCK);
     if (status == -1) {
         printf("ERR! Can't switch socket to nonblocking mode");
