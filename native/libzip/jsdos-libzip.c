@@ -34,7 +34,7 @@ void zip_set_on_progress(fnOnProgress newOnProgress) {
 }
 #endif
 
-ZipArchive *readZipArchiveFile(const char *path) {
+ZipArchive readZipArchiveFile(const char *path) {
     FILE *file;
     char *buffer;
     long length;
@@ -53,7 +53,7 @@ ZipArchive *readZipArchiveFile(const char *path) {
     fread(buffer + sizeof(uint32_t), length, 1, file);
     fclose(file);
     ((uint32_t*) buffer)[0] = (uint32_t) length;
-    return (ZipArchive*) buffer;
+    return (ZipArchive) buffer;
 }
 
 void safe_create_dir(const char *dir) {
@@ -196,7 +196,7 @@ ZipArchive zip_fs(double changedAfterMs) {
         fprintf(stderr, "zip_from_fs : unable to set read mode for archive\n");
     }
 
-    ZipArchive* archive = readZipArchiveFile(libzipTempArchive);
+    ZipArchive archive = readZipArchiveFile(libzipTempArchive);
 
     if (remove(libzipTempArchive) != 0) {
         fprintf(stderr, "zip_from_fs: unable to delete archive\n");
