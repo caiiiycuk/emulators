@@ -279,7 +279,6 @@ int jsdos_main(Config *config) {
     }
     // if none found => parse localdir conf
     if (!control->configfiles.size()) {
-        printf("Parsing default config .jsdos/dosbox.conf\n");
         control->ParseConfigFile(".jsdos/dosbox.conf");
     }
 

@@ -265,8 +265,6 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
         if (tag === "panic") {
             this.panicMessages.push(message);
             console.error("[" + tag + "]" + message);
-        } else {
-            console.log("[" + tag + "]" + message);
         }
         this.eventsImpl.fireMessage("error", "[" + tag + "]" + message);
     }
