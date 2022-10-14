@@ -9,6 +9,7 @@ import size from "gulp-size";
 import browserify from "browserify";
 import buffer from "vinyl-buffer";
 import source from "vinyl-source-stream";
+import { buildSharedJs } from ".";
 
 // eslint-disable-next-line
 const tsify = require("tsify");
@@ -59,4 +60,7 @@ function dosboxSharedJs() {
         .pipe(dest("dist"));
 }
 
-export const emulators = series(clean, parallel(js, dosboxJs, dosboxSharedJs));
+export const emulators = 
+    buildSharedJs ? 
+        series(clean, parallel(js, dosboxJs, dosboxSharedJs)) :
+        series(clean, parallel(js, dosboxJs));

@@ -10,7 +10,7 @@ RUN apt-get -yqq update && \
     apt-get clean -y
 
 RUN git clone https://github.com/emscripten-core/emsdk.git
-RUN cd emsdk && git pull && git checkout main && ./emsdk install 3.1.8 && ./emsdk activate 3.1.8
+RUN cd emsdk && git pull && git checkout main && ./emsdk install 3.1.21 && ./emsdk activate 3.1.21
 RUN source /emsdk/emsdk_env.sh && npm install -g http-server yarn
 
 WORKDIR /app

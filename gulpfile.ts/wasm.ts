@@ -11,6 +11,7 @@ import getRepoInfo from "git-repo-info";
 import md5File from "md5-file";
 
 import { execute } from "./execute";
+import { buildSharedJs } from ".";
 
 // eslint-disable-next-line
 const MD5 = require("md5.js");
@@ -22,10 +23,16 @@ function clean() {
 }
 
 async function makeWasm() {
-    return await make(".", "build/wasm",
-        "wlibzip",
-        "wdosbox",
-        "wdosbox.shared");
+    if (buildSharedJs) {
+        return await make(".", "build/wasm",
+            "wlibzip",
+            "wdosbox",
+            "wdosbox.shared");
+    } else {
+        return await make(".", "build/wasm",
+            "wlibzip",
+            "wdosbox");
+    }
 }
 
 function copyAssets() {
@@ -54,7 +61,7 @@ async function generateBuildInfo() {
     const md5Version = new MD5().update(pjson.version)
         .update(info.sha);
 
-    const sizes: {[name: string]: FileSize} = {};
+    const sizes: { [name: string]: FileSize } = {};
     const files = fs.readdirSync("build/wasm");
     for (const next of files) {
         if (!next.endsWith(".wasm")) {
