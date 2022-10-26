@@ -1,3 +1,6 @@
 [submodule "native/sokol"]
 	path = native/sokol
 	url = https://github.com/floooh/sokol.git
+[submodule "native/dosbox"]
+	path = native/dosbox
+	url = git@github.com:js-dos/dosbox.git
