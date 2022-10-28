@@ -1,5 +1,5 @@
 project(js-dos)
-cmake_minimum_required(VERSION 3.6)
+cmake_minimum_required(VERSION 3.21)
 
 set(X86 false)
 set(X86_64 false)

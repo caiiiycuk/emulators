@@ -541,7 +541,8 @@ set(SOURCES_CORE_X
         "${DBX_PATH}/src/gui/sdl_mapper.cpp"
         "${DBX_PATH}/src/gui/zipcrc.c"
         "${DBX_PATH}/src/gui/menu_callback.cpp"
-        "${DBX_PATH}/src/gui/display2.cpp"
+# @caiiiycuk: ncurses dep
+#        "${DBX_PATH}/src/gui/display2.cpp"
         "${DBX_PATH}/src/gui/zipfile.cpp"
         #	"${DBX_PATH}/src/gui/sdl_ttf.c"
         "${DBX_PATH}/src/ints/bios.cpp"
@@ -633,7 +634,18 @@ target_include_directories(x-sdl2 PUBLIC
         )
 
 
-if (APPLE)
+if (${EMSCRIPTEN})
+	target_compile_definitions(x-sdl2 PUBLIC -DC_EMSCRIPTEN)
+	set_target_properties(x-sdl2 PROPERTIES SUFFIX .html)
+	target_compile_options(x-sdl2 PUBLIC "-sUSE_SDL=2")
+	target_link_options(x-sdl2 PUBLIC
+			"-sUSE_SDL=2"
+			"-sMODULARIZE=0"
+			"-sINVOKE_RUN=1"
+			"--profiling-funcs"
+			"-sASYNCIFY=1"
+	)
+elseif (APPLE)
     target_link_libraries(x-sdl2
             ${SDL2_LIBRARIES}
             "-framework CoreAudio"
