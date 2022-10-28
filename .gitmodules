@@ -4,3 +4,6 @@
 [submodule "native/dosbox"]
 	path = native/dosbox
 	url = git@github.com:js-dos/dosbox.git
+[submodule "native/dosbox-x"]
+	path = native/dosbox-x
+	url = git@github.com:js-dos/dosbox-x.git

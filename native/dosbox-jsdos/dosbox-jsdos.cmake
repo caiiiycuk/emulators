@@ -10,7 +10,7 @@ if (MINGW)
     add_definitions(-DWIN32)
 endif()
 
-add_definitions(
+set(DEFENITIONS_CORE
         -DHAVE_CONFIG_H
         -DGET_X86_FUNCTIONS
         -DJSDOS
@@ -18,7 +18,7 @@ add_definitions(
         -DWITHOUT_SDL
 )
 
-include_directories(
+set(INCLUDE_DIRECTORIES_CORE
         "${CMAKE_CURRENT_LIST_DIR}/sdl2net"
         "${CMAKE_CURRENT_LIST_DIR}/jsdos/include"
         "${CMAKE_CURRENT_LIST_DIR}/../dosbox/include"

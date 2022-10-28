@@ -129,12 +129,6 @@ SET(SOURCES_LIBZIP
         "${CMAKE_CURRENT_LIST_DIR}/jsdos-libzip.c"
         )
 
-include_directories(
-        "${CMAKE_CURRENT_LIST_DIR}/include/"
-        "${CMAKE_CURRENT_LIST_DIR}/libzip-1.5/"
-        "${CMAKE_CURRENT_LIST_DIR}/libzip-1.5/lib/"
-)
-
 if (MINGW)
     list(APPEND SOURCES_LIBZIP
         "${CMAKE_CURRENT_LIST_DIR}/libzip-1.5/lib/zip_source_win32utf8.c"
@@ -151,7 +145,18 @@ if (${EMSCRIPTEN})
     add_executable(wlibzip ${SOURCES_LIBZIP} "${CMAKE_CURRENT_LIST_DIR}/jsdos-libzip-js.c")
     set_target_properties(wlibzip PROPERTIES SUFFIX .js)
     set_target_properties(wlibzip PROPERTIES LINK_FLAGS "${LIBZIP_LINK_FLAGS} -s WASM=1 -s EXPORT_NAME='WLIBZIP'")
+
+    target_include_directories(wlibzip PUBLIC
+            "${CMAKE_CURRENT_LIST_DIR}/include/"
+            "${CMAKE_CURRENT_LIST_DIR}/libzip-1.5/"
+            "${CMAKE_CURRENT_LIST_DIR}/libzip-1.5/lib/"
+    )
 elseif (${BUILD_NATIVE_LIBZIP})
     add_executable(libzip ${SOURCES_LIBZIP} "${CMAKE_CURRENT_LIST_DIR}/jsdos-libzip-js.c")
+    target_include_directories(libzip PUBLIC
+            "${CMAKE_CURRENT_LIST_DIR}/include/"
+            "${CMAKE_CURRENT_LIST_DIR}/libzip-1.5/"
+            "${CMAKE_CURRENT_LIST_DIR}/libzip-1.5/lib/"
+            )
     target_link_libraries(libzip z)
 endif ()
