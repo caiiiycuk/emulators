@@ -8,7 +8,7 @@ set(DEFENITIONS_CORE
 
 set(INCLUDE_DIRECTORIES_CORE
         "${NATIVE_DIR}/config"
-        "${NATIVE_DIR}/dosbox-jsdos/sdl2net"
+        "${NATIVE_DIR}/sdl2net"
         "${NATIVE_DIR}/dosbox-jsdos/jsdos/include"
         "${NATIVE_DIR}/dosbox/include"
         "${NATIVE_DIR}/dosbox"
@@ -155,9 +155,9 @@ set(SOURCES_JSDOS_CXX11
         )
 
 set(SOURCES_JSDOS_NET_C
-        ${NATIVE_DIR}/dosbox-jsdos/sdl2net/SDLnet.c
-        ${NATIVE_DIR}/dosbox-jsdos/sdl2net/SDLnetTCP.c
-        ${NATIVE_DIR}/dosbox-jsdos/sdl2net/SDLnetselect.c
+        ${NATIVE_DIR}/sdl2net/SDLnet.c
+        ${NATIVE_DIR}/sdl2net/SDLnetTCP.c
+        ${NATIVE_DIR}/sdl2net/SDLnetselect.c
         )
 
 set_source_files_properties(${SOURCES_CORE_CXX03} PROPERTIES COMPILE_FLAGS "${CORE_FLAGS} -std=c++03 -Wno-switch")
