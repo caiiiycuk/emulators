@@ -342,7 +342,11 @@ extern DECLSPEC int SDLCALL SDLNet_CheckSockets(SDLNet_SocketSet set, Uint32 tim
 #define SDLNet_SocketReady(sock) _SDLNet_SocketReady((SDLNet_GenericSocket)(sock))
 static __inline__ int _SDLNet_SocketReady(SDLNet_GenericSocket sock)
 {
+#ifdef __APPLE__
+    return (sock != 0) && (sock->ready);
+#else
     return (sock != NULL) && (sock->ready);
+#endif
 }
 
 /* Free a set of sockets allocated by SDL_NetAllocSocketSet() */

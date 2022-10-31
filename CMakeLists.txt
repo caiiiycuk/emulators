@@ -54,13 +54,12 @@ endif()
 
 include_directories("${SRC_DIR}/protocol")
 
-# targets
+# tier 1
 include("${TARGETS_DIR}/zip.cmake")
 include("${TARGETS_DIR}/dosbox.cmake")
 include("${TARGETS_DIR}/dhry2.cmake")
+include("${TARGETS_DIR}/sokol.cmake")
+
+# tier 2
 include("${TARGETS_DIR}/dosbox-sdl.cmake")
 include("${TARGETS_DIR}/dosbox-x-sdl2.cmake")
-
-# native frontends
-#include("${CMAKE_CURRENT_LIST_DIR}/native/dosbox-jsdos/sokol/sokol.cmake")
-#

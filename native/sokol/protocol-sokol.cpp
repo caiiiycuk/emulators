@@ -8,16 +8,14 @@
 #include <timer.h>
 #include <unordered_map>
 
-#define SOKOL_NO_ENTRY
-#define SOKOL_IMPL
-#define SOKOL_GLCORE33
-
-#include "../../sokol/sokol_app.h"
-#include "../../sokol/sokol_audio.h"
-#include "../../sokol/sokol_gfx.h"
+#include "../sokol-lib/sokol_app.h"
+#include "../sokol-lib/sokol_audio.h"
+#include "../sokol-lib/sokol_gfx.h"
 #include "shaders.glsl330.h"
 
 std::mutex mutex;
+
+extern void client_run();
 
 #define WINDOW_WIDTH 640
 #define WINDOW_HEIGHT 480
@@ -194,7 +192,7 @@ void sokolFrame() {
   renderedFrame = frameCount;
 }
 
-void keyEvent(const sapp_event *event) {
+void sokolKeyEvent(const sapp_event *event) {
   static std::unordered_map<KBD_KEYS, bool> keyMatrix;
   auto keyCode = (KBD_KEYS) event->key_code;
   auto pressed = event->type == SAPP_EVENTTYPE_KEY_DOWN;
@@ -208,55 +206,10 @@ void keyEvent(const sapp_event *event) {
 void client_tick() {
 }
 
-void client_run() {
-  sapp_desc appDescription = {};
-  appDescription.init_cb = []() { sokolInit(); };
-
-  appDescription.frame_cb = []() { sokolFrame(); };
-
-  appDescription.cleanup_cb = []() { server_exit(); };
-
-  appDescription.event_cb = [](const sapp_event *event) {
-    static float prevX = 0;
-    static float prevY = 0;
-
-    switch (event->type) {
-      case SAPP_EVENTTYPE_KEY_DOWN:
-      case SAPP_EVENTTYPE_KEY_UP:
-        keyEvent(event);
-        break;
-      case SAPP_EVENTTYPE_MOUSE_MOVE: {
-        server_mouse_moved(event->mouse_x / WINDOW_WIDTH,
-                           event->mouse_y / WINDOW_HEIGHT,
-                           false,
-                           GetMsPassedFromStart());
-      } break;
-      case SAPP_EVENTTYPE_MOUSE_UP:
-      case SAPP_EVENTTYPE_MOUSE_DOWN: {
-        server_mouse_moved(event->mouse_x / WINDOW_WIDTH,
-                           event->mouse_y / WINDOW_HEIGHT,
-                           false,
-                           GetMsPassedFromStart());
-        server_mouse_button(event->mouse_button, event->type == SAPP_EVENTTYPE_MOUSE_DOWN, GetMsPassedFromStart());
-      } break;
-      default:;
-    }
-  };
-
-  appDescription.width = WINDOW_WIDTH;
-  appDescription.height = WINDOW_HEIGHT;
-  appDescription.ios_keyboard_resizes_canvas = false;
-  appDescription.gl_force_gles2 = true;
-  appDescription.html5_ask_leave_site = false;
-  appDescription.html5_canvas_resize = true;
-
-  sapp_run(&appDescription);
-}
-
 void runRuntime() {
-  std::thread client(client_run);
-  server_run();
-  client.join();
+  std::thread server(server_run);
+  client_run();
+  server.join();
 }
 
 int main(int argc, char *argv[]) {
