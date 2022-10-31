@@ -9,17 +9,17 @@ set(DEFENITIONS_CORE
 set(INCLUDE_DIRECTORIES_CORE
         "${NATIVE_DIR}/config"
         "${NATIVE_DIR}/sdl2net"
-        "${NATIVE_DIR}/dosbox-jsdos/jsdos/include"
+        "${NATIVE_DIR}/jsdos/include"
         "${NATIVE_DIR}/dosbox/include"
         "${NATIVE_DIR}/dosbox"
         )
 
 set(SOURCES_CORE_CXX11
-        "${NATIVE_DIR}/dosbox-jsdos/jsdos/jsdos-log.cpp"
-        "${NATIVE_DIR}/dosbox-jsdos/jsdos/jsdos-asyncify.cpp"
-        "${NATIVE_DIR}/dosbox-jsdos/jsdos/jsdos-timer.cpp"
-        "${NATIVE_DIR}/dosbox-jsdos/../dosbox/src/dosbox.cpp"
-        "${NATIVE_DIR}/dosbox-jsdos/jsdos/jsdos-support.cpp"
+        "${NATIVE_DIR}/jsdos/jsdos-log.cpp"
+        "${NATIVE_DIR}/jsdos/jsdos-asyncify.cpp"
+        "${NATIVE_DIR}/jsdos/jsdos-timer.cpp"
+        "${NATIVE_DIR}/dosbox/src/dosbox.cpp"
+        "${NATIVE_DIR}/jsdos/jsdos-support.cpp"
         "${NATIVE_DIR}/dosbox/src/dos/dos_files.cpp"
         "${NATIVE_DIR}/dosbox/src/dos/cdrom_image.cpp"
         "${NATIVE_DIR}/dosbox/src/hardware/pic.cpp"
@@ -146,12 +146,12 @@ set(SOURCES_CORE_CXX03
         )
 
 set(SOURCES_JSDOS_CXX11
-        "${NATIVE_DIR}/dosbox-jsdos/jsdos/jsdos-main.cpp"
-        "${NATIVE_DIR}/dosbox-jsdos/jsdos/jsdos-mixer.cpp"
-        "${NATIVE_DIR}/dosbox-jsdos/jsdos/jsdos-mapper-noop.cpp"
-        "${NATIVE_DIR}/dosbox-jsdos/jsdos/jsdos-noop.cpp"
-        "${NATIVE_DIR}/dosbox-jsdos/jsdos/jsdos-mouse.cpp"
-        "${NATIVE_DIR}/dosbox-jsdos/jsdos/jsdos-ipx.cpp"
+        "${NATIVE_DIR}/jsdos/jsdos-main.cpp"
+        "${NATIVE_DIR}/jsdos/jsdos-mixer.cpp"
+        "${NATIVE_DIR}/jsdos/jsdos-mapper-noop.cpp"
+        "${NATIVE_DIR}/jsdos/jsdos-noop.cpp"
+        "${NATIVE_DIR}/jsdos/jsdos-mouse.cpp"
+        "${NATIVE_DIR}/jsdos/jsdos-ipx.cpp"
         )
 
 set(SOURCES_JSDOS_NET_C
@@ -204,7 +204,7 @@ if (${EMSCRIPTEN})
             "-sASYNCIFY_WHITELIST=@${TARGETS_DIR}/dosbox-asyncify.txt"
             "-sEXPORT_NAME='WDOSBOX'")
 else()
-    target_include_directories(libdosbox-core PUBLIC "${NATIVE_DIR}/dosbox-jsdos/jsdos/linux")
+    target_include_directories(libdosbox-core PUBLIC "${NATIVE_DIR}/jsdos/linux")
 endif()
 
 
