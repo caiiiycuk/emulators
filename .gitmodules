@@ -1,5 +1,5 @@
 [submodule "native/sokol"]
-	path = native/sokol
+	path = native/sokol-lib
 	url = https://github.com/floooh/sokol.git
 [submodule "native/dosbox"]
 	path = native/dosbox
