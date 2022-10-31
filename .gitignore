@@ -49,3 +49,5 @@ build-emterp
 src/dos/sokol/sokol
 dist
 bench
+
+emscripten

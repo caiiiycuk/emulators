@@ -26,5 +26,5 @@ async function makeBuild(...targets: string[]) {
 }
 
 async function emcmake(listsPath: string) {
-    await execute("emcmake", "cmake", listsPath);
+    await execute("emcmake", "cmake", "-DCMAKE_BUILD_TYPE=Release", listsPath);
 }

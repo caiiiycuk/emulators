@@ -9,7 +9,6 @@ import size from "gulp-size";
 import browserify from "browserify";
 import buffer from "vinyl-buffer";
 import source from "vinyl-source-stream";
-import { buildSharedJs } from ".";
 
 // eslint-disable-next-line
 const tsify = require("tsify");
@@ -54,13 +53,4 @@ function dosboxJs() {
         .pipe(dest("dist"));
 }
 
-function dosboxSharedJs() {
-    return src("dist/wdosbox.shared.js")
-        .pipe(footer(fs.readFileSync("src/dos/dosbox/ts/worker-server.js")))
-        .pipe(dest("dist"));
-}
-
-export const emulators = 
-    buildSharedJs ? 
-        series(clean, parallel(js, dosboxJs, dosboxSharedJs)) :
-        series(clean, parallel(js, dosboxJs));
+export const emulators = series(clean, parallel(js, dosboxJs));

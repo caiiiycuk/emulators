@@ -5,7 +5,7 @@ import { CommandInterface } from "../../src/emulators";
 // =======
 // Compare image from url, and screenshot from DosBox
 
-export function compareAndExit(imageUrl: string, ci: CommandInterface, threshold = 0) {
+export function compareAndExit(imageUrl: string, ci: CommandInterface, threshold = 1) {
     return new Promise((resolve, reject) => {
         const fn = () => {
             compare(imageUrl, ci, threshold)

@@ -1,7 +1,7 @@
 import { log, error, warn } from "./log";
 import * as fs from "fs";
 
-const asyncifyFile = "native/dosbox-jsdos/asyncify.txt";
+const asyncifyFile = "targets/dosbox-asyncify.txt";
 const stackFile = "/tmp/stack.txt";
 
 export async function asyncifyAdd() {

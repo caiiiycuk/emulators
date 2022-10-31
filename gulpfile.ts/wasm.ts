@@ -11,7 +11,6 @@ import getRepoInfo from "git-repo-info";
 import md5File from "md5-file";
 
 import { execute } from "./execute";
-import { buildSharedJs } from ".";
 
 // eslint-disable-next-line
 const MD5 = require("md5.js");
@@ -23,16 +22,9 @@ function clean() {
 }
 
 async function makeWasm() {
-    if (buildSharedJs) {
-        return await make(".", "build/wasm",
-            "wlibzip",
-            "wdosbox",
-            "wdosbox.shared");
-    } else {
-        return await make(".", "build/wasm",
-            "wlibzip",
-            "wdosbox");
-    }
+    return await make(".", "build/wasm",
+        "wlibzip",
+        "wdosbox");
 }
 
 function copyAssets() {

@@ -193,7 +193,7 @@ endif()
 
 if (${EMSCRIPTEN})
     add_executable(wdosbox ${SOURCES_SERVER_WORKER})
-    target_link_libraries(wdosbox libdosbox libdosbox-core)
+    target_link_libraries(wdosbox libdosbox libdosbox-core libzip)
     set_target_properties(wdosbox PROPERTIES SUFFIX .js)
     target_link_options(wdosbox PUBLIC
             "${EM_LINK_OPTIONS}"

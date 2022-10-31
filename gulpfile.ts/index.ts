@@ -7,8 +7,6 @@ import { emitTypes } from "./types";
 import { updateDosbox } from "./update-dosbox";
 import { asyncifyAdd } from "./asyncify";
 
-export const buildSharedJs = false;
-
 exports.default = series(
     wasm,
     parallel(emulators, test, emitTypes),
