@@ -1,4 +1,4 @@
-set(DHRY2_DIR "${NATIVE_DIR}/dosbox-jsdos/dhry2")
+set(DHRY2_DIR "${NATIVE_DIR}/dhry2")
 set(SOURCES_DHRY2_CXX11
   "${DHRY2_DIR}/dhry2.cpp"
   )
