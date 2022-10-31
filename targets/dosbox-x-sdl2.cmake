@@ -11,8 +11,7 @@ set(DEFINITIONS_CORE_X
         -DRESDIR="/tmp/dosbox-x"
         )
 
-set(NATIVE_PATH "${CMAKE_CURRENT_LIST_DIR}/..")
-set(DBX_PATH "${NATIVE_PATH}/dosbox-x")
+set(DBX_PATH "${NATIVE_DIR}/dosbox-x")
 
 set(SOURCES_CORE_X
         "${DBX_PATH}/src/dosbox.cpp"
@@ -614,12 +613,12 @@ if (APPLE)
             )
 endif ()
 
-add_executable(x-sdl2 ${SOURCES_X_SDL} ${SOURCES_CORE_X})
-set_property(TARGET x-sdl2 PROPERTY CXX_STANDARD 11)
+add_executable(dosbox-x-sdl2 ${SOURCES_X_SDL} ${SOURCES_CORE_X})
+set_property(TARGET dosbox-x-sdl2 PROPERTY CXX_STANDARD 11)
 
-target_compile_definitions(x-sdl2 PUBLIC ${DEFINITIONS_CORE_X})
-target_include_directories(x-sdl2 PUBLIC
-		"${NATIVE_PATH}/dosbox-jsdos/config"
+target_compile_definitions(dosbox-x-sdl2 PUBLIC ${DEFINITIONS_CORE_X})
+target_include_directories(dosbox-x-sdl2 PUBLIC
+		"${NATIVE_DIR}/config"
         "${DBX_PATH}/include"
         "${DBX_PATH}/src/aviwriter"
         "${DBX_PATH}/src/hardware/snd_pc98/cbus"
@@ -635,10 +634,12 @@ target_include_directories(x-sdl2 PUBLIC
 
 
 if (${EMSCRIPTEN})
-	target_compile_definitions(x-sdl2 PUBLIC -DC_EMSCRIPTEN)
-	set_target_properties(x-sdl2 PROPERTIES SUFFIX .html)
-	target_compile_options(x-sdl2 PUBLIC "-sUSE_SDL=2")
-	target_link_options(x-sdl2 PUBLIC
+	target_compile_definitions(dosbox-x-sdl2 PUBLIC -DC_EMSCRIPTEN)
+	set_target_properties(dosbox-x-sdl2 PROPERTIES SUFFIX .html)
+	target_compile_options(dosbox-x-sdl2 PUBLIC "-sUSE_SDL=2")
+	target_link_options(dosbox-x-sdl2 PUBLIC
+			${EM_LINK_OPTIONS}
+			"-sUSE_ZLIB=1"
 			"-sUSE_SDL=2"
 			"-sMODULARIZE=0"
 			"-sINVOKE_RUN=1"
@@ -646,7 +647,7 @@ if (${EMSCRIPTEN})
 			"-sASYNCIFY=1"
 	)
 elseif (APPLE)
-    target_link_libraries(x-sdl2
+    target_link_libraries(dosbox-x-sdl2
             ${SDL2_LIBRARIES}
             "-framework CoreAudio"
             "-framework AudioToolbox"
@@ -669,19 +670,18 @@ elseif (APPLE)
             ncurses
             z)
 elseif (MINGW)
-    target_link_libraries(x-sdl2 libsdl libsdl_net z ws2_32 mingw32 winmm)
+    target_link_libraries(dosbox-x-sdl2 libsdl libsdl_net z ws2_32 mingw32 winmm)
 else ()
-    target_link_libraries(x-sdl2
+    target_link_libraries(dosbox-x-sdl2
             X11 z ncurses dl GL pthread asound
             SDL SDL_mixer SDL2_net
             )
 endif ()
 
 if (X86_64)
-    add_definitions(-DX86_64)
+    target_compile_definitions(dosbox-x-sdl2 PUBLIC -DX86_64)
 elseif (X86)
-    add_definitions(-DX86)
-    set_target_properties(x-sdl2 PROPERTIES COMPILE_FLAGS "-m32" LINK_FLAGS "-m32")
+    target_compile_definitions(dosbox-x-sdl2 PUBLIC -DX86)
 else ()
-    set_target_properties(x-sdl2 PROPERTIES COMPILE_FLAGS "-m32" LINK_FLAGS "-m32")
+    set_target_properties(dosbox-x-sdl2 PROPERTIES COMPILE_FLAGS "-m32" LINK_FLAGS "-m32")
 endif ()

@@ -1,5 +1,5 @@
 const { performance } = require('perf_hooks');
-const dhry2 = require("./dhry2.js");
+const dhry2 = require("./dosbox-dhry2.js");
 
 const startedAt = performance.now();
 const Module = {
