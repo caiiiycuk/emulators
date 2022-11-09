@@ -13,7 +13,7 @@ set(DEFINITIONS_CORE_X
 
 set(DBX_PATH "${NATIVE_DIR}/dosbox-x")
 
-set(SOURCES_CORE_X
+set(SOURCES_X_CORE
         "${DBX_PATH}/src/dosbox.cpp"
         "${DBX_PATH}/src/misc/ethernet_slirp.cpp"
         "${DBX_PATH}/src/misc/messages.cpp"
@@ -529,14 +529,12 @@ set(SOURCES_CORE_X
         #	"${DBX_PATH}/src/libs/mt32/sha1/sha1.cpp"
         "${DBX_PATH}/src/gui/ptrop.cpp"
         "${DBX_PATH}/src/gui/render.cpp"
-        "${DBX_PATH}/src/gui/sdlmain.cpp"
         "${DBX_PATH}/src/gui/midi.cpp"
         "${DBX_PATH}/src/gui/bitop.cpp"
         "${DBX_PATH}/src/gui/menu.cpp"
         "${DBX_PATH}/src/gui/render_scalers.cpp"
         #	"${DBX_PATH}/src/gui/whereami.c"
         "${DBX_PATH}/src/gui/sdl_gui.cpp"
-        "${DBX_PATH}/src/gui/sdlmain_linux.cpp"
         "${DBX_PATH}/src/gui/sdl_mapper.cpp"
         "${DBX_PATH}/src/gui/zipcrc.c"
         "${DBX_PATH}/src/gui/menu_callback.cpp"
@@ -607,18 +605,39 @@ set(SOURCES_CORE_X
         )
 
 if (APPLE)
-    list(APPEND SOURCES_CORE_X
+    list(APPEND SOURCES_X_CORE
             "${DBX_PATH}/src/gui/menu_macos.mm"
             "${DBX_PATH}/src/libs/physfs/physfs_platform_apple.mm"
             )
 endif ()
 
-add_executable(dosbox-x-sdl2 ${SOURCES_X_SDL} ${SOURCES_CORE_X})
-set_property(TARGET dosbox-x-sdl2 PROPERTY CXX_STANDARD 11)
+set(SOURCES_X_SDL_MAIN
+        "${DBX_PATH}/src/gui/sdlmain.cpp"
+        "${DBX_PATH}/src/gui/sdlmain_linux.cpp"
+        )
 
-target_compile_definitions(dosbox-x-sdl2 PUBLIC ${DEFINITIONS_CORE_X})
-target_include_directories(dosbox-x-sdl2 PUBLIC
+set(SOURCES_X_JSDOS_CORE
+        #        "${NATIVE_DIR}/jsdos/jsdos-log.cpp"
+        "${NATIVE_DIR}/jsdos/jsdos-asyncify.cpp"
+        "${NATIVE_DIR}/jsdos/jsdos-timer.cpp"
+        "${NATIVE_DIR}/jsdos/jsdos-support.cpp"
+        )
+
+set(SOURCES_X_JSDOS_MAIN
+        "${NATIVE_DIR}/jsdos/jsdos-x-main.cpp"
+        )
+
+add_library(libdosbox-x-sdl2 OBJECT ${SOURCES_X_SDL} ${SOURCES_X_CORE} ${SOURCES_X_JSDOS_CORE})
+target_compile_definitions(libdosbox-x-sdl2 PUBLIC ${DEFINITIONS_CORE_X})
+set_property(TARGET libdosbox-x-sdl2 PROPERTY CXX_STANDARD 11)
+
+add_library(libdosbox-x-jsdos OBJECT ${SOURCES_X_JSDOS_MAIN})
+target_compile_definitions(libdosbox-x-jsdos PUBLIC ${DEFINITIONS_CORE_X})
+set_property(TARGET libdosbox-x-jsdos PROPERTY CXX_STANDARD 11)
+
+set(DOSBOX_X_INCLUDE_DIRECTORIES
         "${NATIVE_DIR}/config"
+        "${NATIVE_DIR}/jsdos/include"
         "${DBX_PATH}/include"
         "${DBX_PATH}/src/aviwriter"
         "${DBX_PATH}/src/hardware/snd_pc98/cbus"
@@ -632,6 +651,18 @@ target_include_directories(dosbox-x-sdl2 PUBLIC
         "${SDL2_INCLUDE_DIR}"
         )
 
+target_include_directories(libdosbox-x-sdl2 PUBLIC
+        ${DOSBOX_X_INCLUDE_DIRECTORIES}
+        )
+
+target_include_directories(libdosbox-x-jsdos PUBLIC
+        ${DOSBOX_X_INCLUDE_DIRECTORIES}
+        "${DBX_PATH}/src/gui"
+        )
+
+add_executable(dosbox-x-sdl2 ${SOURCES_X_SDL_MAIN})
+target_link_libraries(dosbox-x-sdl2 libdosbox-x-sdl2)
+set_property(TARGET dosbox-x-sdl2 PROPERTY CXX_STANDARD 11)
 
 if (${EMSCRIPTEN})
     target_compile_definitions(dosbox-x-sdl2 PUBLIC -DC_EMSCRIPTEN)
@@ -679,9 +710,12 @@ else ()
 endif ()
 
 if (X86_64)
-    target_compile_definitions(dosbox-x-sdl2 PUBLIC -DX86_64)
+    target_compile_definitions(libdosbox-x-sdl2 PUBLIC -DX86_64)
+    target_compile_definitions(libdosbox-x-jsdos PUBLIC -DX86_64)
 elseif (X86)
-    target_compile_definitions(dosbox-x-sdl2 PUBLIC -DX86)
+    target_compile_definitions(libdosbox-x-sdl2 PUBLIC -DX86)
+    target_compile_definitions(libdosbox-x-jsdos PUBLIC -DX86)
 else ()
-    set_target_properties(dosbox-x-sdl2 PROPERTIES COMPILE_FLAGS "-m32" LINK_FLAGS "-m32")
+    set_target_properties(libdosbox-x-sdl2 PROPERTIES COMPILE_FLAGS "-m32" LINK_FLAGS "-m32")
+    set_target_properties(libdosbox-x-jsdos PROPERTIES COMPILE_FLAGS "-m32" LINK_FLAGS "-m32")
 endif ()

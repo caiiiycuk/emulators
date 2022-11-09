@@ -1,3 +1,8 @@
+if (${EMSCRIPTEN})
+else ()
+    find_package(SDL2 REQUIRED)
+endif ()
+
 include_directories(
         "${NATIVE_DIR}/sokol-lib"
 )
@@ -23,6 +28,9 @@ else ()
     add_executable(dosbox-sokol ${SOURCES_SOKOL} ${SOURCES_SOKOL_CLIENT})
     target_link_libraries(dosbox-sokol libdosbox libdosbox-core)
 
+    add_executable(dosbox-x-sokol ${SOURCES_SOKOL} ${SOURCES_SOKOL_CLIENT})
+    target_link_libraries(dosbox-x-sokol libdosbox-x-sdl2 libdosbox-x-jsdos)
+
     if (APPLE)
         target_link_libraries(dosbox-sokol
                 "-framework Cocoa"
@@ -31,9 +39,38 @@ else ()
                 "-framework CoreAudio"
                 "-framework AudioToolbox"
                 z)
+        target_link_libraries(dosbox-x-sokol
+                ${SDL2_LIBRARIES}
+                "-framework CoreAudio"
+                "-framework AudioToolbox"
+                "-framework ForceFeedback"
+                "-framework CoreVideo"
+                "-framework Cocoa"
+                "-framework Carbon"
+                "-framework IOKit"
+                "-weak_framework QuartzCore"
+                "-weak_framework Metal"
+                "-framework OpenGL"
+                "-framework Carbon"
+                "-framework CoreFoundation"
+                "-framework CoreMIDI"
+                "-framework AudioUnit"
+                "-framework AudioToolbox"
+                "-framework ApplicationServices"
+                "-framework AppKit"
+                "-framework IOKit"
+
+                "-framework Cocoa"
+                "-framework QuartzCore"
+                "-framework OpenGL"
+                "-framework CoreAudio"
+                "-framework AudioToolbox"
+                z)
     elseif (MINGW)
+        target_link_libraries(dosbox-x-sokol ws2_32 z winmm)
         target_link_libraries(dosbox-sokol ws2_32 z winmm)
     else ()
+        target_link_libraries(dosbox-x-sokol X11 Xcursor Xi z ncurses dl GL pthread asound)
         target_link_libraries(dosbox-sokol X11 Xcursor Xi z ncurses dl GL pthread asound)
     endif ()
 

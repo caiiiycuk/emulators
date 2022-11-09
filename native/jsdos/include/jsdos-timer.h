@@ -9,4 +9,7 @@ namespace jsdos {
   void initTimer();
 }
 
+typedef unsigned int mstime;
+double GetMsPassedFromStart();
+
 #endif  // JS_DOS_JSDOS_TIMER_H

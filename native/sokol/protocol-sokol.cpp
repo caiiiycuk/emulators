@@ -2,11 +2,13 @@
 // Created by caiiiycuk on 27.02.2020.
 //
 
+#include <cstddef>
 #include <protocol.h>
 #include <thread>
 #include <mutex>
 #include <timer.h>
 #include <unordered_map>
+#include <jsdos-timer.h>
 
 #include "../sokol-lib/sokol_app.h"
 #include "../sokol-lib/sokol_audio.h"
