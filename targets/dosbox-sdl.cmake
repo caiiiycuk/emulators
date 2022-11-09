@@ -34,7 +34,7 @@ if (${EMSCRIPTEN})
             )
 elseif (MINGW)
     target_link_libraries(dosbox-sdl libsdl libsdl_net z ws2_32 mingw32 winmm)
-elseif(APPLE)
+elseif (APPLE)
     target_link_libraries(dosbox-sdl
             ${SDL_LIBRARIES}
             ${SDL_NET_LIBRARIES}
@@ -57,17 +57,17 @@ elseif(APPLE)
             "-framework AppKit"
             "-framework IOKit"
             z)
-else()
+else ()
     target_link_libraries(dosbox-sdl
             X11 z ncurses dl GL pthread asound
             SDL SDL_mixer SDL2_net
             )
-endif()
+endif ()
 
 if (X86_64)
     target_compile_definitions(dosbox-sdl PUBLIC -DX86_64)
 elseif (X86)
     target_compile_definitions(dosbox-sdl PUBLIC -DX86)
-else()
+else ()
     set_target_properties(dosbox-sdl PROPERTIES COMPILE_FLAGS "-m32" LINK_FLAGS "-m32")
-endif()
+endif ()

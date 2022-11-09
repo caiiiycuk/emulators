@@ -138,11 +138,11 @@ set(SOURCES_CORE_CXX03
         "${NATIVE_DIR}/dosbox/src/misc/cross.cpp"
         "${NATIVE_DIR}/dosbox/src/misc/support.cpp"
         "${NATIVE_DIR}/dosbox/src/misc/messages.cpp"
-    #	"${NATIVE_DIR}/dosbox/src/libs/gui_tk/gui_tk.cpp"
-    #	"${NATIVE_DIR}/dosbox/src/hardware/opl.cpp"
-    #	"${NATIVE_DIR}/dosbox/src/libs/zmbv/drvproc.cpp"
-    #	"${NATIVE_DIR}/dosbox/src/libs/zmbv/zmbv.cpp"
-    #	"${NATIVE_DIR}/dosbox/src/libs/zmbv/zmbv_vfw.cpp"
+        #	"${NATIVE_DIR}/dosbox/src/libs/gui_tk/gui_tk.cpp"
+        #	"${NATIVE_DIR}/dosbox/src/hardware/opl.cpp"
+        #	"${NATIVE_DIR}/dosbox/src/libs/zmbv/drvproc.cpp"
+        #	"${NATIVE_DIR}/dosbox/src/libs/zmbv/zmbv.cpp"
+        #	"${NATIVE_DIR}/dosbox/src/libs/zmbv/zmbv_vfw.cpp"
         )
 
 set(SOURCES_JSDOS_CXX11
@@ -187,9 +187,9 @@ target_include_directories(libdosbox-core PUBLIC ${INCLUDE_DIRECTORIES_CORE})
 add_library(libdosbox OBJECT ${SOURCES_JSDOS_CXX11} ${SOURCES_JSDOS_NET_C})
 target_link_libraries(libdosbox libdosbox-core)
 
-if(MINGW)
+if (MINGW)
     target_compile_definitions(dosbox PUBLIC -DWIN32)
-endif()
+endif ()
 
 if (${EMSCRIPTEN})
     add_executable(wdosbox ${SOURCES_SERVER_WORKER})
@@ -203,16 +203,16 @@ if (${EMSCRIPTEN})
             "-sASYNCIFY_IMPORTS=['syncSleep']"
             "-sASYNCIFY_WHITELIST=@${TARGETS_DIR}/dosbox-asyncify.txt"
             "-sEXPORT_NAME='WDOSBOX'")
-else()
+else ()
     target_include_directories(libdosbox-core PUBLIC "${NATIVE_DIR}/jsdos/linux")
-endif()
+endif ()
 
 
 if (X86_64)
     target_compile_definitions(libdosbox-core PUBLIC -DX86_64)
 elseif (X86)
     target_compile_definitions(libdosbox-core PUBLIC -DX86)
-else()
+else ()
     set_target_properties(libdosbox-core PROPERTIES COMPILE_FLAGS "-m32" LINK_FLAGS "-m32")
-endif()
+endif ()
 
