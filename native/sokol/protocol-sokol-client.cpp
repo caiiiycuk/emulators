@@ -14,9 +14,8 @@
 
 #include <protocol.h>
 
-
 #define WINDOW_WIDTH 640
-#define WINDOW_HEIGHT 480
+#define WINDOW_HEIGHT 417
 
 extern double GetMsPassedFromStart();
 

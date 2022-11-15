@@ -4,7 +4,7 @@ else ()
 endif ()
 
 set(DEFINITIONS_CORE_X
-        -DJSDOS
+        -DJSDOS_X
         -DHAVE_CONFIG_H
         -DC_SDL2
         -DC_FORCE_MENU_SDLDRAW
@@ -632,7 +632,9 @@ target_compile_definitions(libdosbox-x-sdl2 PUBLIC ${DEFINITIONS_CORE_X})
 set_property(TARGET libdosbox-x-sdl2 PROPERTY CXX_STANDARD 11)
 
 add_library(libdosbox-x-jsdos OBJECT ${SOURCES_X_JSDOS_MAIN})
-target_compile_definitions(libdosbox-x-jsdos PUBLIC ${DEFINITIONS_CORE_X})
+target_compile_definitions(libdosbox-x-jsdos
+        PUBLIC ${DEFINITIONS_CORE_X}
+        PUBLIC "-DJSDOS")
 set_property(TARGET libdosbox-x-jsdos PROPERTY CXX_STANDARD 11)
 
 set(DOSBOX_X_INCLUDE_DIRECTORIES

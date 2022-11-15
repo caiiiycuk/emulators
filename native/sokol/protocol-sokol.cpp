@@ -15,12 +15,13 @@
 #include "../sokol-lib/sokol_gfx.h"
 #include "shaders.glsl330.h"
 
+#ifdef JSDOS_X
+#include <SDL.h>
+#endif
+
 std::mutex mutex;
 
 extern void client_run();
-
-#define WINDOW_WIDTH 640
-#define WINDOW_HEIGHT 480
 
 int renderedFrame = 0;
 int frameCount = 0;
@@ -209,6 +210,12 @@ void client_tick() {
 }
 
 void runRuntime() {
+#ifdef JSDOS_X
+  if (SDL_Init(SDL_INIT_AUDIO|SDL_INIT_VIDEO|SDL_INIT_TIMER|SDL_INIT_NOPARACHUTE) < 0) {
+    printf("Can't init SDL %s\n", SDL_GetError());
+    return;
+  }
+#endif
   std::thread server(server_run);
   client_run();
   server.join();
