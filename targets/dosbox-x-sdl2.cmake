@@ -4,7 +4,7 @@ else ()
 endif ()
 
 set(DEFINITIONS_CORE_X
-        -DJSDOS_X
+        -DJSDOS
         -DHAVE_CONFIG_H
         -DC_SDL2
         -DC_FORCE_MENU_SDLDRAW
@@ -621,6 +621,7 @@ set(SOURCES_X_JSDOS_CORE
         "${NATIVE_DIR}/jsdos/jsdos-asyncify.cpp"
         "${NATIVE_DIR}/jsdos/jsdos-timer.cpp"
         "${NATIVE_DIR}/jsdos/jsdos-support.cpp"
+        "${NATIVE_DIR}/jsdos/jsdos-events.cpp"
         )
 
 set(SOURCES_X_JSDOS_MAIN
@@ -631,10 +632,11 @@ add_library(libdosbox-x-sdl2 OBJECT ${SOURCES_X_SDL} ${SOURCES_X_CORE} ${SOURCES
 target_compile_definitions(libdosbox-x-sdl2 PUBLIC ${DEFINITIONS_CORE_X})
 set_property(TARGET libdosbox-x-sdl2 PROPERTY CXX_STANDARD 11)
 
-add_library(libdosbox-x-jsdos OBJECT ${SOURCES_X_JSDOS_MAIN})
+add_library(libdosbox-x-jsdos OBJECT ${SOURCES_X_SDL} ${SOURCES_X_CORE} ${SOURCES_X_JSDOS_CORE}
+        ${SOURCES_X_JSDOS_MAIN})
 target_compile_definitions(libdosbox-x-jsdos
         PUBLIC ${DEFINITIONS_CORE_X}
-        PUBLIC "-DJSDOS")
+        PUBLIC "-DJSDOS_X")
 set_property(TARGET libdosbox-x-jsdos PROPERTY CXX_STANDARD 11)
 
 set(DOSBOX_X_INCLUDE_DIRECTORIES

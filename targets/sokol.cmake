@@ -29,7 +29,7 @@ else ()
     target_link_libraries(dosbox-sokol libdosbox libdosbox-core)
 
     add_executable(dosbox-x-sokol ${SOURCES_SOKOL} ${SOURCES_SOKOL_CLIENT})
-    target_link_libraries(dosbox-x-sokol libdosbox-x-sdl2 libdosbox-x-jsdos)
+    target_link_libraries(dosbox-x-sokol libdosbox-x-jsdos)
 
     if (APPLE)
         target_link_libraries(dosbox-sokol

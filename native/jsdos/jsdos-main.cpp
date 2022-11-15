@@ -8,6 +8,7 @@
 #include <jsdos-support.h>
 #include <jsdos-asyncify.h>
 #include <jsdos-timer.h>
+#include <jsdos-events.h>
 #include <mapper.h>
 #include <programs.h>
 #include <protocol.h>
@@ -334,45 +335,10 @@ int jsdos_main(Config *config) {
     return 0;
 }
 
-struct KeyEvent {
-    KBD_KEYS key;
-    bool pressed;
-    uint64_t clientTime;
-};
 
-std::list<KeyEvent> keyEvents;
-double executeNextKeyEventAt = 0;
 
 void GFX_Events() {
-  if (keyEvents.empty()) {
-      return;
-    }
-
-    auto frameTime = GetMsPassedFromStart();
-    auto it = keyEvents.begin();
-    auto clientTime = it->clientTime;
-
-    while (executeNextKeyEventAt <= frameTime && it != keyEvents.end()) {
-      auto key = it->key;
-      auto pressed = it->pressed;
-
-      KEYBOARD_AddKey(key, pressed);
-      it = keyEvents.erase(it);
-      if (it != keyEvents.end()) {
-        executeNextKeyEventAt = frameTime + (it->clientTime - clientTime);
-        clientTime = it->clientTime;
-      } else {
-        executeNextKeyEventAt = frameTime + 16;
-      }
-    }
-}
-
-
-void server_add_key(KBD_KEYS key, bool pressed, uint64_t pressedMs) {
-    keyEvents.push_back({ key, pressed, pressedMs });
-    if (keyEvents.size() == 1 && pressed) {
-      executeNextKeyEventAt = GetMsPassedFromStart();
-    }
+  DoKeyEvents();
 }
 
 void server_mouse_moved(float x, float y, bool relative, uint64_t movedMs) {

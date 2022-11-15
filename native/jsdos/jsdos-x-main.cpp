@@ -29,6 +29,7 @@
 #include <jsdos-support.h>
 #include <jsdos-asyncify.h>
 #include <jsdos-timer.h>
+#include <jsdos-events.h>
 #include <protocol.h>
 
 #ifdef WIN32
@@ -5331,6 +5332,10 @@ bool gfx_in_mapper = false;
 #endif
 
 void GFX_Events() {
+  DoKeyEvents();
+}
+
+void __GFX_Events() {
     CheckMapperKeyboardLayout();
 #if defined(C_SDL2) /* SDL 2.x---------------------------------- */
     //Don't poll too often. This can be heavy on the OS, especially Macs.
@@ -9675,9 +9680,6 @@ void POD_Load_Sdlmain( std::istream& stream )
 }
 
 // -- jsdos
-
-void server_add_key(KBD_KEYS key, bool pressed, uint64_t pressedMs) {
-}
 
 void server_mouse_moved(float x, float y, bool relative, uint64_t movedMs) {
 }
