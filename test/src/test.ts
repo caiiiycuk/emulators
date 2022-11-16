@@ -3,7 +3,7 @@ import { testLibZip } from "./test-libzip";
 import { testConf } from "./test-conf";
 import { testDosBundle } from "./test-bundle";
 import { testDos } from "./test-dos";
-import { testNet } from "./test-net";
+// import { testNet } from "./test-net";
 
 import emulatorsImpl from "../../src/impl/emulators-impl";
 
@@ -16,7 +16,8 @@ export function createTests() {
 
     testDosBundle();
     testDos();
-    testNet();
+    // @caiiiycuk: TODO reenable
+    // testNet();
 }
 
 (window as any).createTests = createTests;

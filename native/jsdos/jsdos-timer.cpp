@@ -43,11 +43,3 @@ double GetMsPassedFromStart() {
 mstime GetTicks() {
     return GetMsPassedFromStart();
 }
-
-void DelayWithYield(int ms) {
-    asyncify_sleep(ms);
-}
-
-void Delay(int ms) {
-    DelayWithYield(ms);
-}

@@ -21,10 +21,16 @@ function clean() {
     return del(["dist/w*"], { force: true });
 }
 
-async function makeWasm() {
-    return await make(".", "build/wasm",
-        "wlibzip",
-        "wdosbox");
+async function makeWLibZip() {
+    return await make(".", "build/wasm", "wlibzip");
+}
+
+async function makeWDosbox() {
+    return await make(".", "build/wasm", "wdosbox");
+}
+
+async function makeWDosboxX() {
+    return await make(".", "build/wasm", "wdosbox-x");
 }
 
 function copyAssets() {
@@ -101,4 +107,10 @@ export const Build = {
 `);
 }
 
-export const wasm = series(clean, makeWasm, copyAssets, generateBuildInfo);
+export const wasm = series(clean,
+    makeWLibZip,
+    makeWDosbox,
+    makeWDosboxX,
+    copyAssets,
+    generateBuildInfo,
+);

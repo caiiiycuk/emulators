@@ -7,6 +7,7 @@ export interface WasmModule {
 export interface IWasmModules {
     libzip: () => Promise<WasmModule>;
     dosbox: () => Promise<WasmModule>;
+    dosboxx: () => Promise<WasmModule>;
 }
 
 interface Globals {
@@ -87,20 +88,24 @@ export const host = new Host();
 export class WasmModulesImpl implements IWasmModules {
     private pathPrefix: string;
     private wdosboxJs: string;
+    private wdosboxxJs: string;
 
     private libzipPromise?: Promise<WasmModule>;
     private dosboxPromise?: Promise<WasmModule>;
+    private dosboxxPromise?: Promise<WasmModule>;
 
     public wasmSupported = false;
 
     constructor(pathPrefix: string,
-        wdosboxJs: string) {
+        wdosboxJs: string,
+        wdosboxxJs: string) {
         if (pathPrefix.length > 0 && pathPrefix[pathPrefix.length - 1] !== "/") {
             pathPrefix += "/";
         }
 
         this.pathPrefix = pathPrefix;
         this.wdosboxJs = wdosboxJs;
+        this.wdosboxxJs = wdosboxxJs;
     }
 
     libzip() {
@@ -120,6 +125,16 @@ export class WasmModulesImpl implements IWasmModules {
         this.dosboxPromise = this.loadModule(this.pathPrefix + this.wdosboxJs, "WDOSBOX");
 
         return this.dosboxPromise;
+    }
+
+    dosboxx() {
+        if (this.dosboxxPromise !== undefined) {
+            return this.dosboxxPromise;
+        }
+
+        this.dosboxxPromise = this.loadModule(this.pathPrefix + this.wdosboxxJs, "WDOSBOXX");
+
+        return this.dosboxxPromise;
     }
 
     private loadModule(url: string,

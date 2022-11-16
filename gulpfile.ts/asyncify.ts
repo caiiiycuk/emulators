@@ -89,6 +89,10 @@ function extractFnSignature(next: string): string {
         return "";
     }
 
+    if (fnSig[0] === "$") {
+        fnSig = fnSig.substring(1);
+    }
+
     if (fnSig.indexOf("\"") !== -1) {
         warn("Entry contains \" '" + next + "', skipping...");
         return "";

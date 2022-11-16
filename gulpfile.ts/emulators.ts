@@ -9,6 +9,7 @@ import size from "gulp-size";
 import browserify from "browserify";
 import buffer from "vinyl-buffer";
 import source from "vinyl-source-stream";
+import replace from "gulp-replace";
 
 // eslint-disable-next-line
 const tsify = require("tsify");
@@ -50,7 +51,15 @@ function js() {
 function dosboxJs() {
     return src("dist/wdosbox.js")
         .pipe(footer(fs.readFileSync("src/dos/dosbox/ts/worker-server.js")))
+        .pipe(replace("@MODULE_NAME@", "WDOSBOX"))
         .pipe(dest("dist"));
 }
 
-export const emulators = series(clean, parallel(js, dosboxJs));
+function dosboxxJs() {
+    return src("dist/wdosbox-x.js")
+        .pipe(footer(fs.readFileSync("src/dos/dosbox/ts/worker-server.js")))
+        .pipe(replace("@MODULE_NAME@", "WDOSBOXX"))
+        .pipe(dest("dist"));
+}
+
+export const emulators = series(clean, parallel(js, dosboxJs, dosboxxJs));

@@ -37,9 +37,6 @@ export interface Emulators {
     // * dosboxWorker - create DOSBOX Worker emulator backend
     dosboxWorker: (bundle: Uint8Array | Uint8Array[], options?: BackendOptions) => Promise<CommandInterface>;
 
-    // * janus - create janus backend for given url
-    janus: (restUrl: string) => Promise<CommandInterface>;
-
     // * backend - create abstract emulation backend by given TransportLayer
     backend: (bundle: Uint8Array | Uint8Array[], transportLayer: TransportLayer,
         options?: BackendOptions) => Promise<CommandInterface>;

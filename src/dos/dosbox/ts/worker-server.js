@@ -27,7 +27,7 @@ if (worker) {
                 module.callMain([sessionId]);
             };
 
-            new WDOSBOX(module);
+            new @MODULE_NAME@(module);
             return;
         }
     };

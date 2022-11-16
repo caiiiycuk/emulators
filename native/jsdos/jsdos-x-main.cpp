@@ -1342,8 +1342,8 @@ void PauseDOSBoxLoop(Bitu /*unused*/) {
         }
 
 #if C_EMSCRIPTEN
-        emscripten_sleep(0);
-        SDL_PollEvent(&event);
+        abort();
+        // SDL_PollEvent(&event);
 #else
         SDL_WaitEvent(&event);    // since we're not polling, cpu usage drops to 0.
 #endif
@@ -2912,10 +2912,6 @@ void GFX_OpenGLRedrawScreen(void) {
 }
 
 void GFX_EndUpdate(const uint16_t *changedLines) {
-#if C_EMSCRIPTEN
-    emscripten_sleep(0);
-#endif
-
     /* don't present our output if 3Dfx is in OpenGL mode */
     if (sdl.desktop.prevent_fullscreen)
         return;
@@ -4500,7 +4496,7 @@ static void HandleMouseButton(SDL_MouseButtonEvent * button, SDL_MouseMotionEven
                 /* fall into another loop to process the menu */
                 while (runloop) {
 #if C_EMSCRIPTEN
-                    emscripten_sleep(0);
+                    abort();
                     if (!SDL_PollEvent(&event)) continue;
 #else
                     if (!SDL_WaitEvent(&event)) break;
@@ -5375,10 +5371,6 @@ void __GFX_Events() {
 
     GFX_EventsMouse();
 
-#if C_EMSCRIPTEN
-    emscripten_sleep(0);
-#endif
-
     // TODO: caiiiycuk
     while (false && SDL_PollEvent(&event)) {
 #if defined(C_SDL2)
@@ -5542,7 +5534,7 @@ void __GFX_Events() {
 
                     while (paused) {
 #if C_EMSCRIPTEN
-                        emscripten_sleep(0);
+                        abort();
                         SDL_PollEvent(&ev);
 #else
                         // WaitEvent waits for an event rather than polling, so CPU usage drops to zero
@@ -5793,10 +5785,6 @@ void __GFX_Events() {
 
     GFX_EventsMouse();
 
-#if C_EMSCRIPTEN
-    emscripten_sleep(0);
-#endif
-
     while (SDL_PollEvent(&event)) {
         /* DOSBox SVN revision 4176:4177: For Linux/X11, Xorg 1.20.1
          * will make spurious focus gain and loss events when locking the mouse in windowed mode.
@@ -5981,7 +5969,6 @@ void __GFX_Events() {
 
                     while (paused) {
 #if C_EMSCRIPTEN
-                        emscripten_sleep(0);
                         SDL_PollEvent(&ev);
 #else
                         // WaitEvent waits for an event rather than polling, so CPU usage drops to zero
@@ -6393,7 +6380,7 @@ static void show_warning(char const * const message) {
     bool textonly = true;
 #ifdef WIN32
     textonly = false;
-    if ( !sdl.inited && SDL_Init(SDL_INIT_VIDEO|SDL_INIT_NOPARACHUTE) < 0 ) textonly = true;
+    if ( !sdl.inioptionsInit(SDL_INIT_VIDEO|SDL_INIT_NOPARACHUTE) < 0 ) textonly = true;
     sdl.inited = true;
 #endif
     LOG_MSG( "Warning: %s", message);
@@ -8588,7 +8575,7 @@ int jsdos_main(Config *config) SDL_MAIN_NOEXCEPT {
 #endif
 
         /* -- SDL init */
-        if (SDL_Init(SDL_INIT_AUDIO|SDL_INIT_VIDEO|SDL_INIT_TIMER|SDL_INIT_NOPARACHUTE) >= 0)
+        if (SDL_Init(/*SDL_INIT_AUDIO|SDL_INIT_VIDEO|*/SDL_INIT_TIMER|SDL_INIT_NOPARACHUTE) >= 0)
             sdl.inited = true;
         else
             E_Exit("Can't init SDL %s",SDL_GetError());
@@ -9129,6 +9116,9 @@ int jsdos_main(Config *config) SDL_MAIN_NOEXCEPT {
 
             bool cfg_want_menu = section->Get_bool("showmenu");
 
+#ifdef JSDOS_X
+            DOSBox_NoMenu();
+#else
             /* -- -- decide whether to set menu */
             if (menu_gui && !control->opt_nomenu && cfg_want_menu) {
 #if DOSBOXMENU_TYPE == DOSBOXMENU_HMENU
@@ -9138,6 +9128,7 @@ int jsdos_main(Config *config) SDL_MAIN_NOEXCEPT {
             }
             else
                 DOSBox_NoMenu();
+#endif
 
 #if defined(WIN32) && !defined(C_SDL2)
             if (maximize && !TTF_using() && !GFX_IsFullscreen()) ShowWindow(GetHWND(), SW_MAXIMIZE);

@@ -165,22 +165,6 @@ set_source_files_properties(${SOURCES_CORE_CXX03} PROPERTIES COMPILE_FLAGS "${CO
 set_source_files_properties(${SOURCES_CORE_CXX11} PROPERTIES COMPILE_FLAGS "${CORE_FLAGS} -std=c++11")
 set_source_files_properties(${SOURCES_JSDOS_CXX11} PROPERTIES COMPILE_FLAGS "${CORE_FLAGS} -std=c++11")
 
-set(SOURCES_WORKER_CXX11
-        "${SRC_DIR}/dos/dosbox/cpp/worker-protocol.cpp"
-        "${SRC_DIR}/dos/dosbox/cpp/direct-debugger.cpp"
-        )
-
-set(SOURCES_WORKER_CXX03
-        )
-
-set_source_files_properties(${SOURCES_WORKER_CXX11} PROPERTIES COMPILE_FLAGS "-std=c++11")
-set_source_files_properties(${SOURCES_WORKER_CXX03} PROPERTIES COMPILE_FLAGS "-std=c++03")
-
-set(SOURCES_SERVER_WORKER
-        ${SOURCES_WORKER_CXX11}
-        ${SOURCES_WORKER_CXX03}
-        )
-
 add_library(libdosbox-core OBJECT ${SOURCES_CORE_CXX11} ${SOURCES_CORE_CXX03})
 target_compile_definitions(libdosbox-core PUBLIC ${DEFENITIONS_CORE})
 target_include_directories(libdosbox-core PUBLIC ${INCLUDE_DIRECTORIES_CORE})
@@ -193,7 +177,9 @@ if (MINGW)
 endif ()
 
 if (${EMSCRIPTEN})
-    add_executable(wdosbox ${SOURCES_SERVER_WORKER})
+    add_executable(wdosbox
+        "${SRC_DIR}/dos/dosbox/cpp/worker-protocol.cpp"
+        "${SRC_DIR}/dos/dosbox/cpp/direct-debugger.cpp")
     target_link_libraries(wdosbox libdosbox libdosbox-core libzip)
     set_target_properties(wdosbox PROPERTIES SUFFIX .js)
     target_link_options(wdosbox PUBLIC

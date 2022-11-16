@@ -5,7 +5,7 @@ import LibZip from "../../src/libzip/libzip";
 
 export async function makeLibZip(module?: any) {
     module = module || {};
-    const wasm = await new WasmModulesImpl("/", "").libzip();
+    const wasm = await new WasmModulesImpl("/", "", "").libzip();
     await wasm.instantiate(module);
     return new LibZip(module, "/home/web_user");
 }

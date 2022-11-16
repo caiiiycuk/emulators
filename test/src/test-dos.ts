@@ -14,8 +14,10 @@ import { Keys } from "../../src/keys";
 type CIFactory = (bundle: Uint8Array | Uint8Array[], options?: BackendOptions) => Promise<CommandInterface>;
 
 export function testDos() {
-    testServer((bundle, options) => emulatorsImpl.dosboxDirect(bundle, options), "dosboxDirect");
-    testServer((bundle, options) => emulatorsImpl.dosboxWorker(bundle, options), "dosboxWorker");
+    // testServer((bundle, options) => emulatorsImpl.dosboxDirect(bundle, options), "dosboxDirect");
+    // testServer((bundle, options) => emulatorsImpl.dosboxWorker(bundle, options), "dosboxWorker");
+    // testServer((bundle, options) => emulatorsImpl.dosboxXDirect(bundle, options), "dosboxXDirect");
+    testServer((bundle, options) => emulatorsImpl.dosboxXWorker(bundle, options), "dosboxXWorker");
 }
 
 function testServer(factory: CIFactory, name: string) {

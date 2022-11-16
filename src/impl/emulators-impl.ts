@@ -6,7 +6,6 @@ import { IWasmModules, WasmModulesImpl } from "./modules";
 import DosBundle from "../dos/bundle/dos-bundle";
 import { dosDirect } from "../dos/dosbox/ts/direct";
 import { dosWorker } from "../dos/dosbox/ts/worker";
-import Janus from "../janus/janus-impl";
 
 import { TransportLayer, CommandInterfaceOverTransportLayer } from "../protocol/protocol";
 
@@ -14,6 +13,7 @@ class EmulatorsImpl implements Emulators {
     pathPrefix = "";
     version = Build.version;
     wdosboxJs = "wdosbox.js";
+    wdosboxxJs = "wdosbox-x.js";
 
     private wasmModulesPromise?: Promise<IWasmModules>;
 
@@ -41,9 +41,18 @@ class EmulatorsImpl implements Emulators {
         return this.backend(bundle, transportLayer, options);
     }
 
-    async janus(restUrl: string): Promise<CommandInterface> {
-        // eslint-disable-next-line new-cap
-        return Janus(restUrl);
+    async dosboxXDirect(bundle: Uint8Array | Uint8Array[], options?: BackendOptions): Promise<CommandInterface> {
+        const modules = await this.wasmModules();
+        const dosboxxWasm = await modules.dosboxx();
+        const transportLayer = await dosDirect(dosboxxWasm, "session-" + Date.now());
+        return this.backend(bundle, transportLayer, options);
+    }
+
+    async dosboxXWorker(bundle: Uint8Array | Uint8Array[], options?: BackendOptions): Promise<CommandInterface> {
+        const modules = await this.wasmModules();
+        const dosboxxWasm = await modules.dosboxx();
+        const transportLayer = await dosWorker(this.pathPrefix + this.wdosboxxJs, dosboxxWasm, "session-" + Date.now());
+        return this.backend(bundle, transportLayer, options);
     }
 
     async backend(bundle: Uint8Array | Uint8Array[], transportLayer: TransportLayer,
@@ -71,7 +80,7 @@ class EmulatorsImpl implements Emulators {
         }
 
         const make = async () => {
-            return new WasmModulesImpl(this.pathPrefix, this.wdosboxJs);
+            return new WasmModulesImpl(this.pathPrefix, this.wdosboxJs, this.wdosboxxJs);
         };
 
         this.wasmModulesPromise = make();

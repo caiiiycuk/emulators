@@ -17,7 +17,7 @@ function copyAssetsTest() {
     return src(["test/*.html", "test/*.png", "test/*.zip", "test/*.jsdos",
         "test/dhry2-node.js",
         "test/mocha.css", "test/mocha.js", "test/chai.js",
-        "test/janus.js", "test/adapter-latest.js",
+        "test/adapter-latest.js",
         "test/stats.min.js", "test/audio-node.js", "test/webgl.js"])
         .pipe(dest("dist/test"));
 }
@@ -52,34 +52,4 @@ function testJs() {
         .pipe(dest("dist/test"));
 }
 
-function testJanusJs() {
-    return browserify({
-        debug: true,
-        entries: ["test/src/test-janus.ts"],
-        cache: {},
-        packageCache: {},
-    })
-        .plugin(tsify, {
-            "target": "esnext",
-            "esModuleInterop": false,
-            "allowSyntheticDefaultImports": true,
-            "strict": false,
-            "forceConsistentCasingInFileNames": false,
-            "resolveJsonModule": true,
-            "isolatedModules": false,
-        })
-        .transform("babelify", {
-            presets: [["@babel/preset-env", {
-                "useBuiltIns": "usage",
-                "corejs": 3,
-            }]],
-            extensions: [".ts"],
-        })
-        .bundle()
-        .pipe(source("test-janus.js"))
-        .pipe(buffer())
-        .pipe(size({ showFiles: true, showTotal: false }))
-        .pipe(dest("dist/test"));
-}
-
-export const test = series(clean, parallel(copyAssetsTest, testJs, testJanusJs));
+export const test = series(clean, parallel(copyAssetsTest, testJs));
