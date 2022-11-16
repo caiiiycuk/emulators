@@ -9,6 +9,9 @@ set(DEFINITIONS_CORE_X
         -DC_SDL2
         -DC_FORCE_MENU_SDLDRAW
         -DRESDIR="/tmp/dosbox-x"
+        # missed in libserial.cpp
+        -DCBAUD=0
+        -DCMSPAR=0
         )
 
 set(DBX_PATH "${NATIVE_DIR}/dosbox-x")
