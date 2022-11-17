@@ -12,21 +12,23 @@ export async function asyncifyAdd() {
 
     const content = fs.readFileSync(asyncifyFile, "utf8");
     const functions = JSON.parse(content);
-    const functionsSet: {[name: string]: number} = {};
+    const functionsSet: { [name: string]: number } = {};
     for (const next of functions) {
-        functionsSet[next] = 1;
+        const simpleName = extractSimpleName(next);
+        if (simpleName !== null) {
+            functionsSet[simpleName] = 1;
+        }
     }
 
     const entries = fs.readFileSync(stackFile, "utf8").split("\n");
     const newEntries: string[] = [];
     for (const next of entries) {
         const fnSig = extractFnSignature(next);
-        if (fnSig.length === 0 || functionsSet[fnSig] !== undefined) {
-            continue;
+        const simpleName = extractSimpleName(fnSig);
+        if (simpleName !== null && functionsSet[simpleName] === undefined) {
+            newEntries.push(simpleName);
+            functionsSet[simpleName] = 1;
         }
-
-        newEntries.push(fnSig);
-        functionsSet[fnSig] = 1;
     }
 
     if (newEntries.length === 0) {
@@ -40,14 +42,19 @@ export async function asyncifyAdd() {
         outcome += "\"" + next + "\",";
         log("\t'" + next + "'");
     }
-    outcome = outcome.substr(0, outcome.length - 1) + "]";
-    fs.writeFileSync(asyncifyFile, outcome, "utf8");
+
+    for (const next of sorted) {
+        outcome += "\"" + next + "(*)*\",";
+    }
 
     log("== New entries:");
     newEntries.sort();
     for (const next of newEntries) {
         log("\t'" + next + "'");
     }
+
+    outcome = outcome.substring(0, outcome.length - 1) + "]";
+    fs.writeFileSync(asyncifyFile, outcome, "utf8");
 
     log("Well done...");
 }
@@ -99,4 +106,17 @@ function extractFnSignature(next: string): string {
     }
 
     return fnSig;
+}
+
+function extractSimpleName(fnName: string | null | undefined): string | null {
+    if (fnName === null || fnName === undefined || fnName.length === 0) {
+        return null;
+    }
+
+    const end = fnName.indexOf("(");
+    if (end === -1) {
+        return fnName;
+    }
+
+    return fnName.substring(0, end);
 }
