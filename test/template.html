@@ -26,10 +26,10 @@
 <body>
     <div class="layout">
         <div id="controls">
-            <button onClick="javascript:downloadBundleAndRun({worker: true, shared: false})">Start Worker</button>
-            <button onClick="javascript:downloadBundleAndRun({worker: false, shared: false})">Start Direct</button>
-            <button onClick="javascript:downloadBundleAndRun({worker: true, shared: true})">Start Shared Worker</button>
-            <button onClick="javascript:downloadBundleAndRun({worker: false, shared: true})">Start Shared Direct</button>
+            <button onClick="javascript:downloadBundleAndRun({worker: true, x: false})">dosboxWorker</button>
+            <button onClick="javascript:downloadBundleAndRun({worker: false, x: false})">dosboxDirect</button>
+            <button onClick="javascript:downloadBundleAndRun({worker: true, x: true})">xWorker</button>
+            <button onClick="javascript:downloadBundleAndRun({worker: false, x: true})">xDirect</button>
         </div>
         <p>FRAME:</p>
         <canvas id="canvas"></canvas>
@@ -48,7 +48,6 @@
 
         let runId = 0;
         async function runBundle(bundle, options) {
-            emulators.wdosboxJs = options.shared ? "wdosbox.shared.js" : "wdosbox.js";
             const id = runId++;
             const stdout = document.getElementById("stdout");
             const canvas = document.getElementById("canvas");
@@ -56,8 +55,8 @@
 
             // promise is resolved when emulator is started
             const ci = await (options.worker ?
-                emulators.dosWorker(bundle) :
-                emulators.dosDirect(bundle));
+                (options.x ? emulators.dosboxXWorker(bundle) : emulators.dosboxWorker(bundle)) :
+                (options.x ? emulators.dosboxXDirect(bundle) : emulators.dosDirect(bundle)));
 
             window.ci = ci;
 

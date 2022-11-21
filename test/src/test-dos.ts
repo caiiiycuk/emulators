@@ -14,13 +14,13 @@ import { Keys } from "../../src/keys";
 type CIFactory = (bundle: Uint8Array | Uint8Array[], options?: BackendOptions) => Promise<CommandInterface>;
 
 export function testDos() {
-    // testServer((bundle, options) => emulatorsImpl.dosboxDirect(bundle, options), "dosboxDirect");
-    // testServer((bundle, options) => emulatorsImpl.dosboxWorker(bundle, options), "dosboxWorker");
-    // testServer((bundle, options) => emulatorsImpl.dosboxXDirect(bundle, options), "dosboxXDirect");
-    testServer((bundle, options) => emulatorsImpl.dosboxXWorker(bundle, options), "dosboxXWorker");
+    // testServer((bundle, options) => emulatorsImpl.dosboxDirect(bundle, options), "dosboxDirect", "dosbox");
+    // testServer((bundle, options) => emulatorsImpl.dosboxWorker(bundle, options), "dosboxWorker", "dosbox");
+    // testServer((bundle, options) => emulatorsImpl.dosboxXDirect(bundle, options), "dosboxXDirect", "dosbox-x");
+    testServer((bundle, options) => emulatorsImpl.dosboxXWorker(bundle, options), "dosboxXWorker", "dosbox-x");
 }
 
-function testServer(factory: CIFactory, name: string) {
+function testServer(factory: CIFactory, name: string, assets: string) {
     suite(name + ".common");
 
     async function CI(bundle: DosBundle | Promise<DosBundle>, options?: BackendOptions) {
@@ -47,7 +47,7 @@ function testServer(factory: CIFactory, name: string) {
     test(name + " can take screenshot of dosbox", async () => {
         const ci = await CI(emulatorsImpl.dosBundle());
         assert.ok(ci);
-        await compareAndExit("init.png", ci);
+        await compareAndExit(assets + "/init.png", ci);
     });
 
     test(name + " should provide dosbox.conf for dosbox", async () => {

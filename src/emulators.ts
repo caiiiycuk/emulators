@@ -28,14 +28,20 @@ export interface Emulators {
     // * dosBundle - create empty DosBundle
     dosBundle: () => Promise<DosBundle>;
 
-    // * dosboxNode - createDOSBOX Node emulator backend
+    // * dosboxNode - create dosbox node emulator backend
     dosboxNode: (bundle: Uint8Array | Uint8Array[], options?: BackendOptions) => Promise<CommandInterface>;
 
-    // * dosboxDirect - create DOSBOX Direct emulator backend
+    // * dosboxDirect - create dosbox direct emulator backend
     dosboxDirect: (bundle: Uint8Array | Uint8Array[], options?: BackendOptions) => Promise<CommandInterface>;
 
-    // * dosboxWorker - create DOSBOX Worker emulator backend
+    // * dosboxWorker - create dosbox worker emulator backend
     dosboxWorker: (bundle: Uint8Array | Uint8Array[], options?: BackendOptions) => Promise<CommandInterface>;
+
+    // * dosboxDirect - create dosbox-x direct emulator backend
+    dosboxXDirect: (bundle: Uint8Array | Uint8Array[], options?: BackendOptions) => Promise<CommandInterface>;
+
+    // * dosboxWorker - create dosbox-x worker emulator backend
+    dosboxXWorker: (bundle: Uint8Array | Uint8Array[], options?: BackendOptions) => Promise<CommandInterface>;
 
     // * backend - create abstract emulation backend by given TransportLayer
     backend: (bundle: Uint8Array | Uint8Array[], transportLayer: TransportLayer,

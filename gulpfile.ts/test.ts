@@ -13,13 +13,23 @@ function clean() {
     return del(["dist/test*", "dist/test/temp.jsdos"], { force: true });
 }
 
-function copyAssetsTest() {
+function copyTestAssets() {
     return src(["test/*.html", "test/*.png", "test/*.zip", "test/*.jsdos",
         "test/dhry2-node.js",
         "test/mocha.css", "test/mocha.js", "test/chai.js",
         "test/adapter-latest.js",
         "test/stats.min.js", "test/audio-node.js", "test/webgl.js"])
         .pipe(dest("dist/test"));
+}
+
+function copyTestAssetsDosbox() {
+    return src(["test/dosbox/*"])
+        .pipe(dest("dist/test/dosbox"));
+}
+
+function copyTestAssetsDosboxX() {
+    return src(["test/dosbox-x/*"])
+        .pipe(dest("dist/test/dosbox-x"));
 }
 
 function testJs() {
@@ -52,4 +62,5 @@ function testJs() {
         .pipe(dest("dist/test"));
 }
 
-export const test = series(clean, parallel(copyAssetsTest, testJs));
+export const test = series(clean, parallel(copyTestAssets, copyTestAssetsDosbox,
+    copyTestAssetsDosboxX, testJs));
