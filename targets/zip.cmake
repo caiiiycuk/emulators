@@ -145,6 +145,8 @@ if (MINGW)
 endif ()
 
 if (${EMSCRIPTEN})
+    target_compile_options(libzip PUBLIC "-sUSE_ZLIB=1")
+
     add_executable(wlibzip "${LIBZIP_DIR}/jsdos-libzip-js.c")
     target_link_libraries(wlibzip libzip)
     set_target_properties(wlibzip PROPERTIES SUFFIX .js)
