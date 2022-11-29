@@ -1,4 +1,3 @@
-import { assert } from "chai";
 import { CommandInterface } from "../../src/emulators";
 
 // Compare
@@ -6,13 +5,18 @@ import { CommandInterface } from "../../src/emulators";
 // Compare image from url, and screenshot from DosBox
 
 export function compareAndExit(imageUrl: string, ci: CommandInterface, threshold = 1) {
-    return new Promise((resolve, reject) => {
+    return new Promise<void>((resolve, reject) => {
         const fn = () => {
-            compare(imageUrl, ci, threshold)
+            compare(imageUrl, ci, threshold, 0)
                 .then((wrong) => {
-                    const exitPromise = ci.exit();
-                    assert.ok(wrong <= threshold, "Image not same, wrong: " + wrong);
-                    exitPromise.then(resolve).catch(reject);
+                    ci.exit()
+                        .then(() => {
+                            if (wrong > threshold) {
+                                reject(new Error("Image not same, wrong: " + wrong));
+                            } else {
+                                resolve();
+                            }
+                        }).catch(reject);
                 })
                 .catch(reject);
         };
@@ -22,10 +26,38 @@ export function compareAndExit(imageUrl: string, ci: CommandInterface, threshold
     });
 }
 
-const compare = (imageUrl: string, ci: CommandInterface, threshold: number) => {
-    return ci.screenshot()
+export function waitImage(imageUrl: string, ci: CommandInterface, threshold = 1, timeout = 3000) {
+    return new Promise<void>((resolve, reject) => {
+        let intervalId = setInterval(() => {
+            compare(imageUrl, ci, threshold, 0, false)
+                .then((wrong) => {
+                    if (intervalId !== null && wrong <= threshold) {
+                        clearInterval(intervalId);
+                        intervalId = null;
+                        ci.exit()
+                            .then(resolve)
+                            .catch(reject);
+                    }
+                })
+                .catch(() => { });
+        }, 64);
+
+        setTimeout(() => {
+            if (intervalId !== null) {
+                clearInterval(intervalId);
+                compareAndExit(imageUrl, ci, threshold)
+                    .then(resolve)
+                    .catch(reject);
+            }
+        }, timeout);
+    });
+}
+
+const compare = (imageUrl: string, ci: CommandInterface, threshold: number, delayMs: number, showComparsion = true) => {
+    return new Promise((resolve) => setTimeout(resolve, delayMs))
+        .then(ci.screenshot.bind(ci))
         .then(imageDataToUrl)
-        .then((actualUrl: string) => new Promise<number>((resolve) => {
+        .then((actualUrl: string) => new Promise<number>((resolve, reject) => {
             const img = new Image();
             img.onload = () => {
                 const canvas = document.createElement("canvas");
@@ -39,11 +71,14 @@ const compare = (imageUrl: string, ci: CommandInterface, threshold: number) => {
                 actualImage.onload = () => {
                     if (img.width !== actualImage.width ||
                         img.height !== actualImage.height) {
-                        renderComparsion(img, actualImage);
-                        assert(img.width === actualImage.width,
-                            "Invalid width: " + actualImage.width + ", should be " + img.width);
-                        assert(img.height === actualImage.height,
-                            "Invalid height: " + actualImage.height + ", should be " + img.height);
+                        if (showComparsion) {
+                            renderComparsion(img, actualImage);
+                        }
+                        if (img.width !== actualImage.width) {
+                            reject(new Error("Invalid width: " + actualImage.width + ", should be " + img.width));
+                        } else {
+                            reject(new Error("Invalid height: " + actualImage.height + ", should be " + img.height));
+                        }
                     }
 
                     const actualCanvas = document.createElement("canvas");
@@ -66,7 +101,7 @@ const compare = (imageUrl: string, ci: CommandInterface, threshold: number) => {
 
                     // floor, to allow some margin of error for antialiasing
                     const wrong = Math.floor(total / (img.width * img.height * 3));
-                    if (wrong > threshold) {
+                    if (showComparsion && wrong > threshold) {
                         renderComparsion(img, actualImage);
                     }
                     resolve(wrong);

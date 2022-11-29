@@ -7,12 +7,19 @@ import { emitTypes } from "./types";
 import { updateDosbox } from "./update-dosbox";
 import { asyncifyAdd } from "./asyncify";
 
-exports.default = series(
-    wasm,
-    parallel(emulators, test, emitTypes),
-);
+function build(compress: boolean) {
+    return series(
+        wasm(compress),
+        parallel(emulators, test),
+    );
+}
 
-exports.wasm = wasm;
+exports.default = build(false);
+exports.production = series(
+    build(true),
+    emitTypes,
+);
+exports.wasm = wasm(false);
 exports.updateDosbox = updateDosbox;
 exports.asyncifyAdd = asyncifyAdd;
 

@@ -85,8 +85,6 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
     private disconnectPromise: Promise<void> | null = null;
     private disconnectResolve: () => void = () => {/**/};
 
-    public sharedMemory?: SharedArrayBuffer;
-    public directSound?: DirectSound;
     public options: BackendOptions;
 
     constructor(bundles: Uint8Array[],
@@ -119,7 +117,6 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
 
         switch (name) {
             case "ws-ready": {
-                this.sharedMemory = props.sharedMemory;
                 this.sendClientMessage("wc-run", {
                     bundles: this.bundles,
                 });
@@ -164,7 +161,7 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
                 this.onPersist(props.bundle);
             } break;
             case "ws-sound-init": {
-                this.onSoundInit(props.freq, props.directSound);
+                this.onSoundInit(props.freq);
             } break;
             case "ws-sound-push": {
                 this.onSoundPush(props.samples);
@@ -218,35 +215,20 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
 
         this.frameWidth = width;
         this.frameHeight = height;
-        if (this.sharedMemory === undefined) {
-            this.rgb = new Uint8Array(width * height * 3);
-        }
+        this.rgb = new Uint8Array(width * height * 3);
         this.eventsImpl.fireFrameSize(width, height);
     }
 
     private onFrameLines(lines: FrameLine[], rgbaPtr: number) {
-        if (this.sharedMemory !== undefined) {
-            this.rgba = new Uint8Array(
-                this.sharedMemory, rgbaPtr,
-                this.frameWidth * this.frameHeight * 4,
-            );
-        } else {
-            for (const line of (lines as FrameLine[])) {
-                (this.rgb as Uint8Array).set(line.heapu8, line.start * this.frameWidth * 3);
-            }
+        for (const line of (lines as FrameLine[])) {
+            (this.rgb as Uint8Array).set(line.heapu8, line.start * this.frameWidth * 3);
         }
 
         this.eventsImpl.fireFrame(this.rgb, this.rgba);
     }
 
-    private onSoundInit(freq: number, directSound: DirectSound | undefined) {
+    private onSoundInit(freq: number) {
         this.freq = freq;
-        this.directSound = directSound;
-        if (this.directSound !== undefined) {
-            for (let i = 0; i < this.directSound.ringSize; ++i) {
-                this.directSound.buffer[i] = new Float32Array(this.directSound.buffer[i]);
-            }
-        }
     }
 
     private onSoundPush(samples: Float32Array) {

@@ -22,9 +22,9 @@ export default async function make(listsPath: string,
 }
 
 async function makeBuild(...targets: string[]) {
-    await execute("make", "-j4", ...targets);
+    await execute("ninja", "-j4", ...targets);
 }
 
 async function emcmake(listsPath: string) {
-    await execute("emcmake", "cmake", "-DCMAKE_BUILD_TYPE=Release", listsPath);
+    await execute("emcmake", "cmake", "-GNinja", "-DCMAKE_BUILD_TYPE=Release", listsPath);
 }

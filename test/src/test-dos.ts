@@ -1,7 +1,7 @@
 /* eslint-disable new-cap */
 
 import { assert } from "chai";
-import { compareAndExit, renderComparsionOf } from "./compare";
+import { compareAndExit, renderComparsionOf, waitImage } from "./compare";
 
 import DosBundle from "../../src/dos/bundle/dos-bundle";
 import { BackendOptions, CommandInterface } from "../../src/emulators";
@@ -14,9 +14,9 @@ import { Keys } from "../../src/keys";
 type CIFactory = (bundle: Uint8Array | Uint8Array[], options?: BackendOptions) => Promise<CommandInterface>;
 
 export function testDos() {
-    // testServer((bundle, options) => emulatorsImpl.dosboxDirect(bundle, options), "dosboxDirect", "dosbox");
-    // testServer((bundle, options) => emulatorsImpl.dosboxWorker(bundle, options), "dosboxWorker", "dosbox");
-    // testServer((bundle, options) => emulatorsImpl.dosboxXDirect(bundle, options), "dosboxXDirect", "dosbox-x");
+    testServer((bundle, options) => emulatorsImpl.dosboxDirect(bundle, options), "dosboxDirect", "dosbox");
+    testServer((bundle, options) => emulatorsImpl.dosboxWorker(bundle, options), "dosboxWorker", "dosbox");
+    testServer((bundle, options) => emulatorsImpl.dosboxXDirect(bundle, options), "dosboxXDirect", "dosbox-x");
     testServer((bundle, options) => emulatorsImpl.dosboxXWorker(bundle, options), "dosboxXWorker", "dosbox-x");
 }
 
@@ -47,20 +47,14 @@ function testServer(factory: CIFactory, name: string, assets: string) {
     test(name + " can take screenshot of dosbox", async () => {
         const ci = await CI(emulatorsImpl.dosBundle());
         assert.ok(ci);
-        await compareAndExit(assets + "/init.png", ci);
-    });
-
-    test(name + " should provide dosbox.conf for dosbox", async () => {
-        const ci = await CI(emulatorsImpl.dosBundle());
-        assert.ok(ci);
-        await compareAndExit("jsdos-conf.png", ci, 0);
+        await waitImage(assets + "/init.png", ci, 0);
     });
 
     test(name + " should modify dosbox.conf through api", async () => {
         const ci = await CI((await emulatorsImpl.dosBundle())
             .autoexec("type jsdos~1/dosbox~1.con"));
         assert.ok(ci);
-        await compareAndExit("dosboxconf.png", ci, 0);
+        await waitImage(assets + "/dosboxconf.png", ci, 0);
     });
 
     test(name + " should not start without jsdos conf", async () => {
@@ -131,13 +125,6 @@ function testServer(factory: CIFactory, name: string, assets: string) {
             ci.events().onSoundPush((samples: Float32Array) => {
                 resolve(samples);
             });
-
-            if (ci.directSound !== undefined) {
-                setTimeout(() => {
-                    const buffer = ci.directSound.buffer[0];
-                    resolve(new Float32Array(Math.ceil(buffer[buffer.length - 1])));
-                }, 1000);
-            }
         });
 
         assert.ok(samples.byteLength > 0, "samples is empty");

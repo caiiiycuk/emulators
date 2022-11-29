@@ -693,9 +693,8 @@ if (${EMSCRIPTEN})
             ${EM_LINK_OPTIONS}
             "-sUSE_ZLIB=1"
             "-sUSE_SDL=2"
-            "--profiling-funcs"
+            "--profiling-funcs" "-sASSERTIONS=1"
             "-sASYNCIFY=1"
-            "-sASSERTIONS=1"
             "-sASYNCIFY_IMPORTS=['syncSleep']"
             "-sASYNCIFY_WHITELIST=@${TARGETS_DIR}/dosbox-asyncify.txt"
             "-sEXPORT_NAME='WDOSBOXX'"

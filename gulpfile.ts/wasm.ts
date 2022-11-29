@@ -49,7 +49,7 @@ async function gzip(file: string) {
     await execute("gzip", "-kf9", file);
 }
 
-async function generateBuildInfo() {
+async function generateBuildInfo(compress: boolean) {
     const info = getRepoInfo();
     if (info.sha === null) {
         error("Git repo not found, using '<not-a-git-repo>' as sha");
@@ -69,22 +69,24 @@ async function generateBuildInfo() {
         const wasmFile = path.join("build/wasm", next);
         const jsFile = wasmFile.replace(".wasm", ".js");
 
-        const wasmGzPromise = gzip(wasmFile);
-        const jsGzPromise = gzip(jsFile);
+        if (compress) {
+            const wasmGzPromise = gzip(wasmFile);
+            const jsGzPromise = gzip(jsFile);
 
-        await Promise.all([wasmGzPromise, jsGzPromise]);
+            await Promise.all([wasmGzPromise, jsGzPromise]);
+        }
 
         md5Version.update(md5File.sync(wasmFile + ".gz"));
         md5Version.update(md5File.sync(jsFile + ".gz"));
 
         sizes[path.basename(wasmFile)] = {
             size: fs.statSync(wasmFile).size,
-            gzSize: fs.statSync(wasmFile + ".gz").size,
+            gzSize: compress ? fs.statSync(wasmFile + ".gz").size : 0,
         };
 
         sizes[path.basename(jsFile)] = {
             size: fs.statSync(jsFile).size,
-            gzSize: fs.statSync(jsFile + ".gz").size,
+            gzSize: compress ? fs.statSync(jsFile + ".gz").size : 0,
         };
     }
 
@@ -107,10 +109,12 @@ export const Build = {
 `);
 }
 
-export const wasm = series(clean,
-    makeWLibZip,
-    makeWDosbox,
-    makeWDosboxX,
-    copyAssets,
-    generateBuildInfo,
-);
+export function wasm(compress: boolean) {
+    return series(clean,
+        makeWLibZip,
+        makeWDosbox,
+        makeWDosboxX,
+        copyAssets,
+        () => generateBuildInfo(compress),
+    );
+}

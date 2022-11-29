@@ -113,10 +113,6 @@ export interface CommandInterface {
     networkConnect(networkType: NetworkType, address: string, port: number): Promise<void>;
 
     networkDisconnect(networkType: NetworkType): Promise<void>;
-
-    sharedMemory?: SharedArrayBuffer;
-
-    directSound?: DirectSound;
 }
 
 export type MessageType = "log" | "warn" | "error" | string;
