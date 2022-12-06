@@ -22,6 +22,9 @@ export function testDos() {
 
 function testServer(factory: CIFactory, name: string, assets: string) {
     suite(name + ".common");
+    beforeEach(() => {
+        (Mocha as any).process.removeListener("uncaughtException");
+    });
 
     async function CI(bundle: DosBundle | Promise<DosBundle>, options?: BackendOptions) {
         bundle = await Promise.resolve(bundle);

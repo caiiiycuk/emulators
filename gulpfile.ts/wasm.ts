@@ -74,10 +74,10 @@ async function generateBuildInfo(compress: boolean) {
             const jsGzPromise = gzip(jsFile);
 
             await Promise.all([wasmGzPromise, jsGzPromise]);
-        }
 
-        md5Version.update(md5File.sync(wasmFile + ".gz"));
-        md5Version.update(md5File.sync(jsFile + ".gz"));
+            md5Version.update(md5File.sync(wasmFile + ".gz"));
+            md5Version.update(md5File.sync(jsFile + ".gz"));
+        }
 
         sizes[path.basename(wasmFile)] = {
             size: fs.statSync(wasmFile).size,

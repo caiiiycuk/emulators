@@ -50,6 +50,20 @@ EM_JS(void, ws_init_runtime, (const char* sessionId), {
         Module.stringToUTF8(value, valueBuffer, valueLength);
         return valueBuffer;
     };
+    Module.onErrorEvent = function (event) {
+      Module.alive = false;
+      Module.err("Backend crashed, cause: " + event.message);
+      if (Module.cleanup) {
+        Module.cleanup();
+      }
+
+      Module.wsexit();
+      event.preventDefault();
+    };
+    Module.wsexit = function() {
+      (worker ? self : window).removeEventListener("error", Module.onErrorEvent);
+      Module.sendMessage("ws-exit");
+    };
 
     function messageHandler(e) {
       var data = e.data;
@@ -87,14 +101,8 @@ EM_JS(void, ws_init_runtime, (const char* sessionId), {
           Module._requestUnmute();
         } break;
         case "wc-exit": {
-          try {
-            Module._requestExit();
-          } catch (e) {
-            Module.err(e.message);
-            if (e.name !== "ExitStatus") {
-              throw e;
-            }
-          }
+          (worker ? self : window).addEventListener("error", Module.onErrorEvent);
+          Module._requestExit();
         } break;
         case "wc-pack-fs-to-bundle": {
           try {
@@ -205,7 +213,9 @@ EM_JS(void, emsc_ws_client_sound_push, (const float *samples, int num_samples), 
   });
 
 EM_JS(void, emsc_ws_exit_runtime, (), {
-    Module.exit = function() { Module.sendMessage("ws-exit"); };
+    Module.exit = function () {
+      Module.wsexit();
+    }
   });
 
 EM_JS(void, ws_client_stdout, (const char* data, uint32_t amount), {
