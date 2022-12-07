@@ -128,7 +128,7 @@ function testServer(factory: CIFactory, name: string, assets: string) {
         });
     });
 
-    suite(name + ".digger");
+    suite(name + ".game");
 
     test(name + " can run digger.jsdos", async () => {
         const ci = await CI((await emulatorsImpl.dosBundle())
@@ -283,19 +283,16 @@ function testServer(factory: CIFactory, name: string, assets: string) {
         assert.ok(ci);
 
         await new Promise((resolve, reject) => {
-            const sendFn = () => {
+            const interactFn = () => {
                 ci.sendMouseMotion(380 / 640, 250 / 400);
                 ci.sendMouseButton(0, true);
-            };
 
-            const screenshot = () => {
-                waitImage("mousetst.png", ci, { threshold: 2 })
+                waitImage(assets + "/mousetst.png", ci, { threshold: 2 })
                     .then(resolve)
                     .catch(reject);
             };
 
-            setTimeout(sendFn, 1000);
-            setTimeout(screenshot, 2000);
+            setTimeout(interactFn, assets === "dosbox" ? 1000 : 3000);
         });
     });
 }

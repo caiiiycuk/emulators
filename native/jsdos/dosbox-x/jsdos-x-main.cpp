@@ -298,6 +298,15 @@ std::string macosx_prompt_folder(const char *default_folder);
 #if C_DIRECT3D
 void d3d_init(void);
 #endif
+
+bool user_cursor_locked = true;
+MOUSE_EMULATION user_cursor_emulation = MOUSE_EMULATION_NEVER;
+int user_cursor_x = 0,user_cursor_y = 0;
+int user_cursor_sw = 640,user_cursor_sh = 480;
+
+float mouseX = 0.5f;
+float mouseY = 0.5f;
+
 void ShutDownMemHandles(Section * sec), GFX_ReleaseMouse();
 void resetFontSize(), increaseFontSize(), decreaseFontSize();
 void GetMaxWidthHeight(unsigned int *pmaxWidth, unsigned int *pmaxHeight);
@@ -1481,6 +1490,8 @@ SDL_Window* GFX_GetSDLWindow(void) {
 SDL_Window* GFX_SetSDLWindowMode(uint16_t width, uint16_t height, SCREEN_TYPES screenType)
 {
     client_frame_set_size(width, height);
+    user_cursor_sw = width;
+    user_cursor_sh = height;
     sdl.window_desired_width = width;
     sdl.window_desired_height = height;
     currentWindowWidth = width;
@@ -4090,10 +4101,6 @@ static void HandleVideoResize(void * event) {
 
 extern unsigned int mouse_notify_mode;
 
-bool user_cursor_locked = false;
-MOUSE_EMULATION user_cursor_emulation = MOUSE_EMULATION_NEVER;
-int user_cursor_x = 0,user_cursor_y = 0;
-int user_cursor_sw = 640,user_cursor_sh = 480;
 
 #if DOSBOXMENU_TYPE == DOSBOXMENU_SDLDRAW /* SDL drawn menus */
 void GFX_SDLMenuTrackHover(DOSBoxMenu &menu,DOSBoxMenu::item_handle_t item_id) {
@@ -9652,7 +9659,12 @@ void GUI_ResetResize(bool pressed) {
 
 bool MOUSE_IsLocked()
 {
+#ifdef JSDOS_X
+    // TODO @caiiiycuk: should be able to disable from ui
+    return true;
+#else
     return sdl.mouse.locked;
+#endif
 }
 
 #if defined(C_SDL2) && defined(C_OPENGL)/*HACK*/
@@ -9679,9 +9691,46 @@ void POD_Load_Sdlmain( std::istream& stream )
 // -- jsdos
 
 void server_mouse_moved(float x, float y, bool relative, uint64_t movedMs) {
+  if (x < 0) {
+    x = 0;
+  }
+  if (x > 1) {
+    x = 1;
+  }
+  if (y < 0) {
+    y = 0;
+  }
+  if (y > 1) {
+    y = 1;
+  }
+
+  user_cursor_x = x * user_cursor_sw;
+  user_cursor_y = y * user_cursor_sh;
+  
+  if (relative) {
+    Mouse_CursorMoved(x,
+                      y,
+                      x,
+                      y,
+                      true);
+  } else {
+    Mouse_CursorMoved((x - mouseX) * user_cursor_sw,
+                      (y - mouseY) * user_cursor_sh,
+                      x,
+                      y,
+                      false);
+
+    mouseX = x;
+    mouseY = y;
+  }
 }
 
 void server_mouse_button(int button, bool pressed, uint64_t pressedMs) {
+  if (pressed) {
+    Mouse_ButtonPressed(button);
+  } else {
+    Mouse_ButtonReleased(button);
+  }
 }
 
 void server_exit() {

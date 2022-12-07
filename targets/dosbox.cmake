@@ -147,8 +147,8 @@ set(SOURCES_CORE_CXX03
         )
 
 set(SOURCES_JSDOS_CXX11
-        "${NATIVE_DIR}/jsdos/jsdos-main.cpp"
-        "${NATIVE_DIR}/jsdos/jsdos-mixer.cpp"
+        "${NATIVE_DIR}/jsdos/dosbox/jsdos-main.cpp"
+        "${NATIVE_DIR}/jsdos/dosbox/jsdos-mixer.cpp"
         "${NATIVE_DIR}/jsdos/jsdos-mapper-noop.cpp"
         "${NATIVE_DIR}/jsdos/jsdos-noop.cpp"
         "${NATIVE_DIR}/jsdos/jsdos-mouse.cpp"

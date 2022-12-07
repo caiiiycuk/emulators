@@ -630,8 +630,8 @@ set(SOURCES_X_JSDOS_CORE
 
 set(SOURCES_X_JSDOS_MAIN
         "${NATIVE_DIR}/jsdos/jsdos-log.cpp"
-        "${NATIVE_DIR}/jsdos/jsdos-x-mixer.cpp"
-        "${NATIVE_DIR}/jsdos/jsdos-x-main.cpp"
+        "${NATIVE_DIR}/jsdos/dosbox-x/jsdos-x-mixer.cpp"
+        "${NATIVE_DIR}/jsdos/dosbox-x/jsdos-x-main.cpp"
         )
 
 add_library(libdosbox-x-sdl2 OBJECT ${SOURCES_X_SDL} ${SOURCES_X_CORE} ${SOURCES_X_JSDOS_CORE})
@@ -694,7 +694,7 @@ if (${EMSCRIPTEN})
             ${EM_LINK_OPTIONS}
             "-sUSE_ZLIB=1"
             "-sUSE_SDL=2"
-            "--profiling-funcs" "-sASSERTIONS=1"
+            # "--profiling-funcs" "-sASSERTIONS=1"
             "-sASYNCIFY=1"
             "-sASYNCIFY_IMPORTS=['syncSleep']"
             "-sASYNCIFY_WHITELIST=@${TARGETS_DIR}/dosbox-asyncify.txt"
