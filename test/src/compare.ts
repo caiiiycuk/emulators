@@ -1,40 +1,26 @@
 import { CommandInterface } from "../../src/emulators";
 
-// Compare
-// =======
-// Compare image from url, and screenshot from DosBox
-
-export function compareAndExit(imageUrl: string, ci: CommandInterface, threshold = 1) {
-    return new Promise<void>((resolve, reject) => {
-        const fn = () => {
-            compare(imageUrl, ci, threshold, 0)
-                .then((wrong) => {
-                    ci.exit()
-                        .then(() => {
-                            if (wrong > threshold) {
-                                reject(new Error("Image not same, wrong: " + wrong));
-                            } else {
-                                resolve();
-                            }
-                        }).catch(reject);
-                })
-                .catch(reject);
-        };
-
-        // give chance to render all queued frames
-        setTimeout(fn, 300);
-    });
+export interface WaitImageProps {
+    threshold?: number,
+    timeout?: number,
+    success?: () => Promise<void>;
 }
 
-export function waitImage(imageUrl: string, ci: CommandInterface, threshold = 1, timeout = 3000) {
+export function waitImage(imageUrl: string, ci: CommandInterface, options?: WaitImageProps) {
+    const threshold = options?.threshold ?? 1;
+    const timeout = options?.timeout ?? 3000;
+    const success = options?.success === undefined ? async () => { } : options.success;
+
     return new Promise<void>((resolve, reject) => {
         let intervalId = setInterval(() => {
-            compare(imageUrl, ci, threshold, 0, false)
-                .then((wrong) => {
-                    if (intervalId !== null && wrong <= threshold) {
+            compare(imageUrl, ci, threshold, false)
+                .then((error) => {
+                    if (intervalId !== null && error === null) {
                         clearInterval(intervalId);
                         intervalId = null;
-                        ci.exit()
+
+                        success()
+                            .then(() => ci.exit())
                             .then(resolve)
                             .catch(reject);
                     }
@@ -45,19 +31,32 @@ export function waitImage(imageUrl: string, ci: CommandInterface, threshold = 1,
         setTimeout(() => {
             if (intervalId !== null) {
                 clearInterval(intervalId);
-                compareAndExit(imageUrl, ci, threshold)
-                    .then(resolve)
+                compare(imageUrl, ci, threshold, true)
+                    .then((error) => {
+                        if (error === null) {
+                            success()
+                                .then(() => ci.exit())
+                                .then(resolve)
+                                .catch(reject);
+                        } else {
+                            ci.exit()
+                                .then(() => reject(error))
+                                .catch(reject);
+                        }
+                    })
                     .catch(reject);
             }
         }, timeout);
     });
 }
 
-const compare = (imageUrl: string, ci: CommandInterface, threshold: number, delayMs: number, showComparsion = true) => {
-    return new Promise((resolve) => setTimeout(resolve, delayMs))
-        .then(ci.screenshot.bind(ci))
+const compare = (imageUrl: string,
+    ci: CommandInterface,
+    threshold: number,
+    showComparsion: boolean): Promise<null | Error> => {
+    return ci.screenshot()
         .then(imageDataToUrl)
-        .then((actualUrl: string) => new Promise<number>((resolve, reject) => {
+        .then((actualUrl: string) => new Promise<null | Error>((resolve, reject) => {
             const img = new Image();
             img.onload = () => {
                 const canvas = document.createElement("canvas");
@@ -75,9 +74,9 @@ const compare = (imageUrl: string, ci: CommandInterface, threshold: number, dela
                             renderComparsion(img, actualImage);
                         }
                         if (img.width !== actualImage.width) {
-                            reject(new Error("Invalid width: " + actualImage.width + ", should be " + img.width));
+                            resolve(new Error("Invalid width: " + actualImage.width + ", should be " + img.width));
                         } else {
-                            reject(new Error("Invalid height: " + actualImage.height + ", should be " + img.height));
+                            resolve(new Error("Invalid height: " + actualImage.height + ", should be " + img.height));
                         }
                     }
 
@@ -104,7 +103,9 @@ const compare = (imageUrl: string, ci: CommandInterface, threshold: number, dela
                     if (showComparsion && wrong > threshold) {
                         renderComparsion(img, actualImage);
                     }
-                    resolve(wrong);
+                    resolve(wrong > threshold ?
+                        new Error("Image not same, wrong: " + wrong) :
+                        null);
                 };
                 actualImage.src = actualUrl;
             };

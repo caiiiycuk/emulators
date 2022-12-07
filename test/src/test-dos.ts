@@ -1,7 +1,7 @@
 /* eslint-disable new-cap */
 
 import { assert } from "chai";
-import { compareAndExit, renderComparsionOf, waitImage } from "./compare";
+import { renderComparsionOf, waitImage } from "./compare";
 
 import DosBundle from "../../src/dos/bundle/dos-bundle";
 import { BackendOptions, CommandInterface } from "../../src/emulators";
@@ -10,6 +10,7 @@ import emulatorsImpl from "../../src/impl/emulators-impl";
 import { httpRequest } from "../../src/http";
 
 import { Keys } from "../../src/keys";
+import { makeLibZip } from "./libzip";
 
 type CIFactory = (bundle: Uint8Array | Uint8Array[], options?: BackendOptions) => Promise<CommandInterface>;
 
@@ -50,14 +51,14 @@ function testServer(factory: CIFactory, name: string, assets: string) {
     test(name + " can take screenshot of dosbox", async () => {
         const ci = await CI(emulatorsImpl.dosBundle());
         assert.ok(ci);
-        await waitImage(assets + "/init.png", ci, 0);
+        await waitImage(assets + "/init.png", ci, { threshold: 0 });
     });
 
     test(name + " should modify dosbox.conf through api", async () => {
         const ci = await CI((await emulatorsImpl.dosBundle())
             .autoexec("type jsdos~1/dosbox~1.con"));
         assert.ok(ci);
-        await waitImage(assets + "/dosboxconf.png", ci, 0);
+        await waitImage(assets + "/dosboxconf.png", ci, { threshold: 0 });
     });
 
     test(name + " should not start without jsdos conf", async () => {
@@ -91,9 +92,19 @@ function testServer(factory: CIFactory, name: string, assets: string) {
 
         const ci = await factory(new Uint8Array(buffer as ArrayBuffer));
         assert.ok(ci);
-        cachedBundle = await ci.persist();
         assert.ok(cachedBundle, "cachedBundle is undefined");
-        await compareAndExit("persistent-mount.png", ci);
+        await waitImage(assets + "/persistent-mount.png", ci, {
+            success: async () => {
+                cachedBundle = await ci.persist();
+                const libzip = await makeLibZip();
+                libzip.zipToFs(cachedBundle);
+                assert.ok(libzip.exists("HW.TXT"), "hw.txt not exists");
+                const content = await libzip.readFile("HW.TXT");
+                libzip.destroy();
+
+                assert.equal(content, "HELLO, WROLD!\r\n");
+            },
+        });
     });
 
     test(name + " should store fs updates between sessions [existent db]", async () => {
@@ -104,7 +115,17 @@ function testServer(factory: CIFactory, name: string, assets: string) {
         const ci = await factory([new Uint8Array(buffer as ArrayBuffer), cachedBundle]);
         assert.ok(ci);
         cachedBundle = new Uint8Array();
-        await compareAndExit("persistent-mount-second.png", ci);
+        await waitImage(assets + "/persistent-mount-second.png", ci, {
+            success: async () => {
+                const libzip = await makeLibZip();
+                libzip.zipToFs(await ci.persist());
+                assert.ok(libzip.exists("HW.TXT"), "hw.txt not exists");
+                const content = await libzip.readFile("HW.TXT");
+                libzip.destroy();
+
+                assert.equal(content, "HELLO, WROLD!\r\nHELLO, WROLD!\r\n");
+            },
+        });
     });
 
     suite(name + ".digger");
@@ -114,7 +135,7 @@ function testServer(factory: CIFactory, name: string, assets: string) {
             .extract("digger.zip")
             .autoexec("DIGGER.COM"));
         assert.ok(ci);
-        await compareAndExit("digger.png", ci);
+        await waitImage("digger.png", ci);
     });
 
     test(name + " can play sound", async () => {
@@ -204,7 +225,7 @@ function testServer(factory: CIFactory, name: string, assets: string) {
             };
 
             const screenshot = () => {
-                compareAndExit("digger-end.png", ci, 2)
+                waitImage("digger-end.png", ci, { threshold: 2 })
                     .then(resolve)
                     .catch(reject);
             };
@@ -268,7 +289,7 @@ function testServer(factory: CIFactory, name: string, assets: string) {
             };
 
             const screenshot = () => {
-                compareAndExit("mousetst.png", ci, 2)
+                waitImage("mousetst.png", ci, { threshold: 2 })
                     .then(resolve)
                     .catch(reject);
             };
