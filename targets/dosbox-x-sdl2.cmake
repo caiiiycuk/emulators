@@ -51,7 +51,6 @@ set(SOURCES_X_CORE
         "${DBX_PATH}/src/hardware/vga_pc98_egc.cpp"
         "${DBX_PATH}/src/hardware/8255.cpp"
         "${DBX_PATH}/src/hardware/vga_pc98_dac.cpp"
-        "${DBX_PATH}/src/hardware/mixer.cpp"
         "${DBX_PATH}/src/hardware/gus.cpp"
         "${DBX_PATH}/src/hardware/gameblaster.cpp"
         "${DBX_PATH}/src/hardware/vga_draw.cpp"
@@ -619,6 +618,7 @@ set(SOURCES_X_SDL_MAIN
         "${DBX_PATH}/src/gui/sdlmain.cpp"
         "${DBX_PATH}/src/gui/sdlmain_linux.cpp"
         "${DBX_PATH}/src/debug/debug_gui.cpp"
+        "${DBX_PATH}/src/hardware/mixer.cpp"
         )
 
 set(SOURCES_X_JSDOS_CORE
@@ -630,6 +630,7 @@ set(SOURCES_X_JSDOS_CORE
 
 set(SOURCES_X_JSDOS_MAIN
         "${NATIVE_DIR}/jsdos/jsdos-log.cpp"
+        "${NATIVE_DIR}/jsdos/jsdos-x-mixer.cpp"
         "${NATIVE_DIR}/jsdos/jsdos-x-main.cpp"
         )
 
