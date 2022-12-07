@@ -7520,10 +7520,11 @@ int jsdos_main(Config *config) SDL_MAIN_NOEXCEPT {
         printconfiglocation();
     if (control->opt_resetmapper)
         erasemapperfile();
-
+#ifndef JSDOS_X
     /* -- Early logging init, in case these details are needed to debug problems at this level */
     /*    If --early-debug was given this opens up logging to STDERR until Log::Init() */
     LOG::EarlyInit();
+#endif
 
     /* -- Init the configuration system and add default values */
     CheckNumLockState();
@@ -7532,7 +7533,9 @@ int jsdos_main(Config *config) SDL_MAIN_NOEXCEPT {
 
     /* -- setup the config sections for config parsing */
     SDL_SetupConfigSection();
+#ifndef JSDOS_X
     LOG::SetupConfigSection();
+#endif
     DOSBOX_SetupConfigSections();
 
 #if 0 /* VGA_Draw_2 self test: dot clock */
@@ -8388,7 +8391,9 @@ int jsdos_main(Config *config) SDL_MAIN_NOEXCEPT {
 #endif
 
         /* -- initialize logging first, so that higher level inits can report problems to the log file */
+#ifndef JSDOS_X
         LOG::Init();
+#endif
 
 #if defined(WIN32) && !defined(C_SDL2) && !defined(HX_DOS)
         {
@@ -9515,8 +9520,9 @@ fresh_boot:
                         ent.function(NULL);
                         exitfunctions.pop_front();
                 }
-
+#ifndef JSDOS_X
         LOG::Exit();
+#endif
 
 #if DOSBOXMENU_TYPE == DOSBOXMENU_HMENU && defined(WIN32) && !defined(HX_DOS) && (!defined(C_SDL2) && defined(SDL_DOSBOX_X_SPECIAL) || defined(C_SDL2))
         ShowWindow(GetHWND(), SW_HIDE);

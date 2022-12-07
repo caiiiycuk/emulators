@@ -603,7 +603,6 @@ set(SOURCES_X_CORE
         "${DBX_PATH}/src/builtin/xcopy_exe.cpp"
         "${DBX_PATH}/src/builtin/find_exe.cpp"
         #        "${DBX_PATH}/src/tool/mach-o-matic.cpp"
-        "${DBX_PATH}/src/debug/debug_gui.cpp"
         "${DBX_PATH}/src/debug/debug.cpp"
         "${DBX_PATH}/src/debug/debug_disasm.cpp"
         #	"${DBX_PATH}/src/debug/debug_win32.cpp"
@@ -619,10 +618,10 @@ endif ()
 set(SOURCES_X_SDL_MAIN
         "${DBX_PATH}/src/gui/sdlmain.cpp"
         "${DBX_PATH}/src/gui/sdlmain_linux.cpp"
+        "${DBX_PATH}/src/debug/debug_gui.cpp"
         )
 
 set(SOURCES_X_JSDOS_CORE
-        #        "${NATIVE_DIR}/jsdos/jsdos-log.cpp"
         "${NATIVE_DIR}/jsdos/jsdos-asyncify.cpp"
         "${NATIVE_DIR}/jsdos/jsdos-timer.cpp"
         "${NATIVE_DIR}/jsdos/jsdos-support.cpp"
@@ -630,6 +629,7 @@ set(SOURCES_X_JSDOS_CORE
         )
 
 set(SOURCES_X_JSDOS_MAIN
+        "${NATIVE_DIR}/jsdos/jsdos-log.cpp"
         "${NATIVE_DIR}/jsdos/jsdos-x-main.cpp"
         )
 
