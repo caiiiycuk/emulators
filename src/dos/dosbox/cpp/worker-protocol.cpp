@@ -17,7 +17,6 @@ int frameWidth = 0;
 // clang-format off
 EM_JS(void, ws_init_runtime, (const char* sessionId), {
     var worker = typeof importScripts === "function";
-    var node = typeof process === "object" && typeof process.versions === "object" && typeof process.versions.node === "string";
     Module.sessionId = UTF8ToString(sessionId);
 
     function sendMessage(name, props, transfer) {
@@ -51,25 +50,16 @@ EM_JS(void, ws_init_runtime, (const char* sessionId), {
         Module.stringToUTF8(value, valueBuffer, valueLength);
         return valueBuffer;
     };
-    Module.onErrorEvent = function (event) {
-      Module.alive = false;
-      Module.err("Backend crashed, cause: " + event.message);
+    Module.uncaught = function (error) {
+      Module.err("Backend crashed, cause: " + (error.message || error));
       if (Module.cleanup) {
         Module.cleanup();
       }
-
-      Module.wsexit();
-      event.preventDefault();
-    };
-    Module.wsexit = function() {
-      if (node) {
-        // ignore
-      } else if (worker) {
-        self.removeEventListener("error", Module.onErrorEvent);
+      if (Module.exit) {
+        Module.exit();
       } else {
-        window.removeEventListener("error", Module.onErrorEvent);
+        Module.sendMessage("ws-exit");
       }
-      Module.sendMessage("ws-exit");
     };
 
     function messageHandler(e) {
@@ -108,13 +98,6 @@ EM_JS(void, ws_init_runtime, (const char* sessionId), {
           Module._requestUnmute();
         } break;
         case "wc-exit": {
-          if (node) {
-            // ignore 
-          } else if (worker) {
-            self.addEventListener("error", Module.onErrorEvent);
-          } else {
-            window.addEventListener("error", Module.onErrorEvent);
-          }
           Module._requestExit();
         } break;
         case "wc-pack-fs-to-bundle": {
@@ -227,7 +210,7 @@ EM_JS(void, emsc_ws_client_sound_push, (const float *samples, int num_samples), 
 
 EM_JS(void, emsc_ws_exit_runtime, (), {
     Module.exit = function () {
-      Module.wsexit();
+      Module.sendMessage("ws-exit");
     }
   });
 

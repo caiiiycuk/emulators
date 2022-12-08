@@ -13,7 +13,10 @@ EM_JS(void, syncSleep, (), {
       return;
     }
 
-    return Asyncify.handleSleep(function(wakeUp) { Module.sync_sleep(wakeUp); });
+    Asyncify.whenDone().catch(Module.uncaughtAsyncify);
+
+    return Asyncify
+      .handleSleep(function(wakeUp) { Module.sync_sleep(wakeUp); })
   });
 
 EM_JS(bool, initTimeoutSyncSleep, (), {
@@ -36,6 +39,16 @@ EM_JS(bool, initTimeoutSyncSleep, (), {
           } 
         });
     };
+
+    Module.destroyAsyncify = function() {
+      Module.alive = false;
+      delete Module.sync_sleep;
+    };
+    Module.uncaughtAsyncify = function(error) {
+      Module.destroyAsyncify();
+      Module.uncaught(error);
+    };
+
     return true;
   });
 
@@ -89,22 +102,26 @@ EM_JS(bool, initMessageSyncSleep, (bool worker), {
       window.addEventListener("message", Module.receive, { passive: true });
     }
 
+    Module.destroyAsyncify = function() {
+      if (worker) {
+        self.removeEventListener("message", Module.receive);
+      } else {
+        window.removeEventListener("message", Module.receive);
+      }
+
+      Module.alive = false;
+      delete Module.sync_sleep;
+    };
+    Module.uncaughtAsyncify = function(error) {
+      Module.destroyAsyncify();
+      Module.uncaught(error);
+    };
+
     return true;
   });
 
-EM_JS(void, destroyTimeoutSyncSleep, (), {
-    Module.alive = false;
-    delete Module.sync_sleep;
-  });
-
-EM_JS(void, destroyMessageSyncSleep, (bool worker), {
-    if (worker) {
-      self.removeEventListener("message", Module.receive);
-    } else {
-      window.removeEventListener("message", Module.receive);
-    }
-    Module.alive = false;
-    delete Module.sync_sleep;
+EM_JS(void, destroyAsyncify, (), {
+    Module.destroyAsyncify();
   });
 
 EM_JS(bool, isWorker, (), {
@@ -152,11 +169,7 @@ void jsdos::initAsyncify() {
 
 void jsdos::destroyAsyncify() {
 #ifdef EMSCRIPTEN
-  if (isNode()) {
-    destroyTimeoutSyncSleep();
-  } else {
-    destroyMessageSyncSleep(isWorker());
-  }
+    ::destroyAsyncify();
 #endif
 }
 
