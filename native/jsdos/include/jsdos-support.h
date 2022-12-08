@@ -5,6 +5,7 @@ namespace jsdos {
     void init();
     bool isExitRequested();
     void requestExit();
+    void cout(const char* data, int amount);
 }
 
 #endif

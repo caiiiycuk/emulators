@@ -1,13 +1,14 @@
 const fs = require("fs");
 require("../emulators");
 
+const backend = process.argv[2] === "x" ? "dosboxXNode" : "dosboxNode";
 const emulators = global.emulators;
 emulators.pathPrefix = "./";
 
 const bundle = fs.readFileSync("dhry2.jsdos");
 
-emulators
-    .dosboxNode(bundle)
+console.log("Dhrystone 2 Test for " + backend);
+emulators[backend](bundle)
     .then((ci) => {
         ci.events().onStdout((message) => {
             if (!message.startsWith("dhry2:")) {

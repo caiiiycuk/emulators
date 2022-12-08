@@ -8615,7 +8615,8 @@ int jsdos_main(Config *config) SDL_MAIN_NOEXCEPT {
         /* -- -- Initialise Joystick and CD-ROM separately. This way we can warn when it fails instead of exiting the application */
         LOG(LOG_MISC,LOG_DEBUG)("Initializing SDL joystick subsystem...");
         glide.fullscreen = &sdl.desktop.fullscreen;
-        if (SDL_InitSubSystem(SDL_INIT_JOYSTICK) >= 0) {
+        // TODO @caiiiycuk: enable this (incompatible with node)
+        if (false && SDL_InitSubSystem(SDL_INIT_JOYSTICK) >= 0) {
             sdl.num_joysticks = (Bitu)SDL_NumJoysticks();
             LOG(LOG_MISC,LOG_DEBUG)("SDL reports %u joysticks",(unsigned int)sdl.num_joysticks);
         }

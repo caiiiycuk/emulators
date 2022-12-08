@@ -14,8 +14,10 @@
     </head>
     <body>
         <div>
-            <button onClick="javascript:downloadBundleAndRun({worker: true})">Start Worker</button>
-            <button onClick="javascript:downloadBundleAndRun({worker: false})">Start Direct</button>
+            <button onClick="javascript:downloadBundleAndRun({worker: true, x: false})">dosboxWorker</button>
+            <button onClick="javascript:downloadBundleAndRun({worker: false, x: false})">dosboxDirect</button>
+            <button onClick="javascript:downloadBundleAndRun({worker: true, x: true})">xWorker</button>
+            <button onClick="javascript:downloadBundleAndRun({worker: false, x: true})">xDirect</button>
             <pre id="stdout"></pre>
         </div>
 
@@ -28,9 +30,9 @@
              const stdout = document.getElementById("stdout");
 
              // promise is resolved when emulator is started
-             const ci = await (options.worker ?
-                               emulators.dosWorker(bundle) :
-                               emulators.dosDirect(bundle));
+            const ci = await (options.worker ?
+                (options.x ? emulators.dosboxXWorker(bundle) : emulators.dosboxWorker(bundle)) :
+                (options.x ? emulators.dosboxXDirect(bundle) : emulators.dosDirect(bundle)));
 
              ci.events().onStdout((message) => {
                  if (!message.startsWith("dhry2:")) {

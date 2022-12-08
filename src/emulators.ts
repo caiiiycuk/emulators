@@ -37,6 +37,9 @@ export interface Emulators {
     // * dosboxWorker - create dosbox worker emulator backend
     dosboxWorker: (bundle: Uint8Array | Uint8Array[], options?: BackendOptions) => Promise<CommandInterface>;
 
+    // * dosboxXNode - create dosbox-x node emulator backend
+    dosboxXNode: (bundle: Uint8Array | Uint8Array[], options?: BackendOptions) => Promise<CommandInterface>;
+
     // * dosboxDirect - create dosbox-x direct emulator backend
     dosboxXDirect: (bundle: Uint8Array | Uint8Array[], options?: BackendOptions) => Promise<CommandInterface>;
 

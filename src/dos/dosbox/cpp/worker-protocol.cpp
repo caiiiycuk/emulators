@@ -17,6 +17,7 @@ int frameWidth = 0;
 // clang-format off
 EM_JS(void, ws_init_runtime, (const char* sessionId), {
     var worker = typeof importScripts === "function";
+    var node = typeof process === "object" && typeof process.versions === "object" && typeof process.versions.node === "string";
     Module.sessionId = UTF8ToString(sessionId);
 
     function sendMessage(name, props, transfer) {
@@ -61,7 +62,13 @@ EM_JS(void, ws_init_runtime, (const char* sessionId), {
       event.preventDefault();
     };
     Module.wsexit = function() {
-      (worker ? self : window).removeEventListener("error", Module.onErrorEvent);
+      if (node) {
+        // ignore
+      } else if (worker) {
+        self.removeEventListener("error", Module.onErrorEvent);
+      } else {
+        window.removeEventListener("error", Module.onErrorEvent);
+      }
       Module.sendMessage("ws-exit");
     };
 
@@ -101,7 +108,13 @@ EM_JS(void, ws_init_runtime, (const char* sessionId), {
           Module._requestUnmute();
         } break;
         case "wc-exit": {
-          (worker ? self : window).addEventListener("error", Module.onErrorEvent);
+          if (node) {
+            // ignore 
+          } else if (worker) {
+            self.addEventListener("error", Module.onErrorEvent);
+          } else {
+            window.addEventListener("error", Module.onErrorEvent);
+          }
           Module._requestExit();
         } break;
         case "wc-pack-fs-to-bundle": {

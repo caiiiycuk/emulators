@@ -41,6 +41,10 @@ class EmulatorsImpl implements Emulators {
         return this.backend(bundle, transportLayer, options);
     }
 
+    async dosboxXNode(bundle: Uint8Array | Uint8Array[], options?: BackendOptions): Promise<CommandInterface> {
+        return this.dosboxXDirect(bundle, options);
+    }
+
     async dosboxXDirect(bundle: Uint8Array | Uint8Array[], options?: BackendOptions): Promise<CommandInterface> {
         const modules = await this.wasmModules();
         const dosboxxWasm = await modules.dosboxx();
