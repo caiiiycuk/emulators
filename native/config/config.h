@@ -1,3 +1,8 @@
+#ifndef _JSDOS_CONFIG_H_
+#define _JSDOS_CONFIG_H_
+
+#define jsthrow(msg) { printf("%s\n", msg);abort(); }
+
 /* Define if building universal (internal helper macro) */
 /* #undef AC_APPLE_UNIVERSAL_BUILD */
 
@@ -359,5 +364,4 @@ typedef Bit64s Bits;
 #define sBitfs sBit64fs
 
 #endif
-
-
+#endif // _JSDOS_CONFIG_H_

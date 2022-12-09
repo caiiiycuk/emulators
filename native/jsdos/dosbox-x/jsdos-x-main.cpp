@@ -1129,7 +1129,7 @@ static void KillSwitch(bool pressed) {
      * shuts down properly. */
 #endif
     warn_on_mem_write = true;
-    throw 1;
+    jsthrow("throw 1;");
 }
 
 void DoKillSwitch(void) {
@@ -3193,7 +3193,7 @@ void ResetSystem(bool pressed) {
 		mainMenu.get_item("mapper_pauseints").check(false).refresh_item(mainMenu);
 	}
 	bootvm=true;
-    throw int(3);
+    jsthrow("throw int(3);");
 }
 
 void RebootGuest(bool pressed) {
@@ -3212,14 +3212,14 @@ void RebootGuest(bool pressed) {
 			char msg[]="\033[2J";
 			uint16_t s = (uint16_t)strlen(msg);
 			DOS_WriteFile(STDERR,(uint8_t*)msg,&s);
-            throw int(6);
+            jsthrow("throw int(6);");
 	    } else {
             bootfast=true;
-            throw int(3);
+            jsthrow("throw int(3);");
 	    }
 	}
 	bootguest=true;
-	throw int(3);
+	jsthrow("throw int(3);");
 }
 
 void LoadMapFile(bool bPressed) {
@@ -4572,7 +4572,7 @@ static void HandleMouseButton(SDL_MouseButtonEvent * button, SDL_MouseMotionEven
 
                     switch (event.type) {
                         case SDL_QUIT:
-                            if (CheckQuit()) throw(0);
+                            if (CheckQuit()) jsthrow("throw(0);");
                             break;
                         case SDL_KEYUP:
                             if (event.key.keysym.sym == SDLK_ESCAPE) {
@@ -5550,7 +5550,7 @@ void __GFX_Events() {
 
                         switch (ev.type) {
                         case SDL_QUIT:
-                            if (CheckQuit()) throw(0);
+                            if (CheckQuit()) jsthrow("throw(0);");
                             break; // a bit redundant at linux at least as the active events gets before the quit event.
                         case SDL_WINDOWEVENT:     // wait until we get window focus back
                             if ((ev.window.event == SDL_WINDOWEVENT_FOCUS_LOST) || (ev.window.event == SDL_WINDOWEVENT_MINIMIZED) || (ev.window.event == SDL_WINDOWEVENT_FOCUS_GAINED) || (ev.window.event == SDL_WINDOWEVENT_RESTORED) || (ev.window.event == SDL_WINDOWEVENT_EXPOSED)) {
@@ -5608,7 +5608,7 @@ void __GFX_Events() {
             break;
 #endif
         case SDL_QUIT:
-            if (CheckQuit()) throw(0);
+            if (CheckQuit()) jsthrow("throw(0);");
             break;
 		case SDL_MOUSEWHEEL:
 			if (wheel_key && (wheel_guest || !dos_kernel_disabled)) {
@@ -5983,7 +5983,7 @@ void __GFX_Events() {
 #endif
 
                         switch (ev.type) {
-                        case SDL_QUIT: if (CheckQuit()) throw(0); break; // a bit redundant at linux at least as the active events gets before the quit event.
+                        case SDL_QUIT: if (CheckQuit()) jsthrow("throw(0); break;"); // a bit redundant at linux at least as the active events gets before the quit event.
                         case SDL_ACTIVEEVENT:     // wait until we get window focus back
                             if (ev.active.state & (SDL_APPINPUTFOCUS | SDL_APPACTIVE)) {
                                 // We've got focus back, so unpause and break out of the loop
@@ -6017,7 +6017,7 @@ void __GFX_Events() {
             HandleVideoResize(&event.resize);
             break;
         case SDL_QUIT:
-            if (CheckQuit()) throw(0);
+            if (CheckQuit()) jsthrow("throw(0);");
             break;
         case SDL_VIDEOEXPOSE:
             if (sdl.draw.callback && !glide.enabled) sdl.draw.callback( GFX_CallBackRedraw );
@@ -9173,63 +9173,63 @@ fresh_boot:
         /* NTS: CPU reset handler, and BIOS init, has the instruction pointer poised to run through BIOS initialization,
          *      which will then "boot" into the DOSBox-X kernel, and then the shell, by calling VM_Boot_DOSBox_Kernel() */
         /* FIXME: throwing int() is a stupid and nondescriptive way to signal shutdown/reset. */
-        try {
+//        try {
 #if C_DEBUG
             if (control->opt_break_start) DEBUG_EnableDebugger();
 #endif
             DOSBOX_RunMachine();
-        } catch (int x) {
-            if (x == 2) { /* booting a guest OS. "boot" has already done the work to load the image and setup CPU registers */
-                LOG(LOG_MISC,LOG_DEBUG)("Emulation threw a signal to boot guest OS");
-
-                run_machine = true; /* make note. don't run the whole shebang from an exception handler! */
-                dos_kernel_shutdown = !dos_kernel_disabled; /* only if DOS kernel enabled */
-            }
-            else if (x == 3) { /* reboot the system */
-                LOG(LOG_MISC,LOG_DEBUG)("Emulation threw a signal to reboot the system");
-
-                reboot_machine = true;
-                dos_kernel_shutdown = !dos_kernel_disabled; /* only if DOS kernel enabled */
-            }
-            else if (x == 5) { /* go to PC-98 mode */
-                E_Exit("Obsolete int signal");
-            }
-            else if (x == 6) { /* reboot DOS kernel */
-                LOG(LOG_MISC,LOG_DEBUG)("Emulation threw a signal to reboot DOS kernel");
-
-                reboot_dos = true;
-                dos_kernel_shutdown = !dos_kernel_disabled; /* only if DOS kernel enabled */
-            }
-            else if (x == 7) { /* DOS kernel corruption error (need to restart the DOS kernel) */
-                LOG(LOG_MISC,LOG_DEBUG)("Emulation threw a signal to reboot DOS kernel");
-
-                reboot_dos = true;
-                wait_debugger = true;
-                dos_kernel_shutdown = !dos_kernel_disabled; /* only if DOS kernel enabled */
-            }
-            else if (x == 8) { /* Booting to a BIOS, shutting down DOSBox-X BIOS */
-                LOG(LOG_MISC,LOG_DEBUG)("Emulation threw a signal to boot into BIOS image");
-
-                reboot_machine = true;
-                dos_kernel_shutdown = !dos_kernel_disabled; /* only if DOS kernel enabled */
-            }
-            else if (x == 9) { /* BIOS caught a JMP to F000:FFF0 without any other hardware reset signal */
-                LOG(LOG_MISC,LOG_DEBUG)("Emulation detected JMP to BIOS POST routine");
-
-                reboot_machine = true;
-                dos_kernel_shutdown = !dos_kernel_disabled; /* only if DOS kernel enabled */
-            }
-            else {
-                LOG(LOG_MISC,LOG_DEBUG)("Emulation threw DOSBox-X kill switch signal");
-
-                // kill switch (see instances of throw(0) and throw(1) elsewhere in DOSBox)
-                run_machine = false;
-                dos_kernel_shutdown = false;
-            }
-        }
-        catch (...) {
-            throw;
-        }
+//        } catch (int x) {
+//            if (x == 2) { /* booting a guest OS. "boot" has already done the work to load the image and setup CPU registers */
+//                LOG(LOG_MISC,LOG_DEBUG)("Emulation threw a signal to boot guest OS");
+//
+//                run_machine = true; /* make note. don't run the whole shebang from an exception handler! */
+//                dos_kernel_shutdown = !dos_kernel_disabled; /* only if DOS kernel enabled */
+//            }
+//            else if (x == 3) { /* reboot the system */
+//                LOG(LOG_MISC,LOG_DEBUG)("Emulation threw a signal to reboot the system");
+//
+//                reboot_machine = true;
+//                dos_kernel_shutdown = !dos_kernel_disabled; /* only if DOS kernel enabled */
+//            }
+//            else if (x == 5) { /* go to PC-98 mode */
+//                E_Exit("Obsolete int signal");
+//            }
+//            else if (x == 6) { /* reboot DOS kernel */
+//                LOG(LOG_MISC,LOG_DEBUG)("Emulation threw a signal to reboot DOS kernel");
+//
+//                reboot_dos = true;
+//                dos_kernel_shutdown = !dos_kernel_disabled; /* only if DOS kernel enabled */
+//            }
+//            else if (x == 7) { /* DOS kernel corruption error (need to restart the DOS kernel) */
+//                LOG(LOG_MISC,LOG_DEBUG)("Emulation threw a signal to reboot DOS kernel");
+//
+//                reboot_dos = true;
+//                wait_debugger = true;
+//                dos_kernel_shutdown = !dos_kernel_disabled; /* only if DOS kernel enabled */
+//            }
+//            else if (x == 8) { /* Booting to a BIOS, shutting down DOSBox-X BIOS */
+//                LOG(LOG_MISC,LOG_DEBUG)("Emulation threw a signal to boot into BIOS image");
+//
+//                reboot_machine = true;
+//                dos_kernel_shutdown = !dos_kernel_disabled; /* only if DOS kernel enabled */
+//            }
+//            else if (x == 9) { /* BIOS caught a JMP to F000:FFF0 without any other hardware reset signal */
+//                LOG(LOG_MISC,LOG_DEBUG)("Emulation detected JMP to BIOS POST routine");
+//
+//                reboot_machine = true;
+//                dos_kernel_shutdown = !dos_kernel_disabled; /* only if DOS kernel enabled */
+//            }
+//            else {
+//                LOG(LOG_MISC,LOG_DEBUG)("Emulation threw DOSBox-X kill switch signal");
+//
+//                // kill switch (see instances of throw(0) and throw(1) elsewhere in DOSBox)
+//                run_machine = false;
+//                dos_kernel_shutdown = false;
+//            }
+//        }
+//        catch (...) {
+//            jsthrow("throw;");
+//        }
 
 #if DOSBOXMENU_TYPE == DOSBOXMENU_HMENU
         Reflect_Menu();
