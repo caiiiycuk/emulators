@@ -622,6 +622,7 @@ set(SOURCES_X_SDL_MAIN
         )
 
 set(SOURCES_X_JSDOS_CORE
+        "${NATIVE_DIR}/jsdos/dosbox-x/jsdos-x-render.cpp"
         "${NATIVE_DIR}/jsdos/jsdos-asyncify.cpp"
         "${NATIVE_DIR}/jsdos/jsdos-timer.cpp"
         "${NATIVE_DIR}/jsdos/jsdos-support.cpp"
