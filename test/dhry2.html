@@ -1,71 +1,102 @@
 <!doctype html>
 <html>
-    <head>
-        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-        <style>
-         html, body {
-             width: 100%;
-             height: 100%;
-             margin: 0;
-             padding: 0;
-         }
-        </style>
-        <script src="../emulators.js"></script>
-    </head>
-    <body>
-        <div>
-            <button onClick="javascript:downloadBundleAndRun({worker: true, x: false})">dosboxWorker</button>
-            <button onClick="javascript:downloadBundleAndRun({worker: false, x: false})">dosboxDirect</button>
-            <button onClick="javascript:downloadBundleAndRun({worker: true, x: true})">xWorker</button>
-            <button onClick="javascript:downloadBundleAndRun({worker: false, x: true})">xDirect</button>
-            <pre id="stdout"></pre>
-        </div>
 
-        <script>
-         emulators.pathPrefix = "../";
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <style>
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+    </style>
+    <script src="../emulators.js"></script>
+</head>
 
-         let runId = 0;
-         async function runBundle(bundle, options) {
-             const id = runId++;
-             const stdout = document.getElementById("stdout");
+<body>
+    <div>
+        <button onClick="javascript:downloadBundleAndRun({worker: true, x: false})">dosboxWorker</button>
+        <button onClick="javascript:downloadBundleAndRun({worker: false, x: false})">dosboxDirect</button>
+        <button onClick="javascript:downloadBundleAndRun({worker: true, x: true})">xWorker</button>
+        <button onClick="javascript:downloadBundleAndRun({worker: false, x: true})">xDirect</button>
+        <pre id="stdout"></pre>
+    </div>
 
-             // promise is resolved when emulator is started
+    <script>
+        emulators.pathPrefix = "../";
+
+        let runId = 0;
+        async function runBundle(bundle, options) {
+            const id = runId++;
+            const stdout = document.getElementById("stdout");
+
+            // promise is resolved when emulator is started
             const ci = await (options.worker ?
                 (options.x ? emulators.dosboxXWorker(bundle) : emulators.dosboxWorker(bundle)) :
                 (options.x ? emulators.dosboxXDirect(bundle) : emulators.dosDirect(bundle)));
 
-             ci.events().onStdout((message) => {
-                 if (!message.startsWith("dhry2:")) {
-                     return;
-                 }
 
-                 const [_, runs, delta, vax] = message.split(" ");
-                 stdout.innerHTML += (id) + ": " + runs + " runs, browser time " + delta + " ms, " +
-                                     "VAX rating " + vax + "\n";
-                 if (Number.parseInt(delta, 10) >= 5000) {
-                     //properly exit
-                     ci.exit();
-                 }
-             });
-         }
+            let startedAt = null;
+            const median = [];
+            ci.events().onStdout((message) => {
+                if (!message.startsWith("dhry2:")) {
+                    return;
+                }
 
-         function downloadBundleAndRun(options) {
-             const bundleUrl = "dhry2.jsdos";
+                if (startedAt === null) {
+                    startedAt = Date.now();
+                }
 
-             // we need to download bundle, emulators accept only Uint8Array
-             const xhr = new XMLHttpRequest();
-             xhr.open("GET", bundleUrl, true);
-             xhr.overrideMimeType("text/plain; charset=x-user-defined");
-             xhr.responseType = "arraybuffer";
-             xhr.onreadystatechange = () => {
-                 if (xhr.readyState === 4 && xhr.status === 200) {
-                     // do not forget to create Uint8Array, 
-                     // arraybuffer will not work!
-                     runBundle(new Uint8Array(xhr.response), options);
-                 }
-             };
-             xhr.send();
-         };
-        </script>
-    </body>
+
+                const [_, runs, delta, vax] = message.split(" ");
+                stdout.innerHTML += (id) + ": " + runs + " runs, browser time " + delta + " ms, " +
+                    "VAX rating " + vax + "\n";
+                median.push(vax);
+                if (runs === "320000") {
+                    const executionTimeSec = (Date.now() - startedAt) / 1000;
+                    median.sort();
+
+                    stdout.innerHTML += (id) +
+                        ": Time: " + Math.round(executionTimeSec * 10) / 10 + " sec" +
+                        " RpS: " + Math.round((runs - 1000) / executionTimeSec) +
+                        " VAX: " + median[median.length / 2] + "\n";
+
+                    if (ci.transport.module) {
+                        stdout.innerHTML += (id) + ": Message sent: " + ci.transport.module.messageSent +
+                            "(frame " + ci.transport.module.messageFrame + ") " +
+                            "(sound " + ci.transport.module.messageSound + ")\n";
+                        stdout.innerHTML += (id) + ": Message recv: " + ci.transport.module.messageReceived + "\n";
+                        stdout.innerHTML += (id) + ": Sleep count: " + ci.transport.module.sleep_count + "\n";
+                        stdout.innerHTML += (id) + ": Sleep time: " + Math.round(ci.transport.module.sleep_time / 1000 * 10) / 10 + "sec\n";
+                        stdout.innerHTML += (id) + ": Avg sleep: " + ci.transport.module.sleep_time / ci.transport.module.sleep_count + "ms\n";
+                    }
+
+                    //properly exit
+                    ci.exit();
+                }
+            });
+        }
+
+        function downloadBundleAndRun(options) {
+            const bundleUrl = "dhry2.jsdos";
+
+            // we need to download bundle, emulators accept only Uint8Array
+            const xhr = new XMLHttpRequest();
+            xhr.open("GET", bundleUrl, true);
+            xhr.overrideMimeType("text/plain; charset=x-user-defined");
+            xhr.responseType = "arraybuffer";
+            xhr.onreadystatechange = () => {
+                if (xhr.readyState === 4 && xhr.status === 200) {
+                    // do not forget to create Uint8Array, 
+                    // arraybuffer will not work!
+                    runBundle(new Uint8Array(xhr.response), options);
+                }
+            };
+            xhr.send();
+        };
+    </script>
+</body>
+
 </html>

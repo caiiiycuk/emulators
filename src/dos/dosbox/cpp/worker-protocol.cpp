@@ -17,9 +17,15 @@ int frameWidth = 0;
 // clang-format off
 EM_JS(void, ws_init_runtime, (const char* sessionId), {
     var worker = typeof importScripts === "function";
+    Module.messageSent = 0;
+    Module.messageReceived = 0;
+    Module.messageFrame = 0;
+    Module.messageSound = 0;
     Module.sessionId = UTF8ToString(sessionId);
 
     function sendMessage(name, props, transfer) {
+      ++Module.messageSent;
+
       props = props || {};
       props.sessionId = Module.sessionId;
       if (Module.postMessage) {
@@ -78,6 +84,8 @@ EM_JS(void, ws_init_runtime, (const char* sessionId), {
     }
 
     function processMessage(data) {
+      ++Module.messageReceived;
+
       switch (data.name) {
         case "wc-run": {
           Module.bundles = data.props.bundles;
@@ -185,6 +193,7 @@ EM_JS(void, emsc_add_frame_line, (uint32_t start, char* ptr, uint32_t bpp4len), 
 
 EM_JS(void, emsc_end_frame_update, (), {
     if (Module.frame_update_lines.length > 0) {
+      ++Module.messageFrame;
       Module.sendMessage("ws-update-lines", 
         { lines: Module.frame_update_lines },
         Module.frame_update_lines_transferable);
@@ -202,6 +211,7 @@ EM_JS(void, emsc_ws_client_sound_push, (const float *samples, int num_samples), 
         return;
     }
   
+    ++Module.messageSound;
     const heapf32 = Module.HEAPF32.slice(samples / 4, samples / 4 + num_samples);
       Module.sendMessage("ws-sound-push", 
         { samples: heapf32 },

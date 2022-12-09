@@ -13,14 +13,33 @@ EM_JS(void, syncSleep, (), {
       return;
     }
 
-    Asyncify.whenDone().catch(Module.uncaughtAsyncify);
+    if (Asyncify.state === 0 && (Date.now() - Module.last_wakeup < 16 /* 60 FPS */)) {
+      return;
+    }
+
+    if (Asyncify.state === 0) {
+      Module.sleep_started_at = Date.now();
+    }
 
     return Asyncify
-      .handleSleep(function(wakeUp) { Module.sync_sleep(wakeUp); })
+      .handleSleep(function(wakeUp) { 
+        Asyncify.whenDone().catch(Module.uncaughtAsyncify);
+        Module.sync_sleep(() => {
+          ++Module.sleep_count;
+          Module.sleep_time += Date.now() - Module.sleep_started_at;
+          delete Module.sleep_started_at;
+          Module.last_wakeup = Date.now();
+
+          wakeUp();
+        }); 
+      })
   });
 
 EM_JS(bool, initTimeoutSyncSleep, (), {
     Module.alive = true;
+    Module.sleep_count = 0;
+    Module.sleep_time = 0;
+    Module.last_wakeup = Date.now();
     Module.sync_sleep = function(wakeUp) {
       setTimeout(function() {
           if (!Module.alive) {
@@ -54,6 +73,9 @@ EM_JS(bool, initTimeoutSyncSleep, (), {
 
 EM_JS(bool, initMessageSyncSleep, (bool worker), {
     Module.alive = true;
+    Module.sleep_count = 0;
+    Module.sleep_time = 0;
+    Module.last_wakeup = Date.now();
     Module.sync_sleep = function(wakeUp) {
       if (Module.sync_wakeUp) {
         throw new Error("Trying to sleep in sleeping state!");
@@ -132,6 +154,10 @@ EM_JS(bool, isNode, (), {
     return typeof process === "object" && typeof process.versions === "object" && typeof process.versions.node === "string";
   });
 
+EM_JS(bool, asyncifyNormalRun, (), {
+  return Asyncify.state === 0 ? 1 : 0;
+});
+
 // clang-format on
 #else
 #include <thread>
@@ -197,5 +223,13 @@ extern "C" void asyncify_sleep(unsigned int ms) {
   }
 
   std::this_thread::sleep_for(std::chrono::milliseconds(ms));
+#endif
+}
+
+bool jsdos::asyncifyNormalRun() {
+#ifdef EMSCRIPTEN
+  return ::asyncifyNormalRun();
+#else
+  return true;
 #endif
 }
