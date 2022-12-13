@@ -154,10 +154,6 @@ EM_JS(bool, isNode, (), {
     return typeof process === "object" && typeof process.versions === "object" && typeof process.versions.node === "string";
   });
 
-EM_JS(bool, asyncifyNormalRun, (), {
-  return Asyncify.state === 0 ? 1 : 0;
-});
-
 // clang-format on
 #else
 #include <thread>
@@ -223,13 +219,5 @@ extern "C" void asyncify_sleep(unsigned int ms) {
   }
 
   std::this_thread::sleep_for(std::chrono::milliseconds(ms));
-#endif
-}
-
-bool jsdos::asyncifyNormalRun() {
-#ifdef EMSCRIPTEN
-  return ::asyncifyNormalRun();
-#else
-  return true;
 #endif
 }

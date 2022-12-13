@@ -6,7 +6,6 @@
 #define JS_DOS_JSDOS_ASYNCIFY_H
 namespace jsdos {
   void initAsyncify();
-  bool asyncifyNormalRun();
   void asyncifyLock();
   void asyncifyUnlock();
   void destroyAsyncify();
