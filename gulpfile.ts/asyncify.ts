@@ -1,10 +1,17 @@
 import { log, error, warn } from "./log";
 import * as fs from "fs";
 
-const asyncifyFile = "targets/dosbox-asyncify.txt";
 const stackFile = "/tmp/stack.txt";
 
-export async function asyncifyAdd() {
+export async function dosboxAsyncify() {
+    return doAsyncifyAdd("targets/dosbox-asyncify.txt");
+}
+
+export async function dosboxXAsyncify() {
+    return doAsyncifyAdd("targets/dosbox-x-asyncify.txt");
+}
+
+async function doAsyncifyAdd(asyncifyFile: string) {
     if (!fs.existsSync(stackFile)) {
         error("Stack file " + stackFile + " does not exists, exitinig...");
         return;

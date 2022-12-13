@@ -5,7 +5,7 @@ import { test } from "./test";
 
 import { emitTypes } from "./types";
 import { updateDosbox } from "./update-dosbox";
-import { asyncifyAdd } from "./asyncify";
+import { dosboxAsyncify, dosboxXAsyncify } from "./asyncify";
 
 function build(compress: boolean) {
     return series(
@@ -21,6 +21,5 @@ exports.production = series(
 );
 exports.wasm = wasm(false);
 exports.updateDosbox = updateDosbox;
-exports.asyncifyAdd = asyncifyAdd;
-
-
+exports.dosboxAsyncify = dosboxAsyncify;
+exports.dosboxXAsyncify = dosboxXAsyncify;

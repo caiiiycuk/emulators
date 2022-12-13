@@ -186,7 +186,7 @@ if (${EMSCRIPTEN})
             "${EM_LINK_OPTIONS}"
             "-sUSE_ZLIB=1"
             "-sWASM=1"
-            "--profiling-funcs"
+            # "--profiling-funcs"
             # "-sASSERTIONS=1"
             "-sASYNCIFY=1"
             "-sASYNCIFY_IMPORTS=['syncSleep']"
