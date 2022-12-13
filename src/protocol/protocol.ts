@@ -1,5 +1,5 @@
 import { DosConfig } from "../dos/bundle/dos-conf";
-import { DirectSound, CommandInterface, NetworkType, BackendOptions } from "../emulators";
+import { CommandInterface, NetworkType, BackendOptions } from "../emulators";
 import { CommandInterfaceEventsImpl } from "../impl/ci-impl";
 
 export type ClientMessage =

@@ -90,11 +90,17 @@
                 ci.sendKeyEvent(getKeyCode(e.keyCode), false);
                 e.stopPropagation();
             });
-            window.addEventListener("mousedown", (e) => {
+            canvas.addEventListener("mousemove", (e) => {
+                ci.sendMouseMotion(
+                    (e.clientX - canvas.offsetLeft) / canvas.width, 
+                    (e.clientY - canvas.offsetTop) / canvas.height);
+                e.stopPropagation();
+            });
+            canvas.addEventListener("mousedown", (e) => {
                 ci.sendMouseButton(0, true);
                 e.stopPropagation();
             });
-            window.addEventListener("mouseup", (e) => {
+            canvas.addEventListener("mouseup", (e) => {
                 ci.sendMouseButton(0, false);
                 e.stopPropagation();
             });
