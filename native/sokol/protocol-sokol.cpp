@@ -44,6 +44,7 @@ class GfxState {
   sg_pass_action pass;
   sg_pipeline pipeline;
   sg_bindings bind;
+  sg_shader shader;
 
   GfxState(int width, int height)
       : width(width), height(height), pass({}), pipeline({}), bind({}) {
@@ -55,7 +56,8 @@ class GfxState {
     bind.vertex_buffers[0] = sg_make_buffer(&bufferDescription);
 
     sg_pipeline_desc pipelineDescription = {};
-    pipelineDescription.shader = sg_make_shader(display_shader_desc());
+    shader = sg_make_shader(display_shader_desc());
+    pipelineDescription.shader = shader;
     pipelineDescription.primitive_type = SG_PRIMITIVETYPE_TRIANGLE_STRIP;
     pipelineDescription.layout.attrs[0].format = SG_VERTEXFORMAT_FLOAT2;
     pipelineDescription.layout.attrs[1].format = SG_VERTEXFORMAT_FLOAT2;
@@ -74,6 +76,7 @@ class GfxState {
   }
 
   ~GfxState() {
+    sg_destroy_shader(shader);
     sg_destroy_buffer(bind.vertex_buffers[0]);
     sg_destroy_pipeline(pipeline);
     sg_destroy_image(bind.fs_images[0]);
