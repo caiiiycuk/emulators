@@ -32,6 +32,10 @@
 #include <jsdos-events.h>
 #include <protocol.h>
 
+#ifndef EMSCRIPTEN
+#include <mutex>
+#endif
+
 #ifdef WIN32
 # ifndef WIN32_LEAN_AND_MEAN
 #  define WIN32_LEAN_AND_MEAN
@@ -5334,10 +5338,6 @@ bool gfx_in_mapper = false;
 #define DB_POLLSKIP 1
 #endif
 
-void GFX_Events() {
-  DoKeyEvents();
-}
-
 void __GFX_Events() {
     CheckMapperKeyboardLayout();
 #if defined(C_SDL2) /* SDL 2.x---------------------------------- */
@@ -9738,7 +9738,57 @@ void server_exit() {
   jsdos::requestExit();
 }
 
+#ifdef EMSCRIPTEN
+// clang-format off
+EM_JS(void, emsc_init_backend, (), {
+    Module.onBackendEvent = function (json) {
+        console.log("backend event", json);
+        const message = JSON.parse(json);
+        switch (message.type) {
+            case "wc-trigger-event": {
+                // defined with MAPPER_AddHandler
+                Module.withString(message.event, function(name) {
+                    Module._TriggerEventByName(name);
+                });
+            } break;
+            default:
+                Module.err("Unknown event: " + json);
+        } 
+    };
+});
+// clang-format on
+#endif
+
+#ifndef EMSCRIPTEN
+std::mutex triggerMutex;
+#endif
+std::vector<std::string> triggerEvents;
+extern void MAPPER_TriggerEventByName(const std::string& name);
+extern "C" void EMSCRIPTEN_KEEPALIVE TriggerEventByName(const char* name) {
+#ifndef EMSCRIPTEN
+  std::lock_guard<std::mutex> g(triggerMutex);
+#endif
+  triggerEvents.push_back(name);
+}
+
+void GFX_Events() {
+  DoKeyEvents();
+
+#ifndef EMSCRIPTEN
+  std::lock_guard<std::mutex> g(triggerMutex);
+#endif
+
+  for (auto& next: triggerEvents) {
+    MAPPER_TriggerEventByName(next);
+  }
+  triggerEvents.clear();
+}
+
 int server_run() {
+#ifdef EMSCRIPTEN
+  emsc_init_backend();
+#endif
+
   jsdos::init();
   jsdos::initTimer();
   jsdos::initAsyncify();
