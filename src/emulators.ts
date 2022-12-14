@@ -107,6 +107,9 @@ export interface CommandInterface {
     // * `sendMouseSync` - sends mouse sync event
     sendMouseSync: () => void;
 
+    // * `sendBackendEvent` - send event for current backend, event will be stringified to json
+    sendBackendEvent: (event: any) => void;
+
     // dump **changed** FS as Uint8Array <zip archive>
     persist(): Promise<Uint8Array>;
 
@@ -116,6 +119,7 @@ export interface CommandInterface {
     networkConnect(networkType: NetworkType, address: string, port: number): Promise<void>;
 
     networkDisconnect(networkType: NetworkType): Promise<void>;
+
 }
 
 export type MessageType = "log" | "warn" | "error" | string;

@@ -17,7 +17,8 @@ export type ClientMessage =
     "wc-mute" |
     "wc-unmute" |
     "wc-connect" |
-    "wc-disconnect";
+    "wc-disconnect" |
+    "wc-backend-event";
 
 export type ServerMessage =
     "ws-extract-progress" |
@@ -330,6 +331,10 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
 
     public sendMouseSync() {
         this.sendClientMessage("wc-mouse-sync", { timeMs: Date.now() - this.startedAt });
+    }
+
+    public sendBackendEvent(payload: any) {
+        this.sendClientMessage("wc-backend-event", { json: JSON.stringify(payload) });
     }
 
 

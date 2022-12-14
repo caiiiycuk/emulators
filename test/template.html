@@ -70,6 +70,8 @@
                 stdout.innerHTML += message;
             });
 
+            // ci.events().onMessage(console.log.bind(console));
+
             function getKeyCode(code) {
                 switch (code) {
                     case 13: return 257;
@@ -77,7 +79,7 @@
                     case 39: return 262;
                     case 37: return 263;
                     case 40: return 264;
-                    case 17: return 341;
+                    case 17: return 342;
                     default: return code;
                 }
             }
@@ -85,24 +87,29 @@
             window.addEventListener("keydown", (e) => {
                 ci.sendKeyEvent(getKeyCode(e.keyCode), true);
                 e.stopPropagation();
+                e.preventDefault();
             });
             window.addEventListener("keyup", (e) => {
                 ci.sendKeyEvent(getKeyCode(e.keyCode), false);
                 e.stopPropagation();
+                e.preventDefault();
             });
             canvas.addEventListener("mousemove", (e) => {
                 ci.sendMouseMotion(
                     (e.clientX - canvas.offsetLeft) / canvas.width, 
                     (e.clientY - canvas.offsetTop) / canvas.height);
                 e.stopPropagation();
+                e.preventDefault();
             });
             canvas.addEventListener("mousedown", (e) => {
                 ci.sendMouseButton(0, true);
                 e.stopPropagation();
+                e.preventDefault();
             });
             canvas.addEventListener("mouseup", (e) => {
                 ci.sendMouseButton(0, false);
                 e.stopPropagation();
+                e.preventDefault();
             });
         }
 

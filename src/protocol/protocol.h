@@ -28,9 +28,7 @@ void client_error(const char* tag, const char* message);
 void client_network_connected(enum NetworkType networkType, const char* address, uint32_t port);
 void client_network_disconnected(enum NetworkType networkType);
 
-#ifndef EMSCRIPTEN
-extern void client_tick();
-#endif
+void client_tick();
 
 // -- Server (Worker)
 

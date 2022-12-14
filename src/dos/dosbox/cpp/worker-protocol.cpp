@@ -51,10 +51,15 @@ EM_JS(void, ws_init_runtime, (const char* sessionId), {
     Module.print = Module.log;
     Module.printErr = Module.err;
     Module.mallocString = function(value) {
-        const valueLength = Module['lengthBytesUTF8'](value) + 1;
-        const valueBuffer = Module['_malloc'](valueLength);
-        Module.stringToUTF8(value, valueBuffer, valueLength);
-        return valueBuffer;
+      const valueLength = Module['lengthBytesUTF8'](value) + 1;
+      const valueBuffer = Module['_malloc'](valueLength);
+      Module.stringToUTF8(value, valueBuffer, valueLength);
+      return valueBuffer;
+    };
+    Module.withString = function(value, callback) {
+      const cValue = Module.mallocString(value);
+      callback(cValue);
+      Module['_free'](cValue);
     };
     Module.uncaught = function (error) {
       Module.err("Backend crashed, cause: " + (error.message || error));
@@ -133,6 +138,13 @@ EM_JS(void, ws_init_runtime, (const char* sessionId), {
         } break;
         case "wc-sync-sleep": {
           // ignore
+        } break;
+        case "wc-backend-event": {
+          if (Module.onBackendEvent) {
+            Module.onBackendEvent(data.props.json);
+          } else {
+            Module.err("Backend does not support custom events");
+          }
         } break;
         case "wc-connect": {
           const buffer = Module.mallocString(data.props.address);
@@ -415,7 +427,7 @@ extern "C" void EMSCRIPTEN_KEEPALIVE exitRuntime() {
   emsc_exit_runtime();
 }
 
-void workerTickHandler() {
+void client_tick() {
   static bool reentranceLock = false;
   if (reentranceLock) {
     return;
@@ -432,7 +444,6 @@ void workerTickHandler() {
 }
 
 extern "C" void EMSCRIPTEN_KEEPALIVE runRuntime() {
-  TIMER_AddTickHandler(&workerTickHandler);
   server_run();
   emsc_ws_exit_runtime();
   exitRuntime();
