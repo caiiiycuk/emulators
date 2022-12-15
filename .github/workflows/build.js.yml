@@ -22,11 +22,13 @@ jobs:
       with:
         node-version: ${{ matrix.node-version }}
         cache: 'npm'
+    - run: sudo apt-get -yqq update
+    - run: sudo apt-get install -yq --no-install-recommends cmake ninja-build
     - run: npm install -g yarn
     - run: yarn
     - run: yarn run eslint src --ext ts,tsx --max-warnings 0
     - run: yarn run eslint test --ext ts,tsx --max-warnings 0
-    - run: yarn run tsc --noEmit
+    - run: yarn run tsc --noemit
     - run: git clone https://github.com/emscripten-core/emsdk.git
     - run: cd emsdk && ./emsdk install ${{ matrix.emsdk-version }} && ./emsdk activate ${{ matrix.emsdk-version }} && cd ..
     - run: source ./emsdk/emsdk_env.sh && yarn run gulp

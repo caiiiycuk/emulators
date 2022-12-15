@@ -5,7 +5,7 @@ RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
 SHELL ["/bin/bash", "-c"]
 RUN apt-get -yqq update && \
-    apt-get install -yq --no-install-recommends ca-certificates apt-utils build-essential git python3 cmake && \
+    apt-get install -yq --no-install-recommends ca-certificates apt-utils build-essential git python3 cmake ninja && \
     apt-get autoremove -y && \
     apt-get clean -y
 
