@@ -11,7 +11,7 @@ jobs:
     strategy:
       matrix:
         node-version: [14.x]
-        emsdk-version: [3.1.24]
+        emsdk-version: [3.1.28]
     steps:
     - uses: actions/checkout@v3
       with:
@@ -30,7 +30,7 @@ jobs:
     - run: git clone https://github.com/emscripten-core/emsdk.git
     - run: cd emsdk && ./emsdk install ${{ matrix.emsdk-version }} && ./emsdk activate ${{ matrix.emsdk-version }} && cd ..
     - run: source ./emsdk/emsdk_env.sh && yarn run gulp
-    - run: npm publish
+    - run: npm publish --tag beta
       env:
         NODE_AUTH_TOKEN: ${{secrets.NODE_AUTH_TOKEN}}
     - name: upload
