@@ -29,3 +29,10 @@ temp.jsdos
 bench
 emulators.zip
 emsdk
+emscripten
+targets
+.github
+.gitmodules
+.eslintrc.json
+Dockerfile
+.dockerignore
