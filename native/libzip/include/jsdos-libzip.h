@@ -21,8 +21,8 @@ void zip_set_on_progress(fnOnProgress onProgress);
 #endif
 
 ZipArchive EMSCRIPTEN_KEEPALIVE zip_from_fs(double changedAfterMs);
-int EMSCRIPTEN_KEEPALIVE zip_to_fs(const char *data, uint32_t length);
-int EMSCRIPTEN_KEEPALIVE zipfile_to_fs(const char *fileName);
+int EMSCRIPTEN_KEEPALIVE zip_to_fs(const char *data, uint32_t length, const char* filter);
+int EMSCRIPTEN_KEEPALIVE zipfile_to_fs(const char *fileName, const char* filter);
 double EMSCRIPTEN_KEEPALIVE get_changes_mtime_ms();
 void EMSCRIPTEN_KEEPALIVE libzip_destroy();
 

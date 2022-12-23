@@ -8,6 +8,8 @@ import { dosDirect } from "../dos/dosbox/ts/direct";
 import { dosWorker } from "../dos/dosbox/ts/worker";
 
 import { TransportLayer, CommandInterfaceOverTransportLayer } from "../protocol/protocol";
+import { DosConfig } from "../dos/bundle/dos-conf";
+import LibZip from "../libzip/libzip";
 
 class EmulatorsImpl implements Emulators {
     pathPrefix = "";
@@ -21,6 +23,37 @@ class EmulatorsImpl implements Emulators {
         const modules = await this.wasmModules();
         const libzipWasm = await modules.libzip();
         return new DosBundle(libzipWasm);
+    }
+
+    async dosConfig(bundles: Uint8Array | Uint8Array[]): Promise<DosConfig | null> {
+        const modules = await this.wasmModules();
+        const libzipWasm = await modules.libzip();
+
+        const module = {};
+        await libzipWasm.instantiate(module);
+        const libzip = new LibZip(module);
+
+        if (!Array.isArray(bundles)) {
+            bundles = [bundles];
+        }
+
+        bundles = [...bundles];
+        bundles.reverse();
+
+        try {
+            for (const bundle of bundles) {
+                libzip.zipToFs(bundle, "/", ".jsdos/jsdos.json");
+                try {
+                    const contents = (await libzip.readFile(".jsdos/jsdos.json")) as string;
+                    return JSON.parse(contents);
+                } catch (e) {
+                    // ignore
+                }
+            }
+            return null;
+        } finally {
+            libzip.destroy();
+        }
     }
 
     async dosboxNode(bundle: Uint8Array | Uint8Array[], options?: BackendOptions): Promise<CommandInterface> {

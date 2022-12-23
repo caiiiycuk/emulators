@@ -173,6 +173,32 @@ export function testLibZip() {
         assert.equal(await libzip.readFile("C:\\wiki\\musk"), wikiElonMusk);
         destroy(libzip);
     });
+
+    test("libzip filter must work", async () => {
+        let libzip = await makeLibZip();
+
+        await libzip.writeFile("wiki/musk1", wikiElonMusk);
+        await libzip.writeFile("wiki/musk2", wikiElonMusk);
+        await libzip.writeFile("wiki/musk3", wikiElonMusk);
+        await libzip.writeFile("wiki/musk4", wikiElonMusk);
+
+        const archive = await libzip.zipFromFs();
+        destroy(libzip);
+
+        libzip = await makeLibZip();
+        await libzip.zipToFs(archive, "/", "wiki/musk2");
+        assert.equal(await libzip.readFile("wiki/musk1").catch(() => ""), "");
+        assert.equal(await libzip.readFile("wiki/musk2"), wikiElonMusk);
+        assert.equal(await libzip.readFile("wiki/musk3").catch(() => ""), "");
+        assert.equal(await libzip.readFile("wiki/musk4").catch(() => ""), "");
+
+        await libzip.zipToFs(archive, "/", "wiki/musk3");
+        assert.equal(await libzip.readFile("wiki/musk1").catch(() => ""), "");
+        assert.equal(await libzip.readFile("wiki/musk2"), wikiElonMusk);
+        assert.equal(await libzip.readFile("wiki/musk3"), wikiElonMusk);
+        assert.equal(await libzip.readFile("wiki/musk4").catch(() => ""), "");
+        destroy(libzip);
+    });
 }
 
 const wikiElonMusk = `

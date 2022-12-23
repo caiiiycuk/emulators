@@ -11,32 +11,13 @@ import emulators from "../../src/impl/emulators-impl";
 async function toFs(bundle: DosBundle,
                     cb: (libzip: LibZip) => Promise<void>,
                     overwriteConfig = false) {
-    const packer = await makeLibZip();
     const array = await bundle.toUint8Array(overwriteConfig);
-    destroy(packer);
 
     const unpacker = await makeLibZip();
     await unpacker.zipToFs(array);
     await cb(unpacker);
     destroy(unpacker);
 }
-
-// async function save(bundle: DosBundle) {
-//     const packer = await makeLibZip();
-//     const url = await bundle.toUrl(packer, new CacheNoop(), XhrRequest);
-//     destroy(packer);
-
-//     const a = document.createElement("a");
-//     a.href = url;
-//     a.download = "archive.zip";
-//     document.body.appendChild(a);
-//     a.click();
-
-//     setTimeout(() => {
-//         document.body.removeChild(a);
-//         URL.revokeObjectURL(url);
-//     }, 0);
-// }
 
 export function testDosBundle() {
     suite("bundle");
@@ -105,5 +86,19 @@ export function testDosBundle() {
             assert.ok(digger);
             assert.ok(arkanoid);
         });
+    });
+
+    test("can read bundle config", async () => {
+        const libzip = await makeLibZip();
+        libzip.writeFile("1", "1");
+        let archive = await libzip.zipFromFs();
+        libzip.destroy();
+        assert.equal(await emulators.dosConfig(archive), null);
+
+        const bundle = await emulators.dosBundle();
+        archive = await bundle.toUint8Array();
+        assert.equal(
+            JSON.stringify(await emulators.dosConfig(archive), null, 2),
+            JSON.stringify(bundle.config, null, 2));
     });
 }

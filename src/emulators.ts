@@ -28,6 +28,9 @@ export interface Emulators {
     // * dosBundle - create empty DosBundle
     dosBundle: () => Promise<DosBundle>;
 
+    // * dosConfig - read bundle config
+    dosConfig: (bundle: Uint8Array | Uint8Array[]) => Promise<DosConfig | null>;
+
     // * dosboxNode - create dosbox node emulator backend
     dosboxNode: (bundle: Uint8Array | Uint8Array[], options?: BackendOptions) => Promise<CommandInterface>;
 

@@ -283,7 +283,7 @@ EM_JS(void, emsc_extract_bundle_to_fs, (), {
       const bytes = Module.bundles[index];
       const buffer = Module._malloc(bytes.length);
       Module.HEAPU8.set(bytes, buffer);
-      const retcode = Module._zip_to_fs(buffer, bytes.length);
+      const retcode = Module._zip_to_fs(buffer, bytes.length, 0);
       Module._free(buffer);
 
       if (retcode !== 0) {

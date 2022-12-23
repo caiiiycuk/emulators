@@ -2,7 +2,7 @@ export default class LibZip {
     public module: any;
     private home: string;
 
-    constructor(module: any, home: string) {
+    constructor(module: any, home: string = "/home/web_user") {
         this.module = module;
         this.home = home;
         this.module.callMain([]);
@@ -24,19 +24,33 @@ export default class LibZip {
         return Promise.resolve(archive);
     }
 
-    zipToFs(zipArchive: Uint8Array, path = "/"): Promise<void> {
+    zipToFs(zipArchive: Uint8Array, path = "/", filter?: string): Promise<void> {
+        const Module = this.module;
+
         path = this.normalizeFilename(path);
         const pathParts = this.normalizeFilename(path).split("/");
         this.createPath(pathParts, 0, pathParts.length);
         this.chdir(path);
 
+        const withFilter = filter !== undefined && filter.length > 0;
+        let filterBuffer = 0;
+        if (withFilter) {
+            const filterLength = Module["lengthBytesUTF8"](filter) + 1;
+            filterBuffer = Module["_malloc"](filterLength);
+            Module.stringToUTF8(filter, filterBuffer, filterLength);
+        }
+
         const bytes = new Uint8Array(zipArchive);
-        const buffer = this.module._malloc(bytes.length);
-        this.module.HEAPU8.set(bytes, buffer);
-        const retcode = this.module._zip_to_fs(buffer, bytes.length);
-        this.module._free(buffer);
+        const buffer = Module._malloc(bytes.length);
+        Module.HEAPU8.set(bytes, buffer);
+        const retcode = Module._zip_to_fs(buffer, bytes.length, filterBuffer);
+        Module._free(buffer);
 
         this.chdirToHome();
+
+        if (withFilter) {
+            Module._free(filterBuffer);
+        }
 
         if (retcode === 0) {
             return Promise.resolve();

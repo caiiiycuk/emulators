@@ -63,7 +63,7 @@ export default class DosBundle {
     async toUint8Array(overwriteConfig = false): Promise<Uint8Array> {
         const module = {};
         await this.libzipWasm.instantiate(module);
-        const libzip = new LibZip(module, "/home/web_user");
+        const libzip = new LibZip(module);
         const conf = await toDosboxConf(this.config);
 
         const promises = [];

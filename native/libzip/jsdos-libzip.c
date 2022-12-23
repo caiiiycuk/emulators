@@ -209,7 +209,7 @@ ZipArchive EMSCRIPTEN_KEEPALIVE zip_from_fs(double changedAfterMs) {
   return zip_fs(changedAfterMs);
 }
 
-int EMSCRIPTEN_KEEPALIVE zip_to_fs(const char *data, uint32_t length) {
+int EMSCRIPTEN_KEEPALIVE zip_to_fs(const char *data, uint32_t length, const char *filter) {
     FILE *archive = fopen(libzipTempArchive, "wb");
     if (!archive) {
         fprintf(stderr, "zip_to_fs: unable to create archive file\n");
@@ -218,7 +218,7 @@ int EMSCRIPTEN_KEEPALIVE zip_to_fs(const char *data, uint32_t length) {
     fwrite(data, length, 1, archive);
     fclose(archive);
 
-    zipfile_to_fs(libzipTempArchive);
+    zipfile_to_fs(libzipTempArchive, filter);
 
     if (remove(libzipTempArchive) != 0) {
         fprintf(stderr, "zip_to_fs: unable to delete archive\n");
@@ -230,7 +230,7 @@ int EMSCRIPTEN_KEEPALIVE zip_to_fs(const char *data, uint32_t length) {
 
 #define ZIPTOFS_BUFFER_SIZE 4096
 
-int EMSCRIPTEN_KEEPALIVE zipfile_to_fs(const char *file) {
+int EMSCRIPTEN_KEEPALIVE zipfile_to_fs(const char *file, const char* filter) {
     struct zip *zipArchive;
     struct zip_file *zipFile;
     struct zip_stat zipStat;
@@ -261,7 +261,7 @@ int EMSCRIPTEN_KEEPALIVE zipfile_to_fs(const char *file) {
             len = strlen(zipStat.name);
             if (zipStat.name[len - 1] == '/') {
                 safe_create_dir(zipStat.name);
-            } else {
+            } else if (!filter || strcmp(filter, zipStat.name) == 0) {
                 zipFile = zip_fopen_index(zipArchive, i, 0);
                 if (!zipFile) {
                     fprintf(stderr, "zip_to_fs: %s\n", zip_strerror(zipArchive));
@@ -275,9 +275,9 @@ int EMSCRIPTEN_KEEPALIVE zipfile_to_fs(const char *file) {
                     ensure_parent_dir(zipStat.name);
                     fd = open(zipStat.name, openFlags, 0644);
                     if (fd < 0) {
-                      fprintf(stderr, "zip_to_fs: unable to write file %s\n",
-                              zipStat.name);
-                      exit(101);
+                        fprintf(stderr, "zip_to_fs: unable to write file %s\n",
+                            zipStat.name);
+                        exit(101);
                     }
                 }
                 sum = 0;
@@ -294,6 +294,10 @@ int EMSCRIPTEN_KEEPALIVE zipfile_to_fs(const char *file) {
                 zip_fclose(zipFile);
 
                 lastExtractedMTimeMs = getMTimeMs(zipStat.name);
+
+                if (filter) {
+                    break;
+                }
             }
         } else {
             printf("File[%s] Line[%d]\n", __FILE__, __LINE__);
