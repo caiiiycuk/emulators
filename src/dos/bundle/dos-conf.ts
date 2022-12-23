@@ -237,7 +237,7 @@ export async function toDosboxConf(config: DosConfig): Promise<string> {
         writeAutoexec(config.autoexec);
 
 
-    return Promise.resolve(content.replaceAll("\n", "\r\n"));
+    return Promise.resolve(content.replace(/\n/g, "\r\n"));
 }
 
 function writeCategory(section: DosConfigCategory): string {

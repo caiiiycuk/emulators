@@ -280,6 +280,6 @@ echo on
 # █ ███ █ ▀█▀▀▄▀▀▄████▀▀█▄█
 # █ ▀▀▀ █ ▄▀▀█▀█▀▄ ▀▀▄▄█▄█
 # ▀▀▀▀▀▀▀ ▀   ▀▀ ▀  ▀   ▀▀▀
-`.replaceAll("\n", "\r\n");
+`.replace(/\n/g, "\r\n");
 
 /* eslint-enable max-len */
