@@ -1,5 +1,5 @@
 import { DosConfig } from "../dos/bundle/dos-conf";
-import { CommandInterface, NetworkType, BackendOptions } from "../emulators";
+import { CommandInterface, NetworkType, BackendOptions, AsyncifyStats } from "../emulators";
 import { CommandInterfaceEventsImpl } from "../impl/ci-impl";
 
 export type ClientMessage =
@@ -18,7 +18,8 @@ export type ClientMessage =
     "wc-unmute" |
     "wc-connect" |
     "wc-disconnect" |
-    "wc-backend-event";
+    "wc-backend-event" |
+    "wc-asyncify-stats";
 
 export type ServerMessage =
     "ws-extract-progress" |
@@ -37,7 +38,8 @@ export type ServerMessage =
     "ws-config" |
     "ws-sync-sleep" |
     "ws-connected" |
-    "ws-disconnected";
+    "ws-disconnected" |
+    "ws-asyncify-stats";
 
 export type MessageHandler = (name: ServerMessage, props: { [key: string]: any }) => void;
 
@@ -85,6 +87,9 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
 
     private disconnectPromise: Promise<void> | null = null;
     private disconnectResolve: () => void = () => {/**/};
+
+    private asyncifyStatsPromise: Promise<AsyncifyStats> | null = null;
+    private asyncifyStatsResolve: (stats: AsyncifyStats) => void = () => {/**/};
 
     public options: BackendOptions;
 
@@ -197,6 +202,11 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
                 if (this.options.onExtractProgress) {
                     this.options.onExtractProgress(props.index, props.file, props.extracted, props.count);
                 }
+            } break;
+            case "ws-asyncify-stats": {
+                this.asyncifyStatsResolve(props as AsyncifyStats);
+                this.asyncifyStatsResolve = () => {/**/};
+                this.asyncifyStatsPromise = null;
             } break;
             default: {
                 // eslint-disable-next-line
@@ -440,5 +450,20 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
             });
         });
         return this.disconnectPromise;
+    }
+
+    public asyncifyStats(): Promise<AsyncifyStats> {
+        if (this.asyncifyStatsPromise != null) {
+            return this.asyncifyStatsPromise;
+        }
+
+        const promise = new Promise<AsyncifyStats>((resolve) => {
+            this.asyncifyStatsResolve = resolve;
+        });
+
+        this.asyncifyStatsPromise = promise;
+        this.sendClientMessage("wc-asyncify-stats", {});
+
+        return promise;
     }
 }

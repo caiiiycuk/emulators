@@ -154,6 +154,16 @@ EM_JS(void, ws_init_runtime, (const char* sessionId), {
         case "wc-disconnect": {
           Module._networkDisconnect(data.props.networkType);
         } break;
+        case "wc-asyncify-stats": {
+          sendMessage("ws-asyncify-stats", {
+            messageSent: Module.messageSent,
+            messageReceived: Module.messageReceived,
+            messageFrame: Module.messageFrame,
+            messageSound: Module.messageSound,
+            sleepCount: Module.sleep_count,
+            sleepTime: Module.sleep_time,
+          });
+        } break;
         default: {
           console.log("Unknown client message (wc): " + JSON.stringify(data));
         } break;

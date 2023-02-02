@@ -54,6 +54,15 @@ export interface Emulators {
         options?: BackendOptions) => Promise<CommandInterface>;
 }
 
+export interface AsyncifyStats {
+    messageSent: number,
+    messageReceived: number,
+    messageFrame: number,
+    messageSound: number,
+    sleepCount: number,
+    sleepTime: number,
+}
+
 export interface CommandInterface {
     // * get bundle config
     config: () => Promise<DosConfig>;
@@ -116,6 +125,8 @@ export interface CommandInterface {
     networkConnect(networkType: NetworkType, address: string, port: number): Promise<void>;
 
     networkDisconnect(networkType: NetworkType): Promise<void>;
+
+    asyncifyStats(): Promise<AsyncifyStats>;
 
 }
 

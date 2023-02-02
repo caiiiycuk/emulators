@@ -33,6 +33,7 @@
         </div>
         <p>FRAME:</p>
         <canvas id="canvas"></canvas>
+        <p id="sleepPerSec"></p>
         <p>STDOUT:</p>
         <pre id="stdout"></pre>
     </div>
@@ -52,18 +53,30 @@
             const stdout = document.getElementById("stdout");
             const canvas = document.getElementById("canvas");
             const gl = canvas.getContext("webgl");
+            const sleepPerSec = document.getElementById("sleepPerSec");
 
             // promise is resolved when emulator is started
             const ci = await (options.worker ?
                 (options.x ? emulators.dosboxXWorker(bundle) : emulators.dosboxWorker(bundle)) :
                 (options.x ? emulators.dosboxXDirect(bundle) : emulators.dosDirect(bundle)));
 
+            let intervalStartedAt = Date.now();
+            let intervalCount = 0;
+            setInterval(() => {
+                ci.asyncifyStats().then((stats) => {
+                    const avg = (stats.sleepCount - intervalCount) * 1000 / (Date.now() - intervalStartedAt);
+                    intervalStartedAt = Date.now();
+                    intervalCount = stats.sleepCount;
+                    sleepPerSec.innerHTML = "Sleep per sec: " + avg;
+                });
+            }, 3000);
+
             window.ci = ci;
 
             webGl({ 
                 canvas,
                 addOnResize: () => {},
-            }, ci);
+            }, ci, stats);
             audioNode(ci);
 
             ci.events().onStdout((message) => {

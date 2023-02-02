@@ -39,6 +39,8 @@
 
 
             let startedAt = null;
+            let runStartedAt = Date.now();
+            let sleepCount = 0;
             const median = [];
             ci.events().onStdout((message) => {
                 if (!message.startsWith("dhry2:")) {
@@ -49,10 +51,15 @@
                     startedAt = Date.now();
                 }
 
-
                 const [_, runs, delta, vax] = message.split(" ");
                 stdout.innerHTML += (id) + ": " + runs + " runs, browser time " + delta + " ms, " +
                     "VAX rating " + vax + "\n";
+                ci.asyncifyStats().then((stats) => {
+                    const sleepPerSec = (stats.sleepCount - sleepCount) * 1000 / (Date.now() - runStartedAt);
+                    runStartedAt = Date.now();
+                    sleepCount = stats.sleepCount;
+                    stdout.innerHTML += (id) + ": " + sleepPerSec + " sleepPerSec\n";
+                });
                 median.push(vax);
                 if (runs === "320000") {
                     const executionTimeSec = (Date.now() - startedAt) / 1000;
@@ -63,18 +70,19 @@
                         " RpS: " + Math.round((runs - 1000) / executionTimeSec) +
                         " VAX: " + median[median.length / 2] + "\n";
 
-                    if (ci.transport.module) {
-                        stdout.innerHTML += (id) + ": Message sent: " + ci.transport.module.messageSent +
-                            "(frame " + ci.transport.module.messageFrame + ") " +
-                            "(sound " + ci.transport.module.messageSound + ")\n";
-                        stdout.innerHTML += (id) + ": Message recv: " + ci.transport.module.messageReceived + "\n";
-                        stdout.innerHTML += (id) + ": Sleep count: " + ci.transport.module.sleep_count + "\n";
-                        stdout.innerHTML += (id) + ": Sleep time: " + Math.round(ci.transport.module.sleep_time / 1000 * 10) / 10 + "sec\n";
-                        stdout.innerHTML += (id) + ": Avg sleep: " + ci.transport.module.sleep_time / ci.transport.module.sleep_count + "ms\n";
-                    }
+                    ci.asyncifyStats().then((stats) => {
+                        stdout.innerHTML += (id) + ": Message sent: " + stats.messageSent +
+                            "(frame " + stats.messageFrame + ") " +
+                            "(sound " + stats.messageSound + ")\n";
+                        stdout.innerHTML += (id) + ": Message recv: " + stats.messageReceived + "\n";
+                        stdout.innerHTML += (id) + ": Sleep count: " + stats.sleepCount + "\n";
+                        stdout.innerHTML += (id) + ": Sleep time: " + Math.round(stats.sleepTime / 1000 * 10) / 10 + "sec\n";
+                        stdout.innerHTML += (id) + ": Avg sleep time: " + stats.sleepTime / stats.sleepCount + "ms\n";
+                        stdout.innerHTML += (id) + ": Avg sleep per sec: " + stats.sleepCount * 1000 / (Date.now() - startedAt) + "\n";
 
-                    //properly exit
-                    ci.exit();
+                        //properly exit
+                        ci.exit();
+                    });
                 }
             });
         }

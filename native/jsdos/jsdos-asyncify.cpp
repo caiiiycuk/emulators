@@ -27,10 +27,12 @@ EM_JS(void, syncSleep, (), {
           Asyncify.whenDone().catch(Module.uncaughtAsyncify);
         }
         Module.sync_sleep(() => {
+          const now = Date.now();
+          
           ++Module.sleep_count;
-          Module.sleep_time += Date.now() - Module.sleep_started_at;
+          Module.sleep_time += now - Module.sleep_started_at;
           delete Module.sleep_started_at;
-          Module.last_wakeup = Date.now();
+          Module.last_wakeup = now;
 
           wakeUp();
         }); 

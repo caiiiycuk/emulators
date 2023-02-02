@@ -7,6 +7,8 @@ emulators.pathPrefix = "./";
 
 const bundle = fs.readFileSync("dhry2.jsdos");
 let startedAt = null;
+let runStartedAt = Date.now();
+let sleepCount = 0;
 const median = [];
 
 console.log("Dhrystone 2 Test for " + backend);
@@ -24,6 +26,12 @@ emulators[backend](bundle)
             const [_, runs, delta, vax] = message.split(" ");
             console.log("dhry2: " + runs + " runs, browser time " + delta + " ms, " +
                 "VAX rating " + vax);
+            ci.asyncifyStats().then((stats) => {
+                const sleepPerSec = (stats.sleepCount - sleepCount) * 1000 / (Date.now() - runStartedAt);
+                runStartedAt = Date.now();
+                sleepCount = stats.sleepCount;
+                console.log("dhry2: " + sleepPerSec + " sleepPerSec");
+            });
             median.push(vax);
             if (runs === "320000") {
                 const executionTimeSec = (Date.now() - startedAt) / 1000;
@@ -33,17 +41,20 @@ emulators[backend](bundle)
                     "RpS:", Math.round((runs - 1000) / executionTimeSec),
                     "VAX:", median[median.length / 2]);
 
-                console.log("Message sent:", ci.transport.module.messageSent,
-                    "(frame", ci.transport.module.messageFrame + ")",
-                    "(sound", ci.transport.module.messageSound + ")");
-                console.log("Message recv:", ci.transport.module.messageReceived);
+                ci.asyncifyStats().then((stats) => {
+                    console.log("Message sent:", stats.messageSent,
+                        "(frame", stats.messageFrame + ")",
+                        "(sound", stats.messageSound + ")");
+                    console.log("Message recv:", stats.messageReceived);
 
-                console.log("Sleep count:", ci.transport.module.sleep_count);
-                console.log("Sleep time:", Math.round(ci.transport.module.sleep_time / 1000 * 10) / 10, "sec");
-                console.log("Avg sleep:", ci.transport.module.sleep_time / ci.transport.module.sleep_count, "ms");
+                    console.log("Sleep count:", stats.sleepCount);
+                    console.log("Sleep time:", Math.round(stats.sleepTime / 1000 * 10) / 10, "sec");
+                    console.log("Avg sleep:", stats.sleepTime / stats.sleepCount, "ms");
+                    console.log("Avg sleep per sec:", stats.sleepCount * 1000 / (Date.now() - startedAt));
 
-                // properly exit
-                ci.exit();
+                    // properly exit
+                    ci.exit();
+                });
             }
         });
     })
