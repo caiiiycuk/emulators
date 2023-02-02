@@ -62,7 +62,10 @@ EM_JS(void, ws_init_runtime, (const char* sessionId), {
       Module['_free'](cValue);
     };
     Module.uncaught = function (error) {
-      Module.err("Backend crashed, cause: " + (error.message || error));
+      if (error.message !== "Program terminated with exit(0)" &&
+          error !== "Program terminated with exit(0)") {
+        Module.err("Backend crashed, cause: " + (error.message || error));
+      }
       if (Module.cleanup) {
         Module.cleanup();
       }
