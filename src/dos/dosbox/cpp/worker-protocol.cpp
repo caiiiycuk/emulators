@@ -447,6 +447,7 @@ extern "C" void EMSCRIPTEN_KEEPALIVE runRuntime() {
   server_run();
   emsc_ws_exit_runtime();
   exitRuntime();
+  emscripten_force_exit(0);
 }
 
 extern "C" void EMSCRIPTEN_KEEPALIVE requestPause() { 

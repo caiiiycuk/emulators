@@ -9,7 +9,7 @@ set(SRC_DIR "${CMAKE_CURRENT_LIST_DIR}/src")
 set(NATIVE_DIR "${CMAKE_CURRENT_LIST_DIR}/native")
 set(TARGETS_DIR "${CMAKE_CURRENT_LIST_DIR}/targets")
 
-add_compile_options(-fno-exceptions)
+# add_compile_options(-fno-exceptions)
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -w -Werror=return-type")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -w -Werror=return-type")
@@ -24,6 +24,7 @@ endif()
 
 if(${EMSCRIPTEN})
 	add_definitions(-DEMSCRIPTEN)
+
 	set(EM_LINK_OPTIONS
 		"--emit-symbol-map"
 		"-sTOTAL_STACK=1MB"

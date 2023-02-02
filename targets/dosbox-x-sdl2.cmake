@@ -677,6 +677,7 @@ target_link_libraries(dosbox-x-sdl2 libdosbox-x-sdl2)
 set_property(TARGET dosbox-x-sdl2 PROPERTY CXX_STANDARD 11)
 
 if (${EMSCRIPTEN})
+    target_compile_options(libdosbox-x-jsdos PUBLIC -fwasm-exceptions)
     set_target_properties(dosbox-x-sdl2 PROPERTIES SUFFIX .html)
     target_link_options(dosbox-x-sdl2 PUBLIC
             ${EM_LINK_OPTIONS}
@@ -694,10 +695,12 @@ if (${EMSCRIPTEN})
     # TODO: set sERROR_ON_UNDEFINED_SYMBOLS=1
     target_link_options(wdosbox-x PUBLIC
             ${EM_LINK_OPTIONS}
+            -fwasm-exceptions
+            -Oz
             "-sUSE_ZLIB=1"
             "-sUSE_SDL=2"
-            # "--profiling-funcs"
-            # "-sASSERTIONS=1"
+            "--profiling-funcs"
+            "-sASSERTIONS=1"
             "-sASYNCIFY=1"
             "-sASYNCIFY_IMPORTS=['syncSleep']"
             "-sASYNCIFY_WHITELIST=@${TARGETS_DIR}/dosbox-x-asyncify.txt"

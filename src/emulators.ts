@@ -54,12 +54,6 @@ export interface Emulators {
         options?: BackendOptions) => Promise<CommandInterface>;
 }
 
-export interface DirectSound {
-    ringSize: number,
-    bufferSize: number,
-    buffer: Float32Array[],
-}
-
 export interface CommandInterface {
     // * get bundle config
     config: () => Promise<DosConfig>;

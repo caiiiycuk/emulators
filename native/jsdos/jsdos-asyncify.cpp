@@ -23,7 +23,9 @@ EM_JS(void, syncSleep, (), {
 
     return Asyncify
       .handleSleep(function(wakeUp) { 
-        Asyncify.whenDone().catch(Module.uncaughtAsyncify);
+        if (Asyncify.currData) {
+          Asyncify.whenDone().catch(Module.uncaughtAsyncify);
+        }
         Module.sync_sleep(() => {
           ++Module.sleep_count;
           Module.sleep_time += Date.now() - Module.sleep_started_at;

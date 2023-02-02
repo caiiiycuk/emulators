@@ -96,6 +96,14 @@ function extractFnSignature(next: string): string {
         }
     }
 
+    // case 4
+    if (fnSig.length === 0) {
+        const matched = /\s*(.*)\s+emulators\.js/.exec(next);
+        if (matched) {
+            fnSig = matched[1];
+        }
+    }
+
     fnSig = fnSig.trim();
 
     if (fnSig.length == 0) {
