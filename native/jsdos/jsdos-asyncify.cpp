@@ -8,7 +8,7 @@
 // clang-format off
 #include <emscripten.h>
 
-EM_JS(void, syncSleep, (), {
+EM_JS(void, syncSleep, (bool cpu), {
     if (!Module.sync_sleep) {
       throw new Error("Async environment does not exists");
       return;
@@ -16,7 +16,7 @@ EM_JS(void, syncSleep, (), {
 
     const now = Date.now();
     if (Asyncify.state === 0) { // NORMAL
-      if (now - Module.last_wakeup < 16 /* 60 FPS */) {
+      if (!cpu && (now - Module.last_wakeup < 16) /* 60 FPS */) {
         return;
       }
       
@@ -207,12 +207,12 @@ void jsdos::asyncifyUnlock() {
   --asyncifyLockCount;
 }
 
-extern "C" void asyncify_sleep(unsigned int ms) {
+extern "C" void asyncify_sleep(unsigned int ms, bool cpu) {
   if (asyncifyLockCount != 0) {
     return;
   }
 #ifdef EMSCRIPTEN
-  syncSleep();
+  syncSleep(cpu);
 #else
   while (paused) {
     std::this_thread::sleep_for(std::chrono::milliseconds(16));

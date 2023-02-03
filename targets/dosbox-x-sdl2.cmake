@@ -696,7 +696,6 @@ if (${EMSCRIPTEN})
     target_link_options(wdosbox-x PUBLIC
             ${EM_LINK_OPTIONS}
             -fwasm-exceptions
-            -Oz
             "-sUSE_ZLIB=1"
             "-sUSE_SDL=2"
         #     "--profiling-funcs"
