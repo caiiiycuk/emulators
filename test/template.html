@@ -33,7 +33,7 @@
         </div>
         <p>FRAME:</p>
         <canvas id="canvas"></canvas>
-        <p id="sleepPerSec"></p>
+        <p id="stats"></p>
         <p>STDOUT:</p>
         <pre id="stdout"></pre>
     </div>
@@ -53,7 +53,7 @@
             const stdout = document.getElementById("stdout");
             const canvas = document.getElementById("canvas");
             const gl = canvas.getContext("webgl");
-            const sleepPerSec = document.getElementById("sleepPerSec");
+            const statsEl = document.getElementById("stats");
 
             // promise is resolved when emulator is started
             const ci = await (options.worker ?
@@ -61,13 +61,18 @@
                 (options.x ? emulators.dosboxXDirect(bundle) : emulators.dosDirect(bundle)));
 
             let intervalStartedAt = Date.now();
-            let intervalCount = 0;
+            let prevSleepCount = 0;
+            let prevCycles = 0;
             setInterval(() => {
                 ci.asyncifyStats().then((stats) => {
-                    const avg = (stats.sleepCount - intervalCount) * 1000 / (Date.now() - intervalStartedAt);
+                    const dt = Date.now() - intervalStartedAt;
+                    const avgSleep = (stats.sleepCount - prevSleepCount) * 1000 / dt;
+                    const avgCycles = (stats.cycles - prevCycles) / dt;
                     intervalStartedAt = Date.now();
-                    intervalCount = stats.sleepCount;
-                    sleepPerSec.innerHTML = "Sleep per sec: " + avg;
+                    prevSleepCount = stats.sleepCount;
+                    prevCycles = stats.cycles;
+                    statsEl.innerHTML = "Avg sleep p/sec: " + Math.round(avgSleep) +
+                         ", cycles p/ms: " + Math.round(avgCycles);
                 });
             }, 3000);
 

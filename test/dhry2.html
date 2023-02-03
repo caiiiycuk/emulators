@@ -40,8 +40,11 @@
 
             let startedAt = null;
             let runStartedAt = Date.now();
-            let sleepCount = 0;
-            const median = [];
+            let prevSleepCount = 0;
+            let prevCycles = 0;
+            const medianVax = [];
+            const medianCycles = [];
+            const medianSleepCount = [];
             ci.events().onStdout((message) => {
                 if (!message.startsWith("dhry2:")) {
                     return;
@@ -55,22 +58,29 @@
                 stdout.innerHTML += (id) + ": " + runs + " runs, browser time " + delta + " ms, " +
                     "VAX rating " + vax + "\n";
                 ci.asyncifyStats().then((stats) => {
-                    const sleepPerSec = (stats.sleepCount - sleepCount) * 1000 / (Date.now() - runStartedAt);
-                    runStartedAt = Date.now();
-                    sleepCount = stats.sleepCount;
-                    stdout.innerHTML += (id) + ": " + sleepPerSec + " sleepPerSec\n";
+                const dt = Date.now() - runStartedAt;
+                const sleepCount = stats.sleepCount - prevSleepCount;
+                const cycles = stats.cycles - prevCycles;
+                prevSleepCount = stats.sleepCount;
+                prevCycles = stats.cycles;
+                runStartedAt = Date.now();
+                medianSleepCount.push(sleepCount * 1000 / dt);
+                medianCycles.push(cycles / dt);
+                    stdout.innerHTML += (id) + ": sleep p/sec " + Math.round(sleepCount * 1000 /dt) + 
+                        " , avg cycles p/ms: " + Math.round(cycles / dt) + "\n";
                 });
-                median.push(vax);
+                medianVax.push(vax);
                 if (runs === "320000") {
                     const executionTimeSec = (Date.now() - startedAt) / 1000;
-                    median.sort();
+                    medianVax.sort();
 
                     stdout.innerHTML += (id) +
                         ": Time: " + Math.round(executionTimeSec * 10) / 10 + " sec" +
                         " RpS: " + Math.round((runs - 1000) / executionTimeSec) +
-                        " VAX: " + median[median.length / 2] + "\n";
+                        " Med VAX: " + medianVax[medianVax.length / 2] + "\n";
 
                     ci.asyncifyStats().then((stats) => {
+                        const dt = Date.now() - startedAt;
                         stdout.innerHTML += (id) + ": Message sent: " + stats.messageSent +
                             "(frame " + stats.messageFrame + ") " +
                             "(sound " + stats.messageSound + ")\n";
@@ -78,7 +88,10 @@
                         stdout.innerHTML += (id) + ": Sleep count: " + stats.sleepCount + "\n";
                         stdout.innerHTML += (id) + ": Sleep time: " + Math.round(stats.sleepTime / 1000 * 10) / 10 + "sec\n";
                         stdout.innerHTML += (id) + ": Avg sleep time: " + stats.sleepTime / stats.sleepCount + "ms\n";
-                        stdout.innerHTML += (id) + ": Avg sleep per sec: " + stats.sleepCount * 1000 / (Date.now() - startedAt) + "\n";
+                        stdout.innerHTML += (id) + ": Med sleep p/sec: " +
+                            Math.round(medianSleepCount[Math.round(medianSleepCount.length / 2)]) + "\n";
+                        stdout.innerHTML += (id) + ": Med cycles p/ms: " + 
+                            Math.round(medianCycles[Math.round(medianCycles.length / 2)]) + "\n";
 
                         //properly exit
                         ci.exit();

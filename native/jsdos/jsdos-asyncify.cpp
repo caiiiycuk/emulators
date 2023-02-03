@@ -2,6 +2,7 @@
 // Created by caiiiycuk on 13.11.2019.
 //
 #include <jsdos-asyncify.h>
+#include <cstdint>
 
 #ifdef EMSCRIPTEN
 // clang-format off
@@ -13,36 +14,33 @@ EM_JS(void, syncSleep, (), {
       return;
     }
 
-    if (Asyncify.state === 0 && (Date.now() - Module.last_wakeup < 16 /* 60 FPS */)) {
-      return;
+    const now = Date.now();
+    if (Asyncify.state === 0) { // NORMAL
+      if (now - Module.last_wakeup < 16 /* 60 FPS */) {
+        return;
+      }
+      
+      ++Module.sleep_count;
+      
+      Module.cycles += Module._getAndResetCycles();
+      Module.sleep_started_at = now;
+    } else if (Asyncify.state === 2) { // REWIND
+      Module.sleep_time += now - Module.sleep_started_at;
+      Module.last_wakeup = now;
+
+      if (Asyncify.asyncPromiseHandlers === null) {
+        Asyncify.whenDone().catch(Module.uncaughtAsyncify);
+      }
     }
 
-    if (Asyncify.state === 0) {
-      Module.sleep_started_at = Date.now();
-    }
-
-    return Asyncify
-      .handleSleep(function(wakeUp) { 
-        if (Asyncify.currData) {
-          Asyncify.whenDone().catch(Module.uncaughtAsyncify);
-        }
-        Module.sync_sleep(() => {
-          const now = Date.now();
-          
-          ++Module.sleep_count;
-          Module.sleep_time += now - Module.sleep_started_at;
-          delete Module.sleep_started_at;
-          Module.last_wakeup = now;
-
-          wakeUp();
-        }); 
-      })
+    Asyncify.handleSleep(Module.sync_sleep);
   });
 
 EM_JS(bool, initTimeoutSyncSleep, (), {
     Module.alive = true;
     Module.sleep_count = 0;
     Module.sleep_time = 0;
+    Module.cycles = 0;
     Module.last_wakeup = Date.now();
     Module.sync_sleep = function(wakeUp) {
       setTimeout(function() {
@@ -79,6 +77,7 @@ EM_JS(bool, initMessageSyncSleep, (bool worker), {
     Module.alive = true;
     Module.sleep_count = 0;
     Module.sleep_time = 0;
+    Module.cycles = 0;
     Module.last_wakeup = Date.now();
     Module.sync_sleep = function(wakeUp) {
       if (Module.sync_wakeUp) {
@@ -209,10 +208,11 @@ void jsdos::asyncifyUnlock() {
 }
 
 extern "C" void asyncify_sleep(unsigned int ms) {
-#ifdef EMSCRIPTEN
-  if (asyncifyLockCount == 0) {
-    syncSleep();
+  if (asyncifyLockCount != 0) {
+    return;
   }
+#ifdef EMSCRIPTEN
+  syncSleep();
 #else
   while (paused) {
     std::this_thread::sleep_for(std::chrono::milliseconds(16));
@@ -224,4 +224,18 @@ extern "C" void asyncify_sleep(unsigned int ms) {
 
   std::this_thread::sleep_for(std::chrono::milliseconds(ms));
 #endif
+}
+
+namespace {
+  uint64_t cycles = 0;
+}
+
+void jsdos::incCycles() {
+  ::cycles++;
+}
+
+extern "C" uint64_t EMSCRIPTEN_KEEPALIVE getAndResetCycles() {
+  uint64_t tmp = cycles;
+  cycles = 0;
+  return tmp;
 }

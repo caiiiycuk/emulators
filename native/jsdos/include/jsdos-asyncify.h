@@ -9,6 +9,7 @@ namespace jsdos {
   void asyncifyLock();
   void asyncifyUnlock();
   void destroyAsyncify();
+  void incCycles();
 }
 
 extern "C" void asyncify_sleep(unsigned int ms);

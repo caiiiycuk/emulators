@@ -165,6 +165,7 @@ EM_JS(void, ws_init_runtime, (const char* sessionId), {
             messageSound: Module.messageSound,
             sleepCount: Module.sleep_count,
             sleepTime: Module.sleep_time,
+            cycles: Module.cycles,
           });
         } break;
         default: {

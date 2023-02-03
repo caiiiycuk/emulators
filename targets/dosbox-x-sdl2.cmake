@@ -699,8 +699,8 @@ if (${EMSCRIPTEN})
             -Oz
             "-sUSE_ZLIB=1"
             "-sUSE_SDL=2"
-            "--profiling-funcs"
-            "-sASSERTIONS=1"
+        #     "--profiling-funcs"
+        #     "-sASSERTIONS=1"
             "-sASYNCIFY=1"
             "-sASYNCIFY_IMPORTS=['syncSleep']"
             "-sASYNCIFY_WHITELIST=@${TARGETS_DIR}/dosbox-x-asyncify.txt"

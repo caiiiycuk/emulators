@@ -8,8 +8,11 @@ emulators.pathPrefix = "./";
 const bundle = fs.readFileSync("dhry2.jsdos");
 let startedAt = null;
 let runStartedAt = Date.now();
-let sleepCount = 0;
-const median = [];
+let prevSleepCount = 0;
+let prevCycles = 0;
+const medianVax = [];
+const medianCycles = [];
+const medianSleepCount = [];
 
 console.log("Dhrystone 2 Test for " + backend);
 emulators[backend](bundle)
@@ -27,19 +30,27 @@ emulators[backend](bundle)
             console.log("dhry2: " + runs + " runs, browser time " + delta + " ms, " +
                 "VAX rating " + vax);
             ci.asyncifyStats().then((stats) => {
-                const sleepPerSec = (stats.sleepCount - sleepCount) * 1000 / (Date.now() - runStartedAt);
+                const dt = Date.now() - runStartedAt;
+                const sleepCount = stats.sleepCount - prevSleepCount;
+                const cycles = stats.cycles - prevCycles;
+                prevSleepCount = stats.sleepCount;
+                prevCycles = stats.cycles;
                 runStartedAt = Date.now();
-                sleepCount = stats.sleepCount;
-                console.log("dhry2: " + sleepPerSec + " sleepPerSec");
+                medianSleepCount.push(sleepCount * 1000 / dt);
+                medianCycles.push(cycles / dt);
+                console.log("dhry2: sleep p/sec: " + Math.round(sleepCount * 1000 / dt) +
+                    " , avg cycles p/ms: " + Math.round(cycles / dt));
             });
-            median.push(vax);
+            medianVax.push(vax);
             if (runs === "320000") {
                 const executionTimeSec = (Date.now() - startedAt) / 1000;
-                median.sort();
+                medianVax.sort();
+                medianSleepCount.sort();
+                medianCycles.sort();
 
                 console.log("Time:", Math.round(executionTimeSec * 10) / 10, "sec",
                     "RpS:", Math.round((runs - 1000) / executionTimeSec),
-                    "VAX:", median[median.length / 2]);
+                    "Med VAX:", medianVax[Math.round(medianVax.length / 2)]);
 
                 ci.asyncifyStats().then((stats) => {
                     console.log("Message sent:", stats.messageSent,
@@ -50,7 +61,10 @@ emulators[backend](bundle)
                     console.log("Sleep count:", stats.sleepCount);
                     console.log("Sleep time:", Math.round(stats.sleepTime / 1000 * 10) / 10, "sec");
                     console.log("Avg sleep:", stats.sleepTime / stats.sleepCount, "ms");
-                    console.log("Avg sleep per sec:", stats.sleepCount * 1000 / (Date.now() - startedAt));
+                    console.log("Med sleep p/sec:",
+                        Math.round(medianSleepCount[Math.round(medianSleepCount.length / 2)]));
+                    console.log("Med cycles p/ms:",
+                        Math.round(medianCycles[Math.round(medianCycles.length / 2)]));
 
                     // properly exit
                     ci.exit();

@@ -61,6 +61,7 @@ export interface AsyncifyStats {
     messageSound: number,
     sleepCount: number,
     sleepTime: number,
+    cycles: number,
 }
 
 export interface CommandInterface {
