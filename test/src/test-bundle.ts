@@ -9,8 +9,8 @@ import emulators from "../../src/impl/emulators-impl";
 import { Build } from "../../src/build";
 
 async function toFs(bundle: DosBundle,
-                    cb: (libzip: LibZip) => Promise<void>,
-                    overwriteConfig = false) {
+    cb: (libzip: LibZip) => Promise<void>,
+    overwriteConfig = false) {
     const array = await bundle.toUint8Array(overwriteConfig);
 
     const unpacker = await makeLibZip();
@@ -23,7 +23,7 @@ export function testDosBundle() {
     suite("bundle");
 
     test("bundle should contain default dosbox.conf", async () => {
-        await toFs(await emulators.dosBundle(), async (fs) => {
+        await toFs(await emulators.bundle(), async (fs) => {
             const dosboxConf = await fs.readFile(".jsdos/dosbox.conf");
             const jsdosConf = JSON.parse(await fs.readFile(".jsdos/jsdos.json") as string);
             assert.ok(dosboxConf);
@@ -35,7 +35,7 @@ export function testDosBundle() {
     });
 
     test("bundle should download and extract archive to root", async () => {
-        const dosBundle = (await emulators.dosBundle())
+        const dosBundle = (await emulators.bundle())
             .extract("digger.zip", "/");
 
         await toFs(dosBundle, async (fs) => {
@@ -47,7 +47,7 @@ export function testDosBundle() {
     });
 
     test("bundle conf can be overwritten", async () => {
-        const dosBundle = await (await emulators.dosBundle());
+        const dosBundle = await (await emulators.bundle());
         const testPhrase = "overwritten by test";
         dosBundle.dosboxConf += "\n#" + testPhrase;
         dosBundle.extract("digger.jsdos", "/");
@@ -65,7 +65,7 @@ export function testDosBundle() {
 
 
     test("bundle should download and extract archive to path", async () => {
-        const dosBundle = (await emulators.dosBundle())
+        const dosBundle = (await emulators.bundle())
             .extract("digger.zip", "test");
 
         await toFs(dosBundle, async (fs) => {
@@ -77,7 +77,7 @@ export function testDosBundle() {
     });
 
     test("bundle should extract multiple archive to paths", async () => {
-        const dosBundle = (await emulators.dosBundle())
+        const dosBundle = (await emulators.bundle())
             .extract("digger.zip", "/test")
             .extract("arkanoid.zip", "/arkanoid");
 
@@ -96,15 +96,26 @@ export function testDosBundle() {
         libzip.writeFile("1", "1");
         let archive = await libzip.zipFromFs();
         libzip.destroy();
-        assert.equal(await emulators.dosConfig(archive), null);
+        assert.equal(await emulators.bundleConfig(archive), null);
 
-        const bundle = await emulators.dosBundle();
+        const bundle = await emulators.bundle();
         archive = await bundle.toUint8Array();
         assert.equal(
-            (await emulators.dosConfig(archive)).dosboxConf,
+            (await emulators.bundleConfig(archive)).dosboxConf,
             bundle.dosboxConf);
         assert.equal(
-            JSON.stringify((await emulators.dosConfig(archive)).jsdosConf),
+            JSON.stringify((await emulators.bundleConfig(archive)).jsdosConf),
             JSON.stringify(bundle.jsdosConf));
+    });
+
+    test("can update bundle config", async () => {
+        const bundle = await emulators.bundle();
+        const newBundle = await emulators.bundleUpdateConfig(await bundle.toUint8Array(), {
+            dosboxConf: "[sdl]",
+            jsdosConf: { version: "0" },
+        });
+        const config = await emulators.bundleConfig(newBundle);
+        assert.equal("[sdl]", config.dosboxConf);
+        assert.equal(JSON.stringify({ version: "0" }), JSON.stringify(config.jsdosConf));
     });
 }

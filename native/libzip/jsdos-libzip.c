@@ -295,10 +295,6 @@ int EMSCRIPTEN_KEEPALIVE zipfile_to_fs(const char *file, const char* filter) {
                 zip_fclose(zipFile);
 
                 lastExtractedMTimeMs = getMTimeMs(zipStat.name);
-
-                if (filter) {
-                    break;
-                }
             }
         } else {
             printf("File[%s] Line[%d]\n", __FILE__, __LINE__);
@@ -325,4 +321,33 @@ void EMSCRIPTEN_KEEPALIVE libzip_destroy() {
 #ifdef EMSCRIPTEN
     emscripten_force_exit(0);
 #endif
+}
+
+int EMSCRIPTEN_KEEPALIVE zipfile_add(const char* archive, const char* nameInArchive, const char* nameInFs) {
+    int err;
+    zip_t* zipArchive = zip_open(archive, 0, &err);
+    if (!zipArchive) {
+        fprintf(stderr, "zipfile_add: can't open archive file: '%s', errp: %d\n", archive, err);
+        return -1;
+    }
+
+    zip_source_t *source = zip_source_file(zipArchive, nameInFs, 0, 0);
+    if (source == 0) {
+        fprintf(stderr, "zipfile_add: can't create file %s, cause %s\n", nameInFs,
+            zip_strerror(zipArchive));
+        zip_close(zipArchive);
+        return -1;
+    }
+
+    int index = zip_file_add(zipArchive, nameInArchive, source, ZIP_FL_OVERWRITE | ZIP_FL_ENC_UTF_8);
+    if (index == -1) {
+        zip_source_free(source);
+        fprintf(stderr, "zip_from_fs: can't create file %s, cause %s\n", nameInFs,
+                zip_strerror(zipArchive));
+        zip_close(zipArchive);
+        return -1;
+    }
+    
+    zip_close(zipArchive);
+    return 0;
 }

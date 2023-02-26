@@ -26,6 +26,8 @@ int EMSCRIPTEN_KEEPALIVE zipfile_to_fs(const char *fileName, const char* filter)
 double EMSCRIPTEN_KEEPALIVE get_changes_mtime_ms();
 void EMSCRIPTEN_KEEPALIVE libzip_destroy();
 
+int EMSCRIPTEN_KEEPALIVE zipfile_add(const char* archive, const char *file, const char *source);
+
 #ifdef __cplusplus
 }
 #endif

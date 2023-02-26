@@ -34,7 +34,7 @@ function testServer(factory: CIFactory, name: string, assets: string) {
 
     test(name + " can track extract progress", async () => {
         const actual: string[] = [];
-        const ci = await CI(emulatorsImpl.dosBundle(), {
+        const ci = await CI(emulatorsImpl.bundle(), {
             onExtractProgress: (index, file, extracted, count) => {
                 actual.push(index + " " + file + " " + extracted + " " + count);
             },
@@ -49,7 +49,7 @@ function testServer(factory: CIFactory, name: string, assets: string) {
     });
 
     test(name + " can take screenshot of dosbox", async () => {
-        const ci = await CI(emulatorsImpl.dosBundle());
+        const ci = await CI(emulatorsImpl.bundle());
         assert.ok(ci);
         await waitImage(assets + "/init.png", ci, { threshold: 0 });
     });
@@ -67,7 +67,7 @@ function testServer(factory: CIFactory, name: string, assets: string) {
     });
 
     test(name + " should provide config back to js", async () => {
-        const bundle = await emulatorsImpl.dosBundle();
+        const bundle = await emulatorsImpl.bundle();
         const ci = await CI(bundle);
         assert.ok(ci);
         const config = await ci.config();
@@ -125,7 +125,7 @@ function testServer(factory: CIFactory, name: string, assets: string) {
     suite(name + ".game");
 
     test(name + " can run digger.jsdos", async () => {
-        const ci = await CI((await emulatorsImpl.dosBundle())
+        const ci = await CI((await emulatorsImpl.bundle())
             .extract("digger.zip")
             .autoexec("DIGGER.COM"));
         assert.ok(ci);
@@ -133,7 +133,7 @@ function testServer(factory: CIFactory, name: string, assets: string) {
     });
 
     test(name + " can play sound", async () => {
-        const ci = await CI((await emulatorsImpl.dosBundle())
+        const ci = await CI((await emulatorsImpl.bundle())
             .extract("digger.zip")
             .autoexec("DIGGER.COM"));
         assert.ok(ci);
@@ -150,7 +150,7 @@ function testServer(factory: CIFactory, name: string, assets: string) {
     });
 
     test(name + " exit event", async () => {
-        const ci = await CI((await emulatorsImpl.dosBundle())
+        const ci = await CI((await emulatorsImpl.bundle())
             .extract("digger.zip")
             .autoexec("DIGGER.COM"));
         assert.ok(ci);
@@ -165,7 +165,7 @@ function testServer(factory: CIFactory, name: string, assets: string) {
     });
 
     test(name + " can pause/resume emulation", async () => {
-        const ci = await CI((await emulatorsImpl.dosBundle())
+        const ci = await CI((await emulatorsImpl.bundle())
             .extract("digger.zip")
             .autoexec("DIGGER.COM"));
         assert.ok(ci);
@@ -208,7 +208,7 @@ function testServer(factory: CIFactory, name: string, assets: string) {
     });
 
     test(name + " can simulate key events", async () => {
-        const ci = await CI((await emulatorsImpl.dosBundle())
+        const ci = await CI((await emulatorsImpl.bundle())
             .extract("digger.zip")
             .autoexec("DIGGER.COM"));
         assert.ok(ci);
@@ -230,7 +230,7 @@ function testServer(factory: CIFactory, name: string, assets: string) {
     });
 
     test(name + " can simulate key combination", async () => {
-        const ci = await CI((await emulatorsImpl.dosBundle())
+        const ci = await CI((await emulatorsImpl.bundle())
             .extract("digger.zip")
             .autoexec("DIGGER.COM"));
         assert.ok(ci);

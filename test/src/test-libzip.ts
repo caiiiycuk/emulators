@@ -199,6 +199,25 @@ export function testLibZip() {
         assert.equal(await libzip.readFile("wiki/musk4").catch(() => ""), "");
         destroy(libzip);
     });
+
+    test("libzip can add file to archive", async () => {
+        let libzip = await makeLibZip();
+        await libzip.writeFile("wiki/musk1", "to be replaced");
+        const archive = await libzip.zipFromFs();
+        destroy(libzip);
+
+        libzip = await makeLibZip();
+        await libzip.writeFile("archive.zip", archive);
+        await libzip.writeFile("wiki/musk1", wikiElonMusk);
+        await libzip.zipAddFile("archive.zip", "wiki/musk1");
+        const updated = (await libzip.readFile("archive.zip", "binary")) as Uint8Array;
+        destroy(libzip);
+
+        libzip = await makeLibZip();
+        await libzip.zipToFs(updated, "/");
+        assert.equal(wikiElonMusk, await libzip.readFile("wiki/musk1"));
+        destroy(libzip);
+    });
 }
 
 const wikiElonMusk = `

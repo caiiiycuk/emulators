@@ -6,6 +6,7 @@ export default class LibZip {
         this.module = module;
         this.home = home;
         this.module.callMain([]);
+        this.module.FS.ignorePermissions = true;
         this.chdirToHome();
     }
 
@@ -92,11 +93,10 @@ export default class LibZip {
         this.module.FS.writeFile(path + "/" + filename, body);
     }
 
-    async readFile(file: string, encoding: "binary" | "utf8" = "utf8"): Promise<string|Uint8Array> {
+    async readFile(file: string, encoding: "binary" | "utf8" = "utf8"): Promise<string | Uint8Array> {
         file = this.normalizeFilename(file);
         return this.module.FS.readFile(file, { encoding });
     }
-
 
     exists(file: string): boolean {
         file = this.normalizeFilename(file);
@@ -107,7 +107,6 @@ export default class LibZip {
             return false;
         }
     }
-
 
     destroy(): any {
         try {
@@ -146,5 +145,25 @@ export default class LibZip {
 
     private chdir(path: string) {
         this.module.FS.chdir(this.home + "/" + path);
+    }
+
+    public async zipAddFile(archive: string, file: string) {
+        const Module = this.module;
+        const archiveLength = Module["lengthBytesUTF8"](archive) + 1;
+        const archiveBuffer = Module["_malloc"](archiveLength);
+        Module.stringToUTF8(archive, archiveBuffer, archiveLength);
+
+        const fileLength = Module["lengthBytesUTF8"](file) + 1;
+        const fileBuffer = Module["_malloc"](fileLength);
+        Module.stringToUTF8(file, fileBuffer, fileLength);
+
+        const ret = this.module._zipfile_add(archiveBuffer, fileBuffer, fileBuffer);
+
+        Module["_free"](archiveBuffer);
+        Module["_free"](fileBuffer);
+
+        if (ret !== 0) {
+            throw new Error("Unable to add " + file + " into " + archive);
+        }
     }
 }

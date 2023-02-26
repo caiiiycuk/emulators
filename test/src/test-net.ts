@@ -33,7 +33,7 @@ function testServer(factory: CIFactory, name: string) {
     test(name + " should not freeze when connecting to wrong address (jsapi)", async () => {
         let notifiedDisconnected = false;
         const messages: string[] = [];
-        const ci = await CI(await emulatorsImpl.dosBundle());
+        const ci = await CI(await emulatorsImpl.bundle());
         assert.ok(ci);
         ci.events().onMessage((mType, message: string) => {
             messages.push(message);
@@ -57,7 +57,7 @@ function testServer(factory: CIFactory, name: string) {
         let notifiedDisconnected = false;
         let connected = false;
         const messages: string[] = [];
-        const ci = await CI(await emulatorsImpl.dosBundle());
+        const ci = await CI(await emulatorsImpl.bundle());
         assert.ok(ci);
         ci.events().onMessage((mType, message: string) => {
             messages.push(message);
@@ -83,7 +83,7 @@ function testServer(factory: CIFactory, name: string) {
         let notifiedDisconnected = false;
         let connected = false;
         const messages: string[] = [];
-        const ci = await CI((await emulatorsImpl.dosBundle())
+        const ci = await CI((await emulatorsImpl.bundle())
             .autoexec("ipxnet connect " + ipxnetServerAddress));
         assert.ok(ci);
         ci.events().onMessage((mType, message: string) => {
@@ -111,12 +111,12 @@ function testServer(factory: CIFactory, name: string) {
         const portMap: {[port: string]: boolean} = {};
         const regex = new RegExp(/\[LOG_NET\]\d+:.*port\s+(\d+)\s+time=(\d+)ms/);
         const messages: string[] = [];
-        const one = await CI((await emulatorsImpl.dosBundle())
+        const one = await CI((await emulatorsImpl.bundle())
             .autoexec("ipxnet connect " + ipxnetServerAddress));
         assert.ok(one);
         await sleep(300);
 
-        const two = await CI((await emulatorsImpl.dosBundle())
+        const two = await CI((await emulatorsImpl.bundle())
             .autoexec("ipxnet connect " + ipxnetServerAddress + "\nipxnet ping"));
         assert.ok(two);
         two.events().onMessage((mType, message: string) => {

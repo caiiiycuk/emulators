@@ -18,13 +18,13 @@ class EmulatorsImpl implements Emulators {
 
     private wasmModulesPromise?: Promise<IWasmModules>;
 
-    async dosBundle(): Promise<DosBundle> {
+    async bundle(): Promise<DosBundle> {
         const modules = await this.wasmModules();
         const libzipWasm = await modules.libzip();
         return new DosBundle(libzipWasm);
     }
 
-    async dosConfig(bundles: Uint8Array | Uint8Array[]): Promise<DosConfig | null> {
+    async bundleConfig(bundle: Uint8Array): Promise<DosConfig | null> {
         const modules = await this.wasmModules();
         const libzipWasm = await modules.libzip();
 
@@ -32,38 +32,49 @@ class EmulatorsImpl implements Emulators {
         await libzipWasm.instantiate(module);
         const libzip = new LibZip(module);
 
-        if (!Array.isArray(bundles)) {
-            bundles = [bundles];
-        }
-
-        bundles = [...bundles];
-        bundles.reverse();
-
         try {
-            for (const bundle of bundles) {
-                libzip.zipToFs(bundle, "/", ".jsdos/");
+            libzip.zipToFs(bundle, "/", ".jsdos/");
+            try {
+                const dosboxConf = (await libzip.readFile(".jsdos/dosbox.conf")) as string;
                 try {
-                    const dosboxConf = (await libzip.readFile(".jsdos/dosbox.conf")) as string;
-                    try {
-                        const jsdosConf = (await libzip.readFile(".jsdos/jsdos.json")) as string;
-                        return {
-                            dosboxConf,
-                            jsdosConf: JSON.parse(jsdosConf),
-                        };
-                    } catch (e) {
-                        // ignore
-                    }
+                    const jsdosConf = (await libzip.readFile(".jsdos/jsdos.json")) as string;
                     return {
                         dosboxConf,
-                        jsdosConf: {
-                            version: Build.version,
-                        },
+                        jsdosConf: JSON.parse(jsdosConf),
                     };
                 } catch (e) {
                     // ignore
                 }
+                return {
+                    dosboxConf,
+                    jsdosConf: {
+                        version: Build.version,
+                    },
+                };
+            } catch (e) {
+                // ignore
             }
             return null;
+        } finally {
+            libzip.destroy();
+        }
+    }
+
+    async bundleUpdateConfig(bundle: Uint8Array, config: DosConfig): Promise<Uint8Array> {
+        const modules = await this.wasmModules();
+        const libzipWasm = await modules.libzip();
+
+        const module = {};
+        await libzipWasm.instantiate(module);
+        const libzip = new LibZip(module);
+
+        try {
+            await libzip.writeFile("bundle.zip", bundle);
+            await libzip.writeFile(".jsdos/dosbox.conf", config.dosboxConf);
+            await libzip.writeFile(".jsdos/jsdos.json", JSON.stringify(config.jsdosConf));
+            await libzip.zipAddFile("bundle.zip", ".jsdos/jsdos.json");
+            await libzip.zipAddFile("bundle.zip", ".jsdos/dosbox.conf");
+            return (await libzip.readFile("bundle.zip", "binary")) as Uint8Array;
         } finally {
             libzip.destroy();
         }

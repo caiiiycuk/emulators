@@ -32,10 +32,13 @@ export interface Emulators {
     wdosboxJs: string;
 
     // * dosBundle - create empty DosBundle
-    dosBundle: () => Promise<DosBundle>;
+    bundle: () => Promise<DosBundle>;
 
     // * dosConfig - read bundle config
-    dosConfig: (bundle: Uint8Array | Uint8Array[]) => Promise<DosConfig | null>;
+    bundleConfig: (bundle: Uint8Array) => Promise<DosConfig | null>;
+
+    // * updateDosConfig - update bunle config
+    bundleUpdateConfig: (bundle: Uint8Array, config: DosConfig) => Promise<Uint8Array>;
 
     // * dosboxNode - create dosbox node emulator backend
     dosboxNode: (bundle: Uint8Array | Uint8Array[], options?: BackendOptions) => Promise<CommandInterface>;
