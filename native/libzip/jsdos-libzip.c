@@ -242,6 +242,7 @@ int EMSCRIPTEN_KEEPALIVE zipfile_to_fs(const char *file, const char* filter) {
 
     int32_t count;
     int32_t extracted = 0;
+    int32_t filterLen = filter ? strlen(filter) : 0;
 
     int openFlags = O_RDWR | O_TRUNC | O_CREAT;
 
@@ -261,7 +262,7 @@ int EMSCRIPTEN_KEEPALIVE zipfile_to_fs(const char *file, const char* filter) {
             len = strlen(zipStat.name);
             if (zipStat.name[len - 1] == '/') {
                 safe_create_dir(zipStat.name);
-            } else if (!filter || strcmp(filter, zipStat.name) == 0) {
+            } else if (!filter || (strncmp(filter, zipStat.name, filterLen) == 0)) {
                 zipFile = zip_fopen_index(zipArchive, i, 0);
                 if (!zipFile) {
                     fprintf(stderr, "zip_to_fs: %s\n", zip_strerror(zipArchive));

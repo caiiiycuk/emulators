@@ -1,8 +1,14 @@
 import DosBundle from "./dos/bundle/dos-bundle";
 import emulatorsImpl from "./impl/emulators-impl";
 
-import { DosConfig } from "./dos/bundle/dos-conf";
 import { TransportLayer } from "./protocol/protocol";
+
+export interface DosConfig {
+    dosboxConf: string,
+    jsdosConf: {
+        version: string,
+    },
+};
 
 /* eslint-disable no-unused-vars */
 export enum NetworkType {

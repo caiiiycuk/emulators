@@ -54,13 +54,6 @@ function testServer(factory: CIFactory, name: string, assets: string) {
         await waitImage(assets + "/init.png", ci, { threshold: 0 });
     });
 
-    test(name + " should modify dosbox.conf through api", async () => {
-        const ci = await CI((await emulatorsImpl.dosBundle())
-            .autoexec("type jsdos~1/dosbox~1.con"));
-        assert.ok(ci);
-        await waitImage(assets + "/dosboxconf.png", ci, { threshold: 0 });
-    });
-
     test(name + " should not start without jsdos conf", async () => {
         try {
             const buffer = await httpRequest("digger.zip", {
@@ -78,7 +71,8 @@ function testServer(factory: CIFactory, name: string, assets: string) {
         const ci = await CI(bundle);
         assert.ok(ci);
         const config = await ci.config();
-        assert.equal(JSON.stringify(config), JSON.stringify(bundle.config));
+        assert.equal(config.dosboxConf, bundle.dosboxConf);
+        assert.equal(JSON.stringify(config.jsdosConf), JSON.stringify(bundle.jsdosConf));
         await ci.exit();
     });
 

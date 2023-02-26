@@ -1,6 +1,5 @@
 import { testLoader } from "./test-loader";
 import { testLibZip } from "./test-libzip";
-import { testConf } from "./test-conf";
 import { testDosBundle } from "./test-bundle";
 import { testDos } from "./test-dos";
 // import { testNet } from "./test-net";
@@ -12,7 +11,6 @@ emulatorsImpl.pathPrefix = "/";
 export function createTests() {
     testLoader();
     testLibZip();
-    testConf();
 
     testDosBundle();
     testDos();

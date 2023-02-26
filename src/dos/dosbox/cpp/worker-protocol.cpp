@@ -293,6 +293,7 @@ EM_JS(void, emsc_extract_bundle_to_fs, (), {
         Module.sendMessage("ws-extract-progress", { index, file, extracted, count });
     };
 
+    let dosboxConf = null;
     for (index = 0; index < Module.bundles.length; ++index) {
       const bytes = Module.bundles[index];
       const buffer = Module._malloc(bytes.length);
@@ -308,7 +309,7 @@ EM_JS(void, emsc_extract_bundle_to_fs, (), {
         
       if (index === 0) {
         try {
-            Module.FS.readFile("/home/web_user/.jsdos/dosbox.conf");
+            dosboxConf = Module.FS.readFile("/home/web_user/.jsdos/dosbox.conf");
         } catch (e) {
             Module.err("Broken bundle, .jsdos/dosbox.conf not found");
             return;
@@ -321,7 +322,10 @@ EM_JS(void, emsc_extract_bundle_to_fs, (), {
     const configContentPtr = Module._getConfigContent();
     const configContent = Module.UTF8ToString(configContentPtr);
     Module._free(configContentPtr);
-    Module.sendMessage("ws-config", { content: configContent });
+    Module.sendMessage("ws-config", {
+      dosboxConf,
+      jsdosConf: configContent,
+    });
 
     delete Module.libzip_progress;
     delete Module.bundles;

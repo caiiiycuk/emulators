@@ -1,5 +1,5 @@
 import { Build } from "../build";
-import { Emulators, CommandInterface, BackendOptions } from "../emulators";
+import { Emulators, CommandInterface, BackendOptions, DosConfig } from "../emulators";
 
 import { IWasmModules, WasmModulesImpl } from "./modules";
 
@@ -8,7 +8,6 @@ import { dosDirect } from "../dos/dosbox/ts/direct";
 import { dosWorker } from "../dos/dosbox/ts/worker";
 
 import { TransportLayer, CommandInterfaceOverTransportLayer } from "../protocol/protocol";
-import { DosConfig } from "../dos/bundle/dos-conf";
 import LibZip from "../libzip/libzip";
 
 class EmulatorsImpl implements Emulators {
@@ -42,10 +41,24 @@ class EmulatorsImpl implements Emulators {
 
         try {
             for (const bundle of bundles) {
-                libzip.zipToFs(bundle, "/", ".jsdos/jsdos.json");
+                libzip.zipToFs(bundle, "/", ".jsdos/");
                 try {
-                    const contents = (await libzip.readFile(".jsdos/jsdos.json")) as string;
-                    return JSON.parse(contents);
+                    const dosboxConf = (await libzip.readFile(".jsdos/dosbox.conf")) as string;
+                    try {
+                        const jsdosConf = (await libzip.readFile(".jsdos/jsdos.json")) as string;
+                        return {
+                            dosboxConf,
+                            jsdosConf: JSON.parse(jsdosConf),
+                        };
+                    } catch (e) {
+                        // ignore
+                    }
+                    return {
+                        dosboxConf,
+                        jsdosConf: {
+                            version: Build.version,
+                        },
+                    };
                 } catch (e) {
                     // ignore
                 }

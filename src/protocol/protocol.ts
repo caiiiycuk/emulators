@@ -1,5 +1,4 @@
-import { DosConfig } from "../dos/bundle/dos-conf";
-import { CommandInterface, NetworkType, BackendOptions, AsyncifyStats } from "../emulators";
+import { CommandInterface, NetworkType, BackendOptions, AsyncifyStats, DosConfig } from "../emulators";
 import { CommandInterfaceEventsImpl } from "../impl/ci-impl";
 
 export type ClientMessage =
@@ -54,6 +53,8 @@ export interface FrameLine {
     start: number;
     heapu8: Uint8Array;
 }
+
+const utf8Decoder = new TextDecoder();
 
 export class CommandInterfaceOverTransportLayer implements CommandInterface {
     private startedAt = Date.now();
@@ -173,7 +174,10 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
                 this.onSoundPush(props.samples);
             } break;
             case "ws-config": {
-                this.onConfig(JSON.parse(props.content));
+                this.onConfig({
+                    dosboxConf: utf8Decoder.decode(props.dosboxConf),
+                    jsdosConf: JSON.parse(props.jsdosConf),
+                });
             } break;
             case "ws-sync-sleep": {
                 this.sendClientMessage("wc-sync-sleep", props);

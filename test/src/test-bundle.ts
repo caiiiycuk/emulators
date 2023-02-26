@@ -1,12 +1,12 @@
 import { assert } from "chai";
 
-import { createDosConfig, toDosboxConf } from "../../src/dos/bundle/dos-conf";
-import DosBundle from "../../src/dos/bundle/dos-bundle";
+import DosBundle, { defaultConfig } from "../../src/dos/bundle/dos-bundle";
 
 import { makeLibZip, destroy } from "./libzip";
 import LibZip from "../../src/libzip/libzip";
 
 import emulators from "../../src/impl/emulators-impl";
+import { Build } from "../../src/build";
 
 async function toFs(bundle: DosBundle,
                     cb: (libzip: LibZip) => Promise<void>,
@@ -24,10 +24,13 @@ export function testDosBundle() {
 
     test("bundle should contain default dosbox.conf", async () => {
         await toFs(await emulators.dosBundle(), async (fs) => {
-            const conf = await fs.readFile(".jsdos/dosbox.conf");
-            assert.ok(conf);
-            const expected = await toDosboxConf(createDosConfig());
-            assert.equal(expected, conf);
+            const dosboxConf = await fs.readFile(".jsdos/dosbox.conf");
+            const jsdosConf = JSON.parse(await fs.readFile(".jsdos/jsdos.json") as string);
+            assert.ok(dosboxConf);
+            assert.ok(jsdosConf);
+            assert.equal(defaultConfig, dosboxConf);
+            assert.equal(JSON.stringify({ version: Build.version }),
+                JSON.stringify(jsdosConf));
         });
     });
 
@@ -46,7 +49,7 @@ export function testDosBundle() {
     test("bundle conf can be overwritten", async () => {
         const dosBundle = await (await emulators.dosBundle());
         const testPhrase = "overwritten by test";
-        dosBundle.config.autoexec.options.script.value = testPhrase;
+        dosBundle.dosboxConf += "\n#" + testPhrase;
         dosBundle.extract("digger.jsdos", "/");
 
         await toFs(dosBundle, async (fs) => {
@@ -98,7 +101,10 @@ export function testDosBundle() {
         const bundle = await emulators.dosBundle();
         archive = await bundle.toUint8Array();
         assert.equal(
-            JSON.stringify(await emulators.dosConfig(archive), null, 2),
-            JSON.stringify(bundle.config, null, 2));
+            (await emulators.dosConfig(archive)).dosboxConf,
+            bundle.dosboxConf);
+        assert.equal(
+            JSON.stringify((await emulators.dosConfig(archive)).jsdosConf),
+            JSON.stringify(bundle.jsdosConf));
     });
 }
