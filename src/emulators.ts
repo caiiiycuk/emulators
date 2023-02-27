@@ -73,6 +73,12 @@ export interface AsyncifyStats {
     cycles: number,
 }
 
+export interface FsNode {
+    name: string,
+    size: number | null,
+    nodes: FsNode[] | null,
+}
+
 export interface CommandInterface {
     // * get bundle config
     config: () => Promise<DosConfig>;
@@ -137,6 +143,8 @@ export interface CommandInterface {
     networkDisconnect(networkType: NetworkType): Promise<void>;
 
     asyncifyStats(): Promise<AsyncifyStats>;
+
+    fsTree(): Promise<FsNode>;
 
 }
 

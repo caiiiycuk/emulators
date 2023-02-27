@@ -23,6 +23,32 @@ EM_JS(void, ws_init_runtime, (const char* sessionId), {
     Module.messageSound = 0;
     Module.sessionId = UTF8ToString(sessionId);
 
+    function fsTree(root, parent) {
+      for (const name of Object.keys(root)) {
+        const fsNode = root[name];
+        const folder = fsNode.isFolder;
+        const node = {
+          name,
+        };
+
+        if (folder) {
+          node.nodes = [];
+          node.size = null;
+        } else {
+          node.nodes = null;
+          node.size = fsNode.usedBytes;
+        }
+        
+        parent.nodes.push(node);
+
+        if (folder) {
+            fsTree(fsNode.contents, node);
+        }
+      }
+
+      return parent;
+    }
+
     function sendMessage(name, props, transfer) {
       ++Module.messageSent;
 
@@ -166,6 +192,15 @@ EM_JS(void, ws_init_runtime, (const char* sessionId), {
             sleepCount: Module.sleep_count,
             sleepTime: Module.sleep_time,
             cycles: Module.cycles,
+          });
+        } break;
+        case "wc-fs-tree": {
+          sendMessage("ws-fs-tree", {
+            fsTree: fsTree(Module.FS.root.contents.home.contents.web_user.contents, {
+              name: ".",
+              nodes: [],
+              size: null,
+            }),
           });
         } break;
         default: {

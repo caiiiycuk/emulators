@@ -1,4 +1,4 @@
-import { CommandInterface, NetworkType, BackendOptions, AsyncifyStats, DosConfig } from "../emulators";
+import { CommandInterface, NetworkType, BackendOptions, AsyncifyStats, DosConfig, FsNode } from "../emulators";
 import { CommandInterfaceEventsImpl } from "../impl/ci-impl";
 
 export type ClientMessage =
@@ -18,7 +18,8 @@ export type ClientMessage =
     "wc-connect" |
     "wc-disconnect" |
     "wc-backend-event" |
-    "wc-asyncify-stats";
+    "wc-asyncify-stats" |
+    "wc-fs-tree";
 
 export type ServerMessage =
     "ws-extract-progress" |
@@ -38,7 +39,8 @@ export type ServerMessage =
     "ws-sync-sleep" |
     "ws-connected" |
     "ws-disconnected" |
-    "ws-asyncify-stats";
+    "ws-asyncify-stats" |
+    "ws-fs-tree";
 
 export type MessageHandler = (name: ServerMessage, props: { [key: string]: any }) => void;
 
@@ -54,8 +56,6 @@ export interface FrameLine {
     heapu8: Uint8Array;
 }
 
-const utf8Decoder = new TextDecoder();
-
 export class CommandInterfaceOverTransportLayer implements CommandInterface {
     private startedAt = Date.now();
     private frameWidth = 0;
@@ -63,6 +63,7 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
     private rgb: Uint8Array | null = null;
     private rgba: Uint8Array | null = null;
     private freq = 0;
+    private utf8Decoder = new TextDecoder();
 
     private bundles?: Uint8Array[];
     private transport: TransportLayer;
@@ -91,6 +92,9 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
 
     private asyncifyStatsPromise: Promise<AsyncifyStats> | null = null;
     private asyncifyStatsResolve: (stats: AsyncifyStats) => void = () => {/**/};
+
+    private fsTreePromise: Promise<FsNode> | null = null;
+    private fsTreeResolve: (fsRoot: FsNode) => void = () => {/**/};
 
     public options: BackendOptions;
 
@@ -175,7 +179,7 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
             } break;
             case "ws-config": {
                 this.onConfig({
-                    dosboxConf: utf8Decoder.decode(props.dosboxConf),
+                    dosboxConf: this.utf8Decoder.decode(props.dosboxConf),
                     jsdosConf: JSON.parse(props.jsdosConf),
                 });
             } break;
@@ -211,6 +215,11 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
                 this.asyncifyStatsResolve(props as AsyncifyStats);
                 this.asyncifyStatsResolve = () => {/**/};
                 this.asyncifyStatsPromise = null;
+            } break;
+            case "ws-fs-tree": {
+                this.fsTreeResolve(props.fsTree as FsNode);
+                this.fsTreeResolve = () => {/**/};
+                this.fsTreePromise = null;
             } break;
             default: {
                 // eslint-disable-next-line
@@ -457,7 +466,7 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
     }
 
     public asyncifyStats(): Promise<AsyncifyStats> {
-        if (this.asyncifyStatsPromise != null) {
+        if (this.asyncifyStatsPromise !== null) {
             return this.asyncifyStatsPromise;
         }
 
@@ -467,6 +476,20 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
 
         this.asyncifyStatsPromise = promise;
         this.sendClientMessage("wc-asyncify-stats", {});
+
+        return promise;
+    }
+
+    public fsTree(): Promise<FsNode> {
+        if (this.fsTreePromise !== null) {
+            return this.fsTreePromise;
+        }
+
+        const promise = new Promise<FsNode>((resolve) => {
+            this.fsTreeResolve = resolve;
+        });
+        this.fsTreePromise = promise;
+        this.sendClientMessage("wc-fs-tree");
 
         return promise;
     }

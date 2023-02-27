@@ -122,6 +122,46 @@ function testServer(factory: CIFactory, name: string, assets: string) {
         });
     });
 
+    suite(name + ".fs");
+    test(name + " can browse fs tree", async () => {
+        const ci = await CI((await emulatorsImpl.bundle())
+            .extract("digger.zip"));
+        assert.ok(ci);
+        const fsTree = await ci.fsTree();
+        assert.deepEqual({
+            "name": ".",
+            "size": null,
+            "nodes": [
+                {
+                    "name": ".jsdos",
+                    "nodes": [
+                        {
+                            "name": "dosbox.conf",
+                            "nodes": null,
+                            "size": 7825,
+                        },
+                        {
+                            "name": "readme.txt",
+                            "nodes": null,
+                            "size": 306,
+                        },
+                        {
+                            "name": "jsdos.json",
+                            "nodes": null,
+                            "size": 60,
+                        },
+                    ],
+                    "size": null,
+                },
+                {
+                    "name": "DIGGER.COM",
+                    "nodes": null,
+                    "size": 57856,
+                },
+            ],
+        }, fsTree);
+    });
+
     suite(name + ".game");
 
     test(name + " can run digger.jsdos", async () => {
