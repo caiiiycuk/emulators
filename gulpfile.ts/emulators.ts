@@ -62,4 +62,5 @@ function dosboxxJs() {
         .pipe(dest("dist"));
 }
 
-export const emulators = series(clean, parallel(js, dosboxJs, dosboxxJs));
+export const compileJs = series(clean, js);
+export const emulators = parallel(dosboxJs, dosboxxJs);

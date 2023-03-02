@@ -22,6 +22,9 @@ EM_JS(void, ws_init_runtime, (const char* sessionId), {
     Module.messageFrame = 0;
     Module.messageSound = 0;
     Module.sessionId = UTF8ToString(sessionId);
+    Module.bundles = [];
+    Module.files = {};
+    Module.FS.ignorePermissions = true;
 
     function fsTree(root, parent) {
       for (const name of Object.keys(root)) {
@@ -122,7 +125,6 @@ EM_JS(void, ws_init_runtime, (const char* sessionId), {
 
       switch (data.name) {
         case "wc-run": {
-          Module.bundles = data.props.bundles;
           Module._extractBundleToFs();
           Module._runRuntime();
           sendMessage("ws-server-ready");
@@ -201,6 +203,111 @@ EM_JS(void, ws_init_runtime, (const char* sessionId), {
               nodes: [],
               size: null,
             }),
+          });
+        } break;
+        case "wc-send-data-chunk": {
+          function mergeChunks(parts) {
+              if (parts.length === 1) {
+                  return parts[0];
+              }
+
+              let length = 0;
+              for (const next of parts) {
+                  length += next.byteLength;
+              }
+              const merged = new Uint8Array(length);
+              length = 0;
+              for (const next of parts) {
+                  merged.set(next, length);
+                  length += next.byteLength;
+              }
+              return merged;
+          }
+
+          function createPath(parts, begin, end) {
+              let path = "/home/web_user";
+              for (let i = begin; i < end; ++i) {
+                  const part = parts[i].trim();
+                  if (part.length === 0) {
+                      continue;
+                  }
+
+                  Module.FS.createPath(path, part, true, true);
+                  path = path + "/" + part;
+              }
+
+              return path;
+          }
+          
+          const chunk = data.props.chunk;
+          if (chunk.type === "bundle") {
+            const index = Number.parseInt(chunk.name);
+            if (Module.bundles[index] === undefined) {
+              Module.bundles[index] = [];
+            }
+
+            if (chunk.data === null) {
+              Module.bundles[index] = mergeChunks(Module.bundles[index]);
+            } else {
+              Module.bundles[index].push(new Uint8Array(chunk.data));
+            }
+
+            sendMessage("ws-send-data-chunk", {
+              chunk: {
+                type: "ok",
+                name: chunk.name,
+                data: null,
+              },
+            });
+          } else if (chunk.type === "file") {
+            const file = chunk.name;
+            if (Module.files[file] === undefined) {
+              Module.files[file] = [];
+            }
+
+            if (chunk.data === null) {
+              const body = mergeChunks(Module.files[file]);
+              delete Module.files[file];
+
+              const parts = file.split("/");
+              if (parts.length === 0) {
+                Module.err("Can't create file '" + file + "', because it's not valid file path");
+                return;
+              }
+              const filename = parts[parts.length - 1].trim();
+              const path = createPath(parts, 0, parts.length - 1);
+              Module.FS.writeFile(path + "/" + filename, body);
+            } else {
+              Module.files[file].push(new Uint8Array(chunk.data));
+            }
+
+            sendMessage("ws-send-data-chunk", {
+              chunk: {
+                type: "ok",
+                name: chunk.name,
+                data: null,
+              },
+            });
+          } else {
+            Module.err("Unknown chunk type: " + chunk.type);
+          }
+        } break;
+        case "wc-fs-get-file": {
+          const file = data.props.file;
+          const contents = Module.FS.readFile("/home/web_user/" + file, { encoding: "binary" });
+          sendMessage("ws-send-data-chunk", {
+            chunk: {
+              type: "file",
+              name: file,
+              data: contents.buffer,
+            },
+          });
+          sendMessage("ws-send-data-chunk", {
+            chunk: {
+              type: "file",
+              name: file,
+              data: null,
+            },
           });
         } break;
         default: {

@@ -1,4 +1,4 @@
-import { CommandInterface, NetworkType, BackendOptions, AsyncifyStats, DosConfig, FsNode } from "../emulators";
+import { CommandInterface, NetworkType, BackendOptions, DosConfig } from "../emulators";
 import { CommandInterfaceEventsImpl } from "../impl/ci-impl";
 
 export type ClientMessage =
@@ -19,7 +19,9 @@ export type ClientMessage =
     "wc-disconnect" |
     "wc-backend-event" |
     "wc-asyncify-stats" |
-    "wc-fs-tree";
+    "wc-fs-tree" |
+    "wc-fs-get-file" |
+    "wc-send-data-chunk";
 
 export type ServerMessage =
     "ws-extract-progress" |
@@ -40,13 +42,16 @@ export type ServerMessage =
     "ws-connected" |
     "ws-disconnected" |
     "ws-asyncify-stats" |
-    "ws-fs-tree";
+    "ws-fs-tree" |
+    "ws-send-data-chunk";
 
 export type MessageHandler = (name: ServerMessage, props: { [key: string]: any }) => void;
 
 export interface TransportLayer {
     sessionId: string;
-    sendMessageToServer(name: ClientMessage, props?: { [key: string]: any }): void;
+    sendMessageToServer(name: ClientMessage,
+            props: { [key: string]: any },
+            transfer?: ArrayBuffer[]): void;
     initMessageHandler(handler: MessageHandler): void;
     exit?: () => void;
 }
@@ -54,6 +59,28 @@ export interface TransportLayer {
 export interface FrameLine {
     start: number;
     heapu8: Uint8Array;
+}
+
+export interface DataChunk {
+    type: "ok" | "file" | "bundle";
+    name: string;
+    data: ArrayBuffer | null;
+}
+
+export interface AsyncifyStats {
+    messageSent: number,
+    messageReceived: number,
+    messageFrame: number,
+    messageSound: number,
+    sleepCount: number,
+    sleepTime: number,
+    cycles: number,
+}
+
+export interface FsNode {
+    name: string,
+    size: number | null,
+    nodes: FsNode[] | null,
 }
 
 export class CommandInterfaceOverTransportLayer implements CommandInterface {
@@ -96,6 +123,13 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
     private fsTreePromise: Promise<FsNode> | null = null;
     private fsTreeResolve: (fsRoot: FsNode) => void = () => {/**/};
 
+    private fsGetFilePromise: { [name: string]: Promise<Uint8Array> } = {};
+    private fsGetFileResolve: { [name: string]: (file: Uint8Array) => void } = {};
+    private fsGetFileParts: { [name: string]: Uint8Array[] } = {};
+
+    private dataChunkPromise: { [name: string]: Promise<void> } = {};
+    private dataChunkResolve: { [name: string]: () => void } = {};
+
     public options: BackendOptions;
 
     constructor(bundles: Uint8Array[],
@@ -110,10 +144,10 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
         this.transport.initMessageHandler(this.onServerMessage.bind(this));
     }
 
-    private sendClientMessage(name: ClientMessage, props?: { [key: string]: any }) {
+    private sendClientMessage(name: ClientMessage, props?: { [key: string]: any }, transfer?: [ArrayBuffer]) {
         props = props || {};
         props.sessionId = props.sessionId || this.transport.sessionId;
-        this.transport.sendMessageToServer(name, props);
+        this.transport.sendMessageToServer(name, props, transfer);
     }
 
     private onServerMessage(name: ServerMessage, props: { [key: string]: any }) {
@@ -128,10 +162,36 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
 
         switch (name) {
             case "ws-ready": {
-                this.sendClientMessage("wc-run", {
-                    bundles: this.bundles,
-                });
-                delete this.bundles;
+                const sendBundles = async () => {
+                    if (!this.bundles) {
+                        return;
+                    }
+
+                    for (let i = 0; i < this.bundles.length; ++i) {
+                        await this.sendDataChunk({
+                            type: "bundle",
+                            name: i + "",
+                            data: this.bundles[i].buffer,
+                        });
+
+                        await this.sendDataChunk({
+                            type: "bundle",
+                            name: i + "",
+                            data: null,
+                        });
+                    }
+                };
+
+                sendBundles()
+                    .then(() => {
+                        this.sendClientMessage("wc-run", {});
+                    })
+                    .catch((e) => {
+                        this.onErr("panic", "Can't send bundles to backend: " + e.message);
+                    })
+                    .finally(() => {
+                        delete this.bundles;
+                    });
             } break;
             case "ws-server-ready": {
                 if (this.panicMessages.length > 0) {
@@ -220,6 +280,28 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
                 this.fsTreeResolve(props.fsTree as FsNode);
                 this.fsTreeResolve = () => {/**/};
                 this.fsTreePromise = null;
+            } break;
+            case "ws-send-data-chunk": {
+                const chunk: DataChunk = props.chunk;
+                const key = this.dataChunkKey(chunk);
+                if (chunk.type === "ok") {
+                    if (this.dataChunkPromise[key] !== undefined) {
+                        this.dataChunkResolve[key]();
+                        delete this.dataChunkPromise[key];
+                        delete this.dataChunkResolve[key];
+                    }
+                } else if (chunk.type === "file") {
+                    if (chunk.data === null) {
+                        const file = this.mergeChunks(this.fsGetFileParts[chunk.name]);
+                        this.fsGetFileResolve[chunk.name](file);
+                        delete this.fsGetFilePromise[chunk.name];
+                        delete this.fsGetFileResolve[chunk.name];
+                    } else {
+                        this.fsGetFileParts[chunk.name].push(new Uint8Array(chunk.data));
+                    }
+                } else {
+                    console.log("Unknown chunk type:", chunk.type);
+                }
             } break;
             default: {
                 // eslint-disable-next-line
@@ -492,5 +574,73 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
         this.sendClientMessage("wc-fs-tree");
 
         return promise;
+    }
+
+    async fsReadFile(file: string): Promise<Uint8Array> {
+        if (this.fsGetFilePromise[file] !== undefined) {
+            throw new Error("fsGetFile should not be called twice for same file");
+        }
+
+        const promise = new Promise<Uint8Array>((resolve) => {
+            this.fsGetFileResolve[file] = resolve;
+        });
+        this.fsGetFilePromise[file] = promise;
+        this.fsGetFileParts[file] = [];
+        this.sendClientMessage("wc-fs-get-file", {
+            file,
+        });
+
+        return promise;
+    }
+
+    async fsWriteFile(file: string, contents: Uint8Array): Promise<void> {
+        await this.sendDataChunk({
+            type: "file",
+            name: file,
+            data: contents.buffer,
+        });
+
+        await this.sendDataChunk({
+            type: "file",
+            name: file,
+            data: null,
+        });
+    }
+
+    private async sendDataChunk(chunk: DataChunk): Promise<void> {
+        const key = this.dataChunkKey(chunk);
+        if (this.dataChunkPromise[key] !== undefined) {
+            throw new Error("sendDataChunk should be accpted before sending new one");
+        }
+        const promise = new Promise<void>((resolve) => {
+            this.dataChunkResolve[key] = resolve;
+        });
+        this.dataChunkPromise[key] = promise;
+        this.sendClientMessage("wc-send-data-chunk", {
+            chunk,
+        }, chunk.data === null ? undefined : [chunk.data]);
+        return promise;
+    }
+
+    private dataChunkKey(chunk: DataChunk) {
+        return chunk.name;
+    }
+
+    private mergeChunks(parts: Uint8Array[]): Uint8Array {
+        if (parts.length === 1) {
+            return parts[0];
+        }
+
+        let length = 0;
+        for (const next of parts) {
+            length += next.byteLength;
+        }
+        const merged = new Uint8Array(length);
+        length = 0;
+        for (const next of parts) {
+            merged.set(next, length);
+            length += next.byteLength;
+        }
+        return merged;
     }
 }

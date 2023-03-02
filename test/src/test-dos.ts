@@ -11,6 +11,7 @@ import { httpRequest } from "../../src/http";
 
 import { Keys } from "../../src/keys";
 import { makeLibZip } from "./libzip";
+import { Build } from "../../src/build";
 
 type CIFactory = (bundle: Uint8Array | Uint8Array[], options?: BackendOptions) => Promise<CommandInterface>;
 
@@ -160,6 +161,29 @@ function testServer(factory: CIFactory, name: string, assets: string) {
                 },
             ],
         }, fsTree);
+
+        await ci.exit();
+    });
+
+    test(name + " can read the file from fs", async () => {
+        const ci = await CI((await emulatorsImpl.bundle())
+            .extract("digger.zip"));
+        assert.ok(ci);
+        const file = await ci.fsReadFile(".jsdos/jsdos.json");
+        assert.ok(file);
+        assert.equal(new TextDecoder().decode(file), JSON.stringify({ version: Build.version }, null, 2));
+        await ci.exit();
+    });
+
+    test(name + " can write file and then read it from fs", async () => {
+        const ci = await CI((await emulatorsImpl.bundle())
+            .extract("digger.zip"));
+        assert.ok(ci);
+        const contents = "The js-dos v8 is absoultely badass";
+        await ci.fsWriteFile("dynamic/jsdos.v8", new TextEncoder().encode(contents));
+        const fsContents = await ci.fsReadFile("dynamic/jsdos.v8");
+        assert.equal(new TextDecoder().decode(fsContents), contents);
+        await ci.exit();
     });
 
     suite(name + ".game");

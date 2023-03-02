@@ -23,8 +23,14 @@ export async function dosWorker(workerUrl: string,
 
     const transportLayer: TransportLayer = {
         sessionId,
-        sendMessageToServer: (name: ClientMessage, props?: {[key: string]: any}) => {
-            worker.postMessage({ name, props });
+        sendMessageToServer: (name: ClientMessage,
+            props: {[key: string]: any},
+            transfer?: ArrayBuffer[]) => {
+            if (transfer) {
+                worker.postMessage({ name, props }, transfer);
+            } else {
+                worker.postMessage({ name, props });
+            }
         },
         initMessageHandler: (newHandler: MessageHandler) => {
             handler = newHandler;

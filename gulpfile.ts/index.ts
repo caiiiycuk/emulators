@@ -1,6 +1,6 @@
 import { series, parallel } from "gulp";
 import { wasm } from "./wasm";
-import { emulators } from "./emulators";
+import { compileJs, emulators } from "./emulators";
 import { test } from "./test";
 
 import { emitTypes } from "./types";
@@ -9,6 +9,7 @@ import { dosboxAsyncify, dosboxXAsyncify } from "./asyncify";
 
 function build(compress: boolean) {
     return series(
+        compileJs,
         wasm(compress),
         parallel(emulators, test),
     );

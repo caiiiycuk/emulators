@@ -1,7 +1,7 @@
 import DosBundle from "./dos/bundle/dos-bundle";
 import emulatorsImpl from "./impl/emulators-impl";
 
-import { TransportLayer } from "./protocol/protocol";
+import { AsyncifyStats, TransportLayer, FsNode } from "./protocol/protocol";
 
 export interface DosConfig {
     dosboxConf: string,
@@ -59,24 +59,8 @@ export interface Emulators {
     dosboxXWorker: (bundle: Uint8Array | Uint8Array[], options?: BackendOptions) => Promise<CommandInterface>;
 
     // * backend - create abstract emulation backend by given TransportLayer
-    backend: (bundle: Uint8Array | Uint8Array[], transportLayer: TransportLayer,
+    backend: (bundles: Uint8Array[], transportLayer: TransportLayer,
         options?: BackendOptions) => Promise<CommandInterface>;
-}
-
-export interface AsyncifyStats {
-    messageSent: number,
-    messageReceived: number,
-    messageFrame: number,
-    messageSound: number,
-    sleepCount: number,
-    sleepTime: number,
-    cycles: number,
-}
-
-export interface FsNode {
-    name: string,
-    size: number | null,
-    nodes: FsNode[] | null,
 }
 
 export interface CommandInterface {
@@ -145,6 +129,10 @@ export interface CommandInterface {
     asyncifyStats(): Promise<AsyncifyStats>;
 
     fsTree(): Promise<FsNode>;
+
+    fsReadFile(file: string): Promise<Uint8Array>;
+
+    fsWriteFile(file: string, contents: Uint8Array): Promise<void>;
 
 }
 
