@@ -700,6 +700,7 @@ if (${EMSCRIPTEN})
             "-sUSE_SDL=2"
         #     "--profiling-funcs"
         #     "-sASSERTIONS=1"
+        #     "-sSAFE_HEAP=2"
             "-sASYNCIFY=1"
             "-sASYNCIFY_IMPORTS=['syncSleep']"
             "-sASYNCIFY_WHITELIST=@${TARGETS_DIR}/dosbox-x-asyncify.txt"

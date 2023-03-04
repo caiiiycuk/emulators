@@ -593,18 +593,39 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
         return promise;
     }
 
-    async fsWriteFile(file: string, contents: Uint8Array): Promise<void> {
-        await this.sendDataChunk({
-            type: "file",
-            name: file,
-            data: contents.buffer,
-        });
+    async fsWriteFile(file: string, contents: ReadableStream<Uint8Array> | Uint8Array): Promise<void> {
+        if (ArrayBuffer.isView(contents)) {
+            await this.sendDataChunk({
+                type: "file",
+                name: file,
+                data: contents.buffer,
+            });
+        } else {
+            const reader = contents.getReader();
+            while (true) {
+                const result = await reader.read();
+                if (result.value !== undefined) {
+                    await this.sendDataChunk({
+                        type: "file",
+                        name: file,
+                        data: result.value.buffer,
+                    });
+                }
+                if (result.done) {
+                    break;
+                }
+            }
+        }
 
         await this.sendDataChunk({
             type: "file",
             name: file,
             data: null,
         });
+    }
+
+    async fsDeleteFile(file: string): Promise<void> {
+        throw new Error("not implemented");
     }
 
     private async sendDataChunk(chunk: DataChunk): Promise<void> {

@@ -5112,7 +5112,7 @@ bool sdl_wait_on_error() {
     return sdl.wait_on_error;
 }
 
-#if (defined(WIN32) && !defined(HX_DOS) || defined(LINUX) && C_X11 || defined(MACOSX) && defined(SDL_DOSBOX_X_IME)) && (defined(C_SDL2) || defined(SDL_DOSBOX_X_SPECIAL))
+#if (defined(WIN32) && !defined(HX_DOS) || defined(LINUX) && C_X11 || defined(MACOSX)) && (defined(C_SDL2) || defined(SDL_DOSBOX_X_SPECIAL))
 static uint8_t im_x, im_y;
 static uint32_t last_ticks;
 void SetIMPosition() {
@@ -6811,9 +6811,6 @@ bool DOSBOX_parse_argv() {
         else if (optname == "set") {
             if (!control->cmdline->NextOptArgv(tmp)) return false;
             control->opt_set.push_back(tmp);
-        }
-        else if (optname == "alt-vga") {
-            control->opt_alt_vga_render = true;
         }
         else if (optname == "log-con") {
             control->opt_log_con = true;
@@ -9020,6 +9017,7 @@ int jsdos_main(Config *config) SDL_MAIN_NOEXCEPT {
 
 #if !defined(C_EMSCRIPTEN)
         mainMenu.get_item("show_console").check(showconsole_init).refresh_item(mainMenu);
+        mainMenu.get_item("clear_console").check(false).enable(false).refresh_item(mainMenu);
         if (control->opt_display2) {
             mainMenu.get_item("show_console").enable(false).refresh_item(mainMenu);
             mainMenu.get_item("wait_on_error").enable(false).refresh_item(mainMenu);
