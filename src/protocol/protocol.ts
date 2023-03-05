@@ -443,7 +443,7 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
     }
 
 
-    public persist(): Promise<Uint8Array> {
+    public persist(onlyChanges?: boolean): Promise<Uint8Array> {
         if (this.persistPromise !== undefined) {
             return this.persistPromise;
         }
@@ -452,7 +452,9 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
         const persistPromise = new Promise<Uint8Array>((resolve) => this.persistResolve = resolve);
         this.persistPromise = persistPromise;
 
-        this.sendClientMessage("wc-pack-fs-to-bundle");
+        this.sendClientMessage("wc-pack-fs-to-bundle", {
+            onlyChanges: onlyChanges !== false,
+        });
 
         return persistPromise;
     }

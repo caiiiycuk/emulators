@@ -116,8 +116,8 @@ export interface CommandInterface {
     // * `sendBackendEvent` - send event for current backend, event will be stringified to json
     sendBackendEvent: (event: any) => void;
 
-    // dump **changed** FS as Uint8Array <zip archive>
-    persist(): Promise<Uint8Array>;
+    // dump FS as Uint8Array <zip archive>
+    persist(onlyChanges?: boolean): Promise<Uint8Array>;
 
     // events
     events(): CommandInterfaceEvents;

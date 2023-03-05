@@ -149,7 +149,7 @@ EM_JS(void, ws_init_runtime, (const char* sessionId), {
             Module.persist = function(archive) {
               sendMessage("ws-persist", { bundle: archive }, [ archive.buffer ]);
             };
-            Module._packFsToBundle();
+            Module._packFsToBundle(data.props.onlyChanges);
             delete Module.persist;
           } catch (e) {
             Module.err(e.message);
@@ -473,10 +473,10 @@ EM_JS(void, emsc_extract_bundle_to_fs, (), {
     delete Module.bundles;
   });
 
-EM_JS(void, emsc_pack_fs_to_bundle, (), {
+EM_JS(void, emsc_pack_fs_to_bundle, (bool onlyChanges), {
     Module.FS.chdir("/home/web_user");
 
-    const ptr = Module._zip_from_fs(Module.fsCreatedAt);
+    const ptr = Module._zip_from_fs(onlyChanges ? Module.fsCreatedAt : 0);
     if (ptr === 0) {
       Module.err("Can't create zip, see more info in logs");
       Module._abort();
@@ -563,8 +563,8 @@ extern "C" void EMSCRIPTEN_KEEPALIVE extractBundleToFs() {
   emsc_extract_bundle_to_fs();
 }
 
-extern "C" void EMSCRIPTEN_KEEPALIVE packFsToBundle() {
-  emsc_pack_fs_to_bundle();
+extern "C" void EMSCRIPTEN_KEEPALIVE packFsToBundle(bool onlyChanges) {
+  emsc_pack_fs_to_bundle(onlyChanges);
 }
 
 extern "C" void EMSCRIPTEN_KEEPALIVE addKey(KBD_KEYS key, bool pressed, uint64_t timeMs) {
