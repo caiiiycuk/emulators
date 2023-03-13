@@ -9690,22 +9690,10 @@ void POD_Load_Sdlmain( std::istream& stream )
 // -- jsdos
 
 void server_mouse_moved(float x, float y, bool relative, uint64_t movedMs) {
-  if (x < 0) {
-    x = 0;
-  }
-  if (x > 1) {
-    x = 1;
-  }
-  if (y < 0) {
-    y = 0;
-  }
-  if (y > 1) {
-    y = 1;
-  }
+  user_cursor_locked = true;
+  // TODO: @caiiiycuk understand how it works
+  user_cursor_emulation = MOUSE_EMULATION_NEVER;
 
-  user_cursor_x = x * user_cursor_sw;
-  user_cursor_y = y * user_cursor_sh;
-  
   if (relative) {
     Mouse_CursorMoved(x,
                       y,
@@ -9713,6 +9701,9 @@ void server_mouse_moved(float x, float y, bool relative, uint64_t movedMs) {
                       y,
                       true);
   } else {
+    user_cursor_x = x * user_cursor_sw;
+    user_cursor_y = y * user_cursor_sh;
+    
     Mouse_CursorMoved((x - mouseX) * user_cursor_sw,
                       (y - mouseY) * user_cursor_sh,
                       x,

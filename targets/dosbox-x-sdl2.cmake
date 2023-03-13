@@ -698,8 +698,8 @@ if (${EMSCRIPTEN})
             -fwasm-exceptions
             "-sUSE_ZLIB=1"
             "-sUSE_SDL=2"
-            "--profiling-funcs"
-            "-sASSERTIONS=1"
+        #    "--profiling-funcs"
+        #    "-sASSERTIONS=1"
         #     "-sSAFE_HEAP=2"
             "-sASYNCIFY=1"
             "-sASYNCIFY_IMPORTS=['syncSleep']"

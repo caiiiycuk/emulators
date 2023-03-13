@@ -129,9 +129,8 @@ function testServer(factory: CIFactory, name: string, assets: string) {
             .extract("digger.zip"));
         assert.ok(ci);
         const fsTree = await ci.fsTree();
-        assert.deepEqual({
+        const expected = JSON.stringify({
             "name": ".",
-            "size": null,
             "nodes": [
                 {
                     "name": ".jsdos",
@@ -149,7 +148,9 @@ function testServer(factory: CIFactory, name: string, assets: string) {
                         {
                             "name": "jsdos.json",
                             "nodes": null,
-                            "size": 60,
+                            "size": JSON.stringify({
+                                version: Build.version,
+                            }, null, 2).length,
                         },
                     ],
                     "size": null,
@@ -160,7 +161,10 @@ function testServer(factory: CIFactory, name: string, assets: string) {
                     "size": 57856,
                 },
             ],
-        }, fsTree);
+            "size": null,
+        }, null, 2);
+        const actual = JSON.stringify(fsTree, null, 2);
+        assert.equal(actual, expected);
 
         await ci.exit();
     });

@@ -112,11 +112,11 @@
 #endif
 
 /* Define to 1 to use a unaligned memory access */
-#if defined(X86_64) || defined(X86) || defined(__x86_64__) || defined(__i386__) || defined(__aarch64__) || defined(__arm__)
+/* #if defined(X86_64) || defined(X86) || defined(__x86_64__) || defined(__i386__) || defined(__aarch64__) || defined(__arm__) */
 #define C_UNALIGNED_MEMORY 1
-#else
+/* #else */
 /* #undef C_UNALIGNED_MEMORY */
-#endif
+/* #endif */
 
 /* define to 1 if you have XKBlib.h and X11 lib */
 /* #undef C_X11_XKB */
