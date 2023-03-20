@@ -8,7 +8,7 @@ import emulatorsImpl from "../../src/impl/emulators-impl";
 type CIFactory = (bundle: Uint8Array | Uint8Array[]) => Promise<CommandInterface>;
 
 const defaultIpxServerAddress = "127.0.0.1";
-const defaultIpxServerPort = 1901;
+const defaultIpxServerPort = 1900;
 const wsPrefix = (window.location.protocol === "http:" ? "ws://" : "wss://");
 
 export function testNet() {

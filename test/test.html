@@ -40,21 +40,33 @@
     <script src="test.js"></script>
     
     <div id="test-config" class="test-config">
-        <div class="test-config-row" style="display: none;">
-            <p>IPX Server Address:&nbsp;</p>
-            <input id="ipx-ip" type="text" value="127.0.0.1"></input>
+        <div class="test-config-row">
+            Server Address:&nbsp;
+            <input id="server-ip" type="text" value="127.0.0.1"></input>
+            &nbsp;&nbsp;
+            <button id="start-net">Start Net Tests</button>
         </div>
-        <button id="start-button">Start tests</button>
+        <br/>
+        <button id="start">Start Tests</button>
     </div>
 
     <script>
         const testConfig = document.getElementById("test-config");
-        const startButton = document.getElementById("start-button");
-        startButton.addEventListener("click", () => {
+        const start = document.getElementById("start");
+        const startNet = document.getElementById("start-net");
+
+        start.addEventListener("click", () => {
             testConfig.style.display = "none";
 
-            window.ipxServerAddress = document.getElementById("ipx-ip").value.trim();
             window.createTests();
+            mocha.run();
+        });
+
+        startNet.addEventListener("click", () => {
+            testConfig.style.display = "none";
+
+            window.ipxServerAddress = document.getElementById("server-ip").value.trim();
+            window.createNetworkTests();
             mocha.run();
         });
     </script>

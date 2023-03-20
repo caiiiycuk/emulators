@@ -768,7 +768,7 @@ bool _ConnectToServer(char const *strAddr) {
     // http://www.faqs.org/rfcs/rfc1234.html
 #ifdef EMSCRIPTEN
     EM_ASM(({
-        Module["websocket"]["url"] = UTF8ToString($0) + ":" + $1;
+        Module["websocket"]["url"] = UTF8ToString($0) + ":" + $1 + "/ipx";
     }), strAddr, udpPort);
 #endif
     ipxClientSocket = SDLNet_TCP_Open(&ipxServConnIp);
@@ -815,7 +815,7 @@ bool _ConnectToServer(char const *strAddr) {
             return false;
           }
           
-          asyncify_sleep(4);
+          asyncify_sleep(4, true);
 
           result = SDLNet_TCP_Recv(ipxClientSocket, &regHeader, sizeof(regHeader));
           if (result != 0) {

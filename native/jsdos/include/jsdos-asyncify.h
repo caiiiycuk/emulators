@@ -12,6 +12,6 @@ namespace jsdos {
   void incCycles();
 }
 
-extern "C" void asyncify_sleep(unsigned int ms, bool cpu = 0);
+extern "C" void asyncify_sleep(unsigned int ms, bool nonSkippable = 0);
 
 #endif  // JS_DOS_JSDOS_ASYNCIFY_H

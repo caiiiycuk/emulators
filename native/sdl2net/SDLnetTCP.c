@@ -27,7 +27,7 @@
 
 int SDLnet_useCallbackIdle = 1;
 void CALLBACK_Idle(void);
-void asyncify_sleep(unsigned int ms);
+void asyncify_sleep(unsigned int ms, int nonSkippable);
 
 /* The network API for TCP sockets */
 
@@ -282,7 +282,7 @@ int SDLNet_TCP_Send(TCPsocket sock, const void *datap, int len)
                 if (SDLnet_useCallbackIdle) {
                     CALLBACK_Idle();
                 } else {
-                    asyncify_sleep(4);
+                    asyncify_sleep(4, 1);
                 }
             } else {
                 if (left > 0) {

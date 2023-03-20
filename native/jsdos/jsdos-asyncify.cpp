@@ -8,7 +8,7 @@
 // clang-format off
 #include <emscripten.h>
 
-EM_JS(void, syncSleep, (bool cpu), {
+EM_JS(void, syncSleep, (bool nonSkippable), {
     if (!Module.sync_sleep) {
       throw new Error("Async environment does not exists");
       return;
@@ -16,7 +16,7 @@ EM_JS(void, syncSleep, (bool cpu), {
 
     const now = Date.now();
     if (Asyncify.state === 0) { // NORMAL
-      if (!cpu && (now - Module.last_wakeup < 16) /* 60 FPS */) {
+      if (!nonSkippable && (now - Module.last_wakeup < 16) /* 60 FPS */) {
         return;
       }
       
@@ -66,6 +66,7 @@ EM_JS(bool, initTimeoutSyncSleep, (), {
       delete Module.sync_sleep;
     };
     Module.uncaughtAsyncify = function(error) {
+      console.error(error);
       Module.destroyAsyncify();
       Module.uncaught(error);
     };
@@ -138,6 +139,7 @@ EM_JS(bool, initMessageSyncSleep, (bool worker), {
       delete Module.sync_sleep;
     };
     Module.uncaughtAsyncify = function(error) {
+      console.error(error);
       Module.destroyAsyncify();
       Module.uncaught(error);
     };
@@ -207,12 +209,12 @@ void jsdos::asyncifyUnlock() {
   --asyncifyLockCount;
 }
 
-extern "C" void asyncify_sleep(unsigned int ms, bool cpu) {
+extern "C" void asyncify_sleep(unsigned int ms, bool nonSkippable) {
   if (asyncifyLockCount != 0) {
     return;
   }
 #ifdef EMSCRIPTEN
-  syncSleep(cpu);
+  syncSleep(nonSkippable);
 #else
   while (paused) {
     std::this_thread::sleep_for(std::chrono::milliseconds(16));
