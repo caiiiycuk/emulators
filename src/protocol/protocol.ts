@@ -72,6 +72,7 @@ export interface AsyncifyStats {
     messageReceived: number,
     messageFrame: number,
     messageSound: number,
+    nonSkippableSleepCount: number,
     sleepCount: number,
     sleepTime: number,
     cycles: number,

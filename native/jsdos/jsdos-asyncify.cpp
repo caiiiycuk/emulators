@@ -20,6 +20,10 @@ EM_JS(void, syncSleep, (bool nonSkippable), {
         return;
       }
       
+      if (nonSkippable) {
+        ++Module.nonskippable_sleep_count;
+      }
+
       ++Module.sleep_count;
       
       Module.cycles += Module._getAndResetCycles();
@@ -38,6 +42,7 @@ EM_JS(void, syncSleep, (bool nonSkippable), {
 
 EM_JS(bool, initTimeoutSyncSleep, (), {
     Module.alive = true;
+    Module.nonskippable_sleep_count = 0;
     Module.sleep_count = 0;
     Module.sleep_time = 0;
     Module.cycles = 0;
@@ -76,6 +81,7 @@ EM_JS(bool, initTimeoutSyncSleep, (), {
 
 EM_JS(bool, initMessageSyncSleep, (bool worker), {
     Module.alive = true;
+    Module.nonskippable_sleep_count = 0;
     Module.sleep_count = 0;
     Module.sleep_time = 0;
     Module.cycles = 0;

@@ -61,17 +61,22 @@
                 (options.x ? emulators.dosboxXDirect(bundle) : emulators.dosDirect(bundle)));
 
             let intervalStartedAt = Date.now();
+            let prevNonSkippableSleepCount = 0;
             let prevSleepCount = 0;
             let prevCycles = 0;
             setInterval(() => {
                 ci.asyncifyStats().then((stats) => {
                     const dt = Date.now() - intervalStartedAt;
+                    const nonSkippableSleep = stats.nonSkippableSleepCount - prevNonSkippableSleepCount;
                     const avgSleep = (stats.sleepCount - prevSleepCount) * 1000 / dt;
+                    const avgNonSkippableSleep = (stats.nonSkippableSleepCount - prevNonSkippableSleepCount) * 1000 / dt;
                     const avgCycles = (stats.cycles - prevCycles) / dt;
                     intervalStartedAt = Date.now();
+                    prevNonSkippableSleepCount = stats.nonSkippableSleepCount;
                     prevSleepCount = stats.sleepCount;
                     prevCycles = stats.cycles;
                     statsEl.innerHTML = "Avg sleep p/sec: " + Math.round(avgSleep) +
+                         ", avg non skippable sleep p/sec: " + Math.round(avgNonSkippableSleep) +
                          ", cycles p/ms: " + Math.round(avgCycles);
                 });
             }, 3000);
@@ -98,6 +103,7 @@
                     case 37: return 263;
                     case 40: return 264;
                     case 17: return 342;
+                    case 190: return 46;
                     default: return code;
                 }
             }

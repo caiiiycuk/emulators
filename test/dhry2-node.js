@@ -8,11 +8,14 @@ emulators.pathPrefix = "./";
 const bundle = fs.readFileSync("dhry2.jsdos");
 let startedAt = null;
 let runStartedAt = Date.now();
+let prevNonSkippableSleepCount = 0;
 let prevSleepCount = 0;
 let prevCycles = 0;
 const medianVax = [];
 const medianCycles = [];
+const medianNonSkippableSleepCount = [];
 const medianSleepCount = [];
+const sortFn = (a, b) => a - b;
 
 console.log("Dhrystone 2 Test for " + backend);
 emulators[backend](bundle)
@@ -31,22 +34,27 @@ emulators[backend](bundle)
                 "VAX rating " + vax);
             ci.asyncifyStats().then((stats) => {
                 const dt = Date.now() - runStartedAt;
+                const nonSkippableSleepCount = stats.nonSkippableSleepCount - prevNonSkippableSleepCount;
                 const sleepCount = stats.sleepCount - prevSleepCount;
                 const cycles = stats.cycles - prevCycles;
+                prevNonSkippableSleepCount = stats.nonSkippableSleepCount;
                 prevSleepCount = stats.sleepCount;
                 prevCycles = stats.cycles;
                 runStartedAt = Date.now();
+                medianNonSkippableSleepCount.push(nonSkippableSleepCount * 1000 / dt);
                 medianSleepCount.push(sleepCount * 1000 / dt);
                 medianCycles.push(cycles / dt);
                 console.log("dhry2: sleep p/sec: " + Math.round(sleepCount * 1000 / dt) +
+                    " , non skippable p/sec: " + Math.round(nonSkippableSleepCount * 1000 / dt) +
                     " , avg cycles p/ms: " + Math.round(cycles / dt));
             });
             medianVax.push(vax);
             if (runs === "320000") {
                 const executionTimeSec = (Date.now() - startedAt) / 1000;
-                medianVax.sort();
-                medianSleepCount.sort();
-                medianCycles.sort();
+                medianVax.sort(sortFn);
+                medianNonSkippableSleepCount.sort(sortFn);
+                medianSleepCount.sort(sortFn);
+                medianCycles.sort(sortFn);
 
                 console.log("Time:", Math.round(executionTimeSec * 10) / 10, "sec",
                     "RpS:", Math.round((runs - 1000) / executionTimeSec),
@@ -61,6 +69,8 @@ emulators[backend](bundle)
                     console.log("Sleep count:", stats.sleepCount);
                     console.log("Sleep time:", Math.round(stats.sleepTime / 1000 * 10) / 10, "sec");
                     console.log("Avg sleep:", stats.sleepTime / stats.sleepCount, "ms");
+                    console.log("Med non skippable sleep p/sec: ",
+                        Math.round(medianNonSkippableSleepCount[Math.round(medianNonSkippableSleepCount.length / 2)]));
                     console.log("Med sleep p/sec:",
                         Math.round(medianSleepCount[Math.round(medianSleepCount.length / 2)]));
                     console.log("Med cycles p/ms:",

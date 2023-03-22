@@ -191,6 +191,7 @@ EM_JS(void, ws_init_runtime, (const char* sessionId), {
             messageReceived: Module.messageReceived,
             messageFrame: Module.messageFrame,
             messageSound: Module.messageSound,
+            nonSkippableSleepCount: Module.nonskippable_sleep_count,
             sleepCount: Module.sleep_count,
             sleepTime: Module.sleep_time,
             cycles: Module.cycles,
