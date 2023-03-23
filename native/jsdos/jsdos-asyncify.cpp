@@ -8,7 +8,7 @@
 // clang-format off
 #include <emscripten.h>
 
-EM_JS(void, syncSleep, (bool nonSkippable), {
+EM_JS(void, syncSleep, (unsigned int ms, bool nonSkippable), {
     if (!Module.sync_sleep) {
       throw new Error("Async environment does not exists");
       return;
@@ -16,11 +16,12 @@ EM_JS(void, syncSleep, (bool nonSkippable), {
 
     const now = Date.now();
     if (Asyncify.state === 0) { // NORMAL
-      if (!nonSkippable && (now - Module.last_wakeup < 16) /* 60 FPS */) {
+      if (!nonSkippable && (now - Module.last_wakeup) < 16 /* 60 FPS */) {
         return;
       }
       
       if (nonSkippable) {
+        Module.wakeUpAt = Date.now() + ms;
         ++Module.nonskippable_sleep_count;
       }
 
@@ -86,6 +87,16 @@ EM_JS(bool, initMessageSyncSleep, (bool worker), {
     Module.sleep_time = 0;
     Module.cycles = 0;
     Module.last_wakeup = Date.now();
+    
+    function postWakeUpMessage() {
+      if (worker) {
+        postMessage({name : "ws-sync-sleep", props: { sessionId : Module.sessionId } });
+      } else {
+        window.postMessage({name : "ws-sync-sleep", props: { sessionId : Module.sessionId } },
+                            "*");
+      }
+    }
+
     Module.sync_sleep = function(wakeUp) {
       if (Module.sync_wakeUp) {
         throw new Error("Trying to sleep in sleeping state!");
@@ -94,15 +105,6 @@ EM_JS(bool, initMessageSyncSleep, (bool worker), {
 
       Module.sync_wakeUp = wakeUp;
       
-      function postWakeUpMessage() {
-        if (worker) {
-          postMessage({name : "ws-sync-sleep", props: { sessionId : Module.sessionId } });
-        } else {
-          window.postMessage({name : "ws-sync-sleep", props: { sessionId : Module.sessionId } },
-                              "*");
-        }
-      }
-
       if (Module.paused === true) {
         var checkIntervalId = setInterval(function() {
           if (Module.paused === false) {
@@ -119,8 +121,13 @@ EM_JS(bool, initMessageSyncSleep, (bool worker), {
       var data = ev.data;
       if (ev.data.name === "wc-sync-sleep" &&
           Module.sessionId === ev.data.props.sessionId) {
+        if (Module.wakeUpAt !== undefined && Date.now() < Module.wakeUpAt) {
+          postWakeUpMessage();
+          return;
+        }
         var wakeUp = Module.sync_wakeUp;
         delete Module.sync_wakeUp;
+        delete Module.wakeUpAt;
 
         if (Module.alive) {
           wakeUp();
@@ -220,7 +227,7 @@ extern "C" void asyncify_sleep(unsigned int ms, bool nonSkippable) {
     return;
   }
 #ifdef EMSCRIPTEN
-  syncSleep(nonSkippable);
+  syncSleep(ms, nonSkippable);
 #else
   while (paused) {
     std::this_thread::sleep_for(std::chrono::milliseconds(16));
