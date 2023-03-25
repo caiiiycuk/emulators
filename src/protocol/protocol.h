@@ -25,7 +25,7 @@ void client_log(const char* tag, const char* message);
 void client_warn(const char* tag, const char* message);
 void client_error(const char* tag, const char* message);
 
-void client_network_connected(enum NetworkType networkType, const char* address, uint32_t port);
+void client_network_connected(enum NetworkType networkType, const char* address);
 void client_network_disconnected(enum NetworkType networkType);
 
 void client_tick();
@@ -43,7 +43,7 @@ extern void server_mute();
 extern void server_unmute();
 extern void server_exit();
 
-extern void server_network_connect(enum NetworkType networkType, const char* address, uint32_t port);
+extern void server_network_connect(enum NetworkType networkType, const char* address);
 extern void server_network_disconnect(enum NetworkType networkType);
 
 #endif  // JS_DOS_JS_DOS_PROTOCOL_H

@@ -122,7 +122,7 @@ export interface CommandInterface {
     // events
     events(): CommandInterfaceEvents;
 
-    networkConnect(networkType: NetworkType, address: string, port: number): Promise<void>;
+    networkConnect(networkType: NetworkType, address: string): Promise<void>;
 
     networkDisconnect(networkType: NetworkType): Promise<void>;
 
@@ -149,7 +149,7 @@ export interface CommandInterfaceEvents {
 
     onMessage: (consumer: (msgType: MessageType, ...args: any[]) => void) => void;
 
-    onNetworkConnected: (consumer: (networkType: NetworkType, address: string, port: number) => void) => void;
+    onNetworkConnected: (consumer: (networkType: NetworkType, address: string) => void) => void;
     onNetworkDisconnected: (consumer: (networkType: NetworkType) => void) => void;
 }
 

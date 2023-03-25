@@ -9,6 +9,7 @@ type CIFactory = (bundle: Uint8Array | Uint8Array[]) => Promise<CommandInterface
 
 const defaultIpxServerAddress = "127.0.0.1";
 const defaultIpxServerPort = 1900;
+const room = "test_" + Math.round(Math.random() * 100000);
 const wsPrefix = (window.location.protocol === "http:" ? "ws://" : "wss://");
 
 export function testNet() {
@@ -19,8 +20,8 @@ export function testNet() {
 function testServer(factory: CIFactory, name: string) {
     const ipxServerPort = defaultIpxServerPort;
     const globalIpxServerAddress = (window as any).ipxServerAddress;
-    const ipxServerAddress = typeof globalIpxServerAddress === "string" ?
-        globalIpxServerAddress : defaultIpxServerAddress;
+    const ipxServerAddress = (typeof globalIpxServerAddress === "string" ?
+        globalIpxServerAddress : defaultIpxServerAddress) + ":" + ipxServerPort + "/ipx/" + room;
     const ipxnetServerAddress = wsPrefix + ipxServerAddress + " " + ipxServerPort;
 
     suite(name + ".ipx");
@@ -43,7 +44,7 @@ function testServer(factory: CIFactory, name: string) {
         });
 
         try {
-            await ci.networkConnect(NetworkType.NETWORK_DOSBOX_IPX, "127.0.0.1", ipxServerPort + 1);
+            await ci.networkConnect(NetworkType.NETWORK_DOSBOX_IPX, "127.0.0.1:1902/ipx/" + room);
             assert.ok(false, JSON.stringify(messages, null, 2));
         } catch (e) {
             assert.ok(notifiedDisconnected, "Disconnected is not notified");
@@ -70,7 +71,7 @@ function testServer(factory: CIFactory, name: string) {
             notifiedDisconnected = true;
         });
 
-        await ci.networkConnect(NetworkType.NETWORK_DOSBOX_IPX, ipxServerAddress, ipxServerPort);
+        await ci.networkConnect(NetworkType.NETWORK_DOSBOX_IPX, ipxServerAddress);
         await ci.exit();
 
         assert.ok(connected, JSON.stringify(messages, null, 2));

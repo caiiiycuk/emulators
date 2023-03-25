@@ -252,7 +252,7 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
                 this.connectPromise = null;
                 this.connectResolve = () => {/**/};
                 this.connectReject = () => {/**/};
-                this.eventsImpl.fireNetworkConnected(props.networkType, props.address, props.port);
+                this.eventsImpl.fireNetworkConnected(props.networkType, props.address);
             } break;
             case "ws-disconnected": {
                 if (this.connectPromise !== null) {
@@ -514,7 +514,7 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
         return this.eventsImpl;
     }
 
-    public networkConnect(networkType: NetworkType, address: string, port: number): Promise<void> {
+    public networkConnect(networkType: NetworkType, address: string): Promise<void> {
         if (this.connectPromise !== null || this.disconnectPromise !== null) {
             return Promise.reject(new Error("Already prefoming connection or disconnection..."));
         }
@@ -529,7 +529,6 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
             this.sendClientMessage("wc-connect", {
                 networkType,
                 address,
-                port,
             });
         });
         return this.connectPromise;

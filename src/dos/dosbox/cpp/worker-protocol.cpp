@@ -8,7 +8,6 @@
 
 NetworkType connectNetwork = NETWORK_NA;
 std::string connectToAddress("");
-uint32_t connectToPort(0);
 
 
 int frameHeight = 0;
@@ -179,7 +178,7 @@ EM_JS(void, ws_init_runtime, (const char* sessionId), {
         } break;
         case "wc-connect": {
           const buffer = Module.mallocString(data.props.address);
-          Module._networkConnect(data.props.networkType, buffer, data.props.port);
+          Module._networkConnect(data.props.networkType, buffer);
           Module._free(buffer);
         } break;
         case "wc-disconnect": {
@@ -409,8 +408,8 @@ EM_JS(void, ws_client_error, (const char* tag, const char* message), {
     Module.sendMessage("ws-err", { tag: UTF8ToString(tag), message: UTF8ToString(message) });
   });
 
-EM_JS(void, ws_client_network_connected, (NetworkType networkType, const char* address, uint32_t port), {
-    Module.sendMessage("ws-connected", { networkType, address: UTF8ToString(address), port });
+EM_JS(void, ws_client_network_connected, (NetworkType networkType, const char* address), {
+    Module.sendMessage("ws-connected", { networkType, address: UTF8ToString(address) });
   });
 
 EM_JS(void, ws_client_network_disconnected, (NetworkType networkType), {
@@ -539,24 +538,22 @@ void client_sound_push(const float *samples, int num_samples) {
   emsc_ws_client_sound_push(samples, num_samples);
 }
 
-void client_network_connected(NetworkType networkType, const char* address, uint32_t port) {
-  ws_client_network_connected(networkType, address, port);
+void client_network_connected(NetworkType networkType, const char* address) {
+  ws_client_network_connected(networkType, address);
 }
 
 void client_network_disconnected(NetworkType networkType) {
   ws_client_network_disconnected(networkType);
 }
 
-extern "C" void EMSCRIPTEN_KEEPALIVE networkConnect(NetworkType networkType, const char* address, uint32_t port) {
+extern "C" void EMSCRIPTEN_KEEPALIVE networkConnect(NetworkType networkType, const char* address) {
   connectNetwork = networkType;
   connectToAddress = address;
-  connectToPort = port;
 }
 
 extern "C" void EMSCRIPTEN_KEEPALIVE networkDisconnect(NetworkType networkType) {
   connectNetwork = NETWORK_NA;
   connectToAddress = "";
-  connectToPort = 0;
   server_network_disconnect(networkType);
 }
 
@@ -596,10 +593,9 @@ void client_tick() {
 
   reentranceLock = true;
   if (connectNetwork != NETWORK_NA) {
-    server_network_connect(connectNetwork, connectToAddress.c_str(), connectToPort);
+    server_network_connect(connectNetwork, connectToAddress.c_str());
     connectNetwork = NETWORK_NA;
     connectToAddress = "";
-    connectToPort = 0;
   }
   reentranceLock = false;
 }

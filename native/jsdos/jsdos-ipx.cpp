@@ -768,8 +768,8 @@ bool _ConnectToServer(char const *strAddr) {
     // http://www.faqs.org/rfcs/rfc1234.html
 #ifdef EMSCRIPTEN
     EM_ASM(({
-        Module["websocket"]["url"] = UTF8ToString($0) + ":" + $1 + "/ipx";
-    }), strAddr, udpPort);
+        Module["websocket"]["url"] = UTF8ToString($0);
+    }), strAddr);
 #endif
     ipxClientSocket = SDLNet_TCP_Open(&ipxServConnIp);
     if(ipxClientSocket) {
@@ -846,7 +846,7 @@ bool ConnectToServer(char const *strAddr) {
   SDLnet_useCallbackIdle = 0;
   bool result = _ConnectToServer(strAddr);
   if (result) {
-    client_network_connected(NETWORK_DOSBOX_IPX, strAddr, udpPort);
+    client_network_connected(NETWORK_DOSBOX_IPX, strAddr);
   } else {
     client_network_disconnected(NETWORK_DOSBOX_IPX);
   }
@@ -1185,13 +1185,13 @@ void IPX_Init(Section* sec) {
 //Initialize static members;
 Bit16u IPX::dospage = 0;
 
-void server_network_connect(NetworkType networkType, const char* address, uint32_t port) {
+void server_network_connect(NetworkType networkType, const char* address) {
   if (incomingPacket.connected) {
     client_network_disconnected(NETWORK_DOSBOX_IPX);
     return;
   }
 
-  udpPort = port;
+  udpPort = 1900;
   ConnectToServer(address);
 }
 

@@ -67,6 +67,6 @@ int main(int argc, char *argv[]) {
 void client_log(const char* tag, const char* message) {}
 void client_warn(const char* tag, const char* message) {}
 void client_error(const char* tag, const char* message) {}
-void client_network_connected(enum NetworkType networkType, const char* address, uint32_t port) {}
+void client_network_connected(enum NetworkType networkType, const char* address) {}
 void client_network_disconnected(enum NetworkType networkType) {}
 void client_tick() {}

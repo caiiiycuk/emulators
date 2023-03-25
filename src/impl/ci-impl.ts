@@ -14,7 +14,7 @@ export class CommandInterfaceEventsImpl implements CommandInterfaceEvents {
     private onMessageConsumers: ((msgType: MessageType, ...args: any[]) => void)[] = [];
     private delayedMessages: {msgType: MessageType, args: any[]}[] = [];
 
-    private onNetworkConnectedConsumers: ((networkType: NetworkType, address: string, port: number) => void)[] = [];
+    private onNetworkConnectedConsumers: ((networkType: NetworkType, address: string) => void)[] = [];
     private onNetworkDisconnectedConsumers: ((networkType: NetworkType) => void)[] = [];
 
     onStdout = (consumer: (message: string) => void) => {
@@ -55,7 +55,7 @@ export class CommandInterfaceEventsImpl implements CommandInterfaceEvents {
         }
     };
 
-    onNetworkConnected(consumer: (networkType: NetworkType, address: string, port: number) => void) {
+    onNetworkConnected(consumer: (networkType: NetworkType, address: string) => void) {
         this.onNetworkConnectedConsumers.push(consumer);
     }
 
@@ -116,9 +116,9 @@ export class CommandInterfaceEventsImpl implements CommandInterfaceEvents {
         }
     };
 
-    fireNetworkConnected = (networkType: NetworkType, address: string, port: number) => {
+    fireNetworkConnected = (networkType: NetworkType, address: string) => {
         for (const next of this.onNetworkConnectedConsumers) {
-            next(networkType, address, port);
+            next(networkType, address);
         }
     };
 
