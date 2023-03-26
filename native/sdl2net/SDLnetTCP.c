@@ -24,6 +24,10 @@
 #include "SDLnetsys.h"
 #include "SDL_net.h"
 
+#ifdef EMSCRIPTEN
+#include <emscripten.h>
+#endif
+
 
 int SDLnet_useCallbackIdle = 1;
 void CALLBACK_Idle(void);
@@ -267,6 +271,14 @@ int SDLNet_TCP_Send(TCPsocket sock, const void *datap, int len)
         return(-1);
     }
 
+#ifdef EMSCRIPTEN
+    if (len > 0) {
+        EM_ASM(({
+            Module.netSent = (Module.netSent || 0) + $0;
+        }), len);
+    }
+#endif
+
     /* Keep sending data until it's sent or an error occurs */
     left = len;
     sent = 0;
@@ -313,6 +325,15 @@ int SDLNet_TCP_Recv(TCPsocket sock, void *data, int maxlen)
     SDLNet_SetLastError(0);
     int len = recv(sock->channel, (char *) data, maxlen, 0);
     sock->ready = 0;
+
+#ifdef EMSCRIPTEN
+    if (len > 0) {
+        EM_ASM(({
+            Module.netRecv = (Module.netRecv || 0) + $0;
+        }), len);
+    }
+#endif
+
     return len > 0 ? len : 0;
 }
 

@@ -146,7 +146,7 @@ void client_sound_push(const float *samples, int num_samples) {
 }
 
 void client_network_connected(NetworkType networkType, const char* address) {
-  printf("Network %d connected to %s:%d\n", networkType, address, port);
+  printf("Network %d connected to %s:%d\n", networkType, address);
 }
 
 void client_network_disconnected(NetworkType networkType) {

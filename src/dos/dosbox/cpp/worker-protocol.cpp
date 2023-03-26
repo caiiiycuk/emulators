@@ -194,6 +194,8 @@ EM_JS(void, ws_init_runtime, (const char* sessionId), {
             sleepCount: Module.sleep_count,
             sleepTime: Module.sleep_time,
             cycles: Module.cycles,
+            netSent: Module.netSent || 0,
+            netRecv: Module.netRecv || 0,
           });
         } break;
         case "wc-fs-tree": {

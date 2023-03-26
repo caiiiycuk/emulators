@@ -76,6 +76,8 @@ export interface AsyncifyStats {
     sleepCount: number,
     sleepTime: number,
     cycles: number,
+    netSent: number,
+    netRecv: number,
 }
 
 export interface FsNode {

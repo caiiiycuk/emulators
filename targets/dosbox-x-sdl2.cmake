@@ -2,6 +2,7 @@ set(DEFINITIONS_CORE_X
         -DJSDOS
         -DHAVE_CONFIG_H
         -DC_SDL2
+        -DC_IPX
         -DC_FORCE_MENU_SDLDRAW
         -DRESDIR="/tmp/dosbox-x"
         # missed in libserial.cpp
@@ -65,7 +66,6 @@ set(SOURCES_X_CORE
         "${DBX_PATH}/src/hardware/disney.cpp"
         "${DBX_PATH}/src/hardware/vga_attr.cpp"
         "${DBX_PATH}/src/hardware/ps1_sound.cpp"
-        "${DBX_PATH}/src/hardware/ipxserver.cpp"
         "${DBX_PATH}/src/hardware/vga_xga.cpp"
         "${DBX_PATH}/src/hardware/voodoo.cpp"
         "${DBX_PATH}/src/hardware/iohandler.cpp"
@@ -92,7 +92,6 @@ set(SOURCES_X_CORE
         "${DBX_PATH}/src/hardware/vga_misc.cpp"
         "${DBX_PATH}/src/hardware/voodoo_emu.cpp"
         "${DBX_PATH}/src/hardware/vga_s3.cpp"
-        "${DBX_PATH}/src/hardware/ipx.cpp"
         "${DBX_PATH}/src/hardware/vga_seq.cpp"
         "${DBX_PATH}/src/hardware/opl2board/opl2board.cpp"
         "${DBX_PATH}/src/hardware/mame/ymf262.cpp"
@@ -619,6 +618,8 @@ set(SOURCES_X_SDL_MAIN
         "${DBX_PATH}/src/gui/sdlmain_linux.cpp"
         "${DBX_PATH}/src/debug/debug_gui.cpp"
         "${DBX_PATH}/src/hardware/mixer.cpp"
+        "${DBX_PATH}/src/hardware/ipx.cpp"
+        "${DBX_PATH}/src/hardware/ipxserver.cpp"
         )
 
 set(SOURCES_X_JSDOS_CORE
@@ -634,6 +635,10 @@ set(SOURCES_X_JSDOS_MAIN
         "${NATIVE_DIR}/jsdos/jsdos-log.cpp"
         "${NATIVE_DIR}/jsdos/dosbox-x/jsdos-x-mixer.cpp"
         "${NATIVE_DIR}/jsdos/dosbox-x/jsdos-x-main.cpp"
+        "${NATIVE_DIR}/jsdos/jsdos-ipx.cpp"
+        "${NATIVE_DIR}/sdl2net/SDLnet.c"
+        "${NATIVE_DIR}/sdl2net/SDLnetTCP.c"
+        "${NATIVE_DIR}/sdl2net/SDLnetselect.c"
         )
 
 add_library(libdosbox-x-sdl2 OBJECT ${SOURCES_X_SDL} ${SOURCES_X_CORE} ${SOURCES_X_JSDOS_CORE})
@@ -670,6 +675,7 @@ target_include_directories(libdosbox-x-sdl2 PUBLIC
 target_include_directories(libdosbox-x-jsdos PUBLIC
         ${DOSBOX_X_INCLUDE_DIRECTORIES}
         "${DBX_PATH}/src/gui"
+        "${NATIVE_DIR}/sdl2net"
         )
 
 add_executable(dosbox-x-sdl2 ${SOURCES_X_SDL_MAIN})
@@ -698,9 +704,9 @@ if (${EMSCRIPTEN})
             -fwasm-exceptions
             "-sUSE_ZLIB=1"
             "-sUSE_SDL=2"
-        #    "--profiling-funcs"
-        #    "-sASSERTIONS=1"
-        #     "-sSAFE_HEAP=2"
+           "--profiling-funcs"
+           "-sASSERTIONS=1"
+        #    "-sSAFE_HEAP=2"
             "-sASYNCIFY=1"
             "-sASYNCIFY_IMPORTS=['syncSleep']"
             "-sASYNCIFY_WHITELIST=@${TARGETS_DIR}/dosbox-x-asyncify.txt"
@@ -709,6 +715,7 @@ if (${EMSCRIPTEN})
 elseif (APPLE)
     target_link_libraries(dosbox-x-sdl2
             ${SDL2_LIBRARIES}
+            sdl2_net
             "-framework CoreAudio"
             "-framework AudioToolbox"
             "-framework ForceFeedback"

@@ -7,6 +7,7 @@
 #include <cstdio>
 #include <sys/time.h>
 #include <jsdos-asyncify.h>
+#include <jsdos-log.h>
 
 #ifdef EMSCRIPTEN
 #include <emscripten.h>
@@ -37,6 +38,8 @@
 #include "setup.h"
 #include "support.h"
 #include "timer.h"
+
+#include "control.h"
 
 #define SOCKTABLESIZE	150 // DOS IPX driver was limited to 150 open sockets
 
@@ -758,6 +761,13 @@ static bool pingCheck(IPXHeader * outHeader) {
 }
 
 bool _ConnectToServer(char const *strAddr) {
+#ifdef EMSCRIPTEN
+  EM_ASM(({
+           Module["websocket"]["url"] = UTF8ToString($0);
+         }), strAddr);
+#else
+  strAddr = "127.0.0.1";
+#endif
   int numsent;
   IPXHeader regHeader;
   if(!SDLNet_ResolveHost(&ipxServConnIp, strAddr, (Bit16u)udpPort)) {
@@ -766,11 +776,6 @@ bool _ConnectToServer(char const *strAddr) {
     // octets and then using the actual IP address for the last 4 octets.
     // This idea is from the IPX over IP implementation as specified in RFC 1234:
     // http://www.faqs.org/rfcs/rfc1234.html
-#ifdef EMSCRIPTEN
-    EM_ASM(({
-        Module["websocket"]["url"] = UTF8ToString($0);
-    }), strAddr);
-#endif
     ipxClientSocket = SDLNet_TCP_Open(&ipxServConnIp);
     if(ipxClientSocket) {
       // Bind UDP port to address to channel
@@ -1049,10 +1054,6 @@ class IPXNET : public Program {
   }
 };
 
-static void IPXNET_ProgramStart(Program * * make) {
-  *make=new IPXNET;
-}
-
 Bitu IPX_ESRHandler(void) {
   LOG_IPX("ESR: >>>>>>>>>>>>>>>" );
   while(ESRList!=NULL) {
@@ -1075,18 +1076,34 @@ Bitu IPX_ESRHandler(void) {
   return CBRET_NONE;
 }
 
+#ifdef JSDOS_X
+bool addipx = false;
+void VFILE_Remove(const char *name,const char *dir = "");
+#else
 void VFILE_Remove(const char *name);
+#endif
+
+void IPXNET_ProgramStart(Program * * make) {
+  *make=new IPXNET;
+}
 
 class IPX: public Module_base {
  private:
   CALLBACK_HandlerObject callback_ipx;
   CALLBACK_HandlerObject callback_esr;
   CALLBACK_HandlerObject callback_ipxint;
-  RealPt old_73_vector;
+  RealPt old_73_vector = 0;
   static Bit16u dospage;
+#ifdef JSDOS_X
+  bool ipx_init;
+#endif
  public:
   IPX(Section* configuration):Module_base(configuration) {
     Section_prop * section = static_cast<Section_prop *>(configuration);
+#ifdef JSDOS_X
+    addipx = false;
+    ipx_init = false;
+#endif
     if(!section->Get_bool("ipx")) return;
     if(!SDLNetInited) {
       if(SDLNet_Init() == -1){
@@ -1149,13 +1166,22 @@ class IPX: public Module_base {
     RealSetVec(0x73,ESRRoutineBase,old_73_vector);	// IRQ11
     IO_WriteB(0xa1,IO_ReadB(0xa1)&(~8));			// enable IRQ11
 
+#ifdef JSDOS_X
+    addipx = true;
+    ipx_init = true;
+#else
     PROGRAMS_MakeFile("IPXNET.COM",IPXNET_ProgramStart);
+#endif
   }
 
   ~IPX() {
     Section_prop * section = static_cast<Section_prop *>(m_configuration);
     PIC_RemoveEvents(IPX_AES_EventHandler);
+#ifdef JSDOS_X
+    if(!ipx_init) return;
+#else
     if(!section->Get_bool("ipx")) return;
+#endif
 
     DisconnectFromServer(false);
 
@@ -1166,21 +1192,38 @@ class IPX: public Module_base {
     PhysPt phyDospage = PhysMake(dospage,0);
     for(Bitu i = 0;i < 32;i++)
       phys_writeb(phyDospage+i,(Bit8u)0x00);
-
+#ifdef JSDOS_X
+    if (addipx) VFILE_Remove("IPXNET.COM","SYSTEM");
+#else
     VFILE_Remove("IPXNET.COM");
+#endif
   }
 };
 
-static IPX* test;
+static IPX* test = nullptr;
 
 void IPX_ShutDown(Section* sec) {
   delete test;
 }
 
+#ifdef JSDOS_X
+void IPX_OnReset(Section*) {
+	if (test == NULL) {
+		LOG(LOG_MISC,LOG_DEBUG)("Allocating IPX emulation");
+		test = new IPX(control->GetSection("ipx"));
+	}
+}
+void IPX_Init() {
+  LOG(LOG_MISC,LOG_DEBUG)("Initializing IPX emulation");
+  AddExitFunction(AddExitFunctionFuncPair(IPX_ShutDown),true);
+	AddVMEventFunction(VM_EVENT_RESET,AddVMEventFunctionFuncPair(IPX_OnReset));
+}
+#else
 void IPX_Init(Section* sec) {
   test = new IPX(sec);
   sec->AddDestroyFunction(&IPX_ShutDown,true);
 }
+#endif
 
 //Initialize static members;
 Bit16u IPX::dospage = 0;
