@@ -74,6 +74,7 @@ function testServer(factory: CIFactory, name: string, backend: "dosbox" | "dosbo
         });
 
         await ci.networkConnect(NetworkType.NETWORK_DOSBOX_IPX, ipxServerAddress);
+        await ci.networkDisconnect(NetworkType.NETWORK_DOSBOX_IPX);
         await ci.exit();
 
         assert.ok(connected, JSON.stringify(messages, null, 2));
@@ -101,6 +102,7 @@ function testServer(factory: CIFactory, name: string, backend: "dosbox" | "dosbo
             notifiedDisconnected = true;
         });
         await sleep(backend === "dosbox-x" ? 3000 : 300);
+        await ci.networkDisconnect(NetworkType.NETWORK_DOSBOX_IPX);
         await ci.exit();
 
         assert.ok(connected, JSON.stringify(messages, null, 2));
