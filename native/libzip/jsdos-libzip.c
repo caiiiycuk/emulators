@@ -127,6 +127,9 @@ int zip_recursively(zip_t *zipArchive, const char *directory, double changedAfte
             strcat(nameInFs, dirp->d_name);
             char *nameInArchive = nameInFs + 2;
             if (is_dir(nameInFs)) {
+                if (changedAfterMs > 0 && strcmp(".jsdos", nameInArchive) == 0) {
+                    continue;
+                }
                 if (zip_dir_add(zipArchive, nameInArchive, ZIP_FL_ENC_UTF_8) == -1) {
                     fprintf(stderr, "zip_from_fs: can't create directory %s, cause %s\n", nameInFs,
                             zip_strerror(zipArchive));
@@ -156,7 +159,7 @@ int zip_recursively(zip_t *zipArchive, const char *directory, double changedAfte
                             zip_strerror(zipArchive));
                     return 0;
                 } else {
-                    if (zip_set_file_compression(zipArchive, index, ZIP_CM_DEFLATE, 9) == -1) {
+                    if (zip_set_file_compression(zipArchive, index, ZIP_CM_STORE, 0) == -1) {
                         fprintf(stderr, "zip_from_fs: can't set compression level for %s, cause %s\n", nameInFs,
                                 zip_strerror(zipArchive));
                         return 0;
@@ -342,10 +345,16 @@ int EMSCRIPTEN_KEEPALIVE zipfile_add(const char* archive, const char* nameInArch
     int index = zip_file_add(zipArchive, nameInArchive, source, ZIP_FL_OVERWRITE | ZIP_FL_ENC_UTF_8);
     if (index == -1) {
         zip_source_free(source);
-        fprintf(stderr, "zip_from_fs: can't create file %s, cause %s\n", nameInFs,
+        fprintf(stderr, "zipfile_add: can't create file %s, cause %s\n", nameInFs,
                 zip_strerror(zipArchive));
         zip_close(zipArchive);
         return -1;
+    } else {
+        if (zip_set_file_compression(zipArchive, index, ZIP_CM_STORE, 0) == -1) {
+            fprintf(stderr, "zipfile_add: can't set compression level for %s, cause %s\n", nameInFs,
+                    zip_strerror(zipArchive));
+            return -1;
+        }
     }
     
     zip_close(zipArchive);
