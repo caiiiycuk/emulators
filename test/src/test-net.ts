@@ -24,7 +24,9 @@ function testServer(factory: CIFactory, name: string, backend: "dosbox" | "dosbo
     const globalIpxServerAddress = (window as any).ipxServerAddress;
     const ipxServerAddress = (typeof globalIpxServerAddress === "string" ?
         globalIpxServerAddress : defaultIpxServerAddress) + ":" + ipxServerPort + "/ipx/" + room;
-    const ipxnetServerAddress = wsPrefix + ipxServerAddress + " " + ipxServerPort;
+    const ipxnetServerAddress = ipxServerAddress.startsWith("wss://") ||
+        ipxServerAddress.startsWith("ws://") ? ipxServerAddress + " " + ipxServerPort :
+        wsPrefix + ipxServerAddress + " " + ipxServerPort;
 
     suite(name + ".ipx");
 
@@ -64,7 +66,7 @@ function testServer(factory: CIFactory, name: string, backend: "dosbox" | "dosbo
         assert.ok(ci);
         ci.events().onMessage((mType, message: string) => {
             messages.push(message);
-            connected = connected || message.startsWith("[LOG_NET]IPX: Connected to server.  IPX address is 127:0:0:1");
+            connected = connected || message.startsWith("[LOG_NET]IPX: Connected to server.  IPX address is");
         });
         ci.events().onNetworkConnected(() => {
             notifiedConnected = true;
@@ -93,7 +95,7 @@ function testServer(factory: CIFactory, name: string, backend: "dosbox" | "dosbo
         ci.events().onMessage((mType, message: string) => {
             messages.push(message);
             connected = connected || message
-                .startsWith("[LOG_NET]IPX: Connected to server.  IPX address is 127:0:0:1");
+                .startsWith("[LOG_NET]IPX: Connected to server.  IPX address is");
         });
         ci.events().onNetworkConnected(() => {
             notifiedConnected = true;
