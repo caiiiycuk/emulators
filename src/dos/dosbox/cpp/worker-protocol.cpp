@@ -146,7 +146,11 @@ EM_JS(void, ws_init_runtime, (const char* sessionId), {
         case "wc-pack-fs-to-bundle": {
           try {
             Module.persist = function(archive) {
-              sendMessage("ws-persist", { bundle: archive }, [ archive.buffer ]);
+              if (archive === null) {
+                sendMessage("ws-persist", { bundle: null });
+              } else {
+                sendMessage("ws-persist", { bundle: archive }, [ archive.buffer ]);
+              }
             };
             Module._packFsToBundle(data.props.onlyChanges);
             delete Module.persist;
@@ -480,8 +484,12 @@ EM_JS(void, emsc_pack_fs_to_bundle, (bool onlyChanges), {
 
     const ptr = Module._zip_from_fs(onlyChanges ? Module.fsCreatedAt : 0);
     if (ptr === 0) {
-      Module.err("Can't create zip, see more info in logs");
-      Module._abort();
+      if (onlyChanges) {
+        Module.persist(null);
+      } else {
+        Module.err("Can't create zip, see more info in logs");
+        Module._abort();
+      }
       return;
     }
 

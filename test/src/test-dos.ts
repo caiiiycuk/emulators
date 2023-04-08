@@ -12,6 +12,7 @@ import { httpRequest } from "../../src/http";
 import { Keys } from "../../src/keys";
 import { makeLibZip } from "./libzip";
 import { Build } from "../../src/build";
+import emulators from "../../src/impl/emulators-impl";
 
 type CIFactory = (bundle: Uint8Array | Uint8Array[], options?: BackendOptions) => Promise<CommandInterface>;
 
@@ -80,8 +81,15 @@ function testServer(factory: CIFactory, name: string, assets: string) {
     suite(name + ".persistency");
 
     let cachedBundle: Uint8Array = new Uint8Array();
+    test(name + " should not return empty updates", async () => {
+        const bundle = await emulators.bundle();
+        const ci = await CI(bundle);
+        assert.ok(ci);
+        const changes = await ci.persist();
+        assert.ok(changes === null, "changes not empty!");
+    });
     test(name + " should store fs updates between sessions [empty db]", async () => {
-        const buffer = await httpRequest("digger.jsdos", {
+        const buffer = await httpRequest("helloworld.jsdos", {
             responseType: "arraybuffer",
         });
 
@@ -103,7 +111,7 @@ function testServer(factory: CIFactory, name: string, assets: string) {
     });
 
     test(name + " should store fs updates between sessions [existent db]", async () => {
-        const buffer = await httpRequest("digger.jsdos", {
+        const buffer = await httpRequest("helloworld.jsdos", {
             responseType: "arraybuffer",
         });
 

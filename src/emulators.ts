@@ -117,7 +117,7 @@ export interface CommandInterface {
     sendBackendEvent: (event: any) => void;
 
     // dump FS as Uint8Array <zip archive>
-    persist(onlyChanges?: boolean): Promise<Uint8Array>;
+    persist(onlyChanges?: boolean): Promise<Uint8Array | null>;
 
     // events
     events(): CommandInterfaceEvents;

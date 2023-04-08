@@ -99,8 +99,8 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
     private transport: TransportLayer;
     private ready: (err: Error | null) => void;
 
-    private persistPromise?: Promise<Uint8Array>;
-    private persistResolve?: (bundle: Uint8Array) => void;
+    private persistPromise?: Promise<Uint8Array | null>;
+    private persistResolve?: (bundle: Uint8Array | null) => void;
 
     private exitPromise?: Promise<void>;
     private exitResolve?: () => void;
@@ -446,15 +446,16 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
     }
 
 
-    public persist(onlyChanges?: boolean): Promise<Uint8Array> {
+    public persist(onlyChanges?: boolean): Promise<Uint8Array | null> {
         if (this.persistPromise !== undefined) {
             return this.persistPromise;
         }
 
 
-        const persistPromise = new Promise<Uint8Array>((resolve) => this.persistResolve = resolve);
+        const persistPromise = new Promise<Uint8Array | null>((resolve) => {
+            this.persistResolve = resolve;
+        });
         this.persistPromise = persistPromise;
-
         this.sendClientMessage("wc-pack-fs-to-bundle", {
             onlyChanges: onlyChanges !== false,
         });

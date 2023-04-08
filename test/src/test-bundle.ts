@@ -50,7 +50,7 @@ export function testDosBundle() {
         const dosBundle = await (await emulators.bundle());
         const testPhrase = "overwritten by test";
         dosBundle.dosboxConf += "\n#" + testPhrase;
-        dosBundle.extract("digger.jsdos", "/");
+        dosBundle.extract("helloworld.jsdos", "/");
 
         await toFs(dosBundle, async (fs) => {
             const conf = (await fs.readFile(".jsdos/dosbox.conf", "utf8")) as string;
