@@ -70,7 +70,7 @@ else ()
         target_link_libraries(dosbox-x-sokol ws2_32 z winmm)
         target_link_libraries(dosbox-sokol ws2_32 z winmm)
     else ()
-        target_link_libraries(dosbox-x-sokol X11 Xcursor Xi z ncurses dl GL pthread asound)
+        target_link_libraries(dosbox-x-sokol X11 Xcursor Xi z ncurses dl GL pthread asound SDL2 SDL2_net)
         target_link_libraries(dosbox-sokol X11 Xcursor Xi z ncurses dl GL pthread asound)
     endif ()
 

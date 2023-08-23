@@ -4,6 +4,7 @@ set(DEFINITIONS_CORE_X
         -DC_SDL2
         -DC_IPX
         -DC_FORCE_MENU_SDLDRAW
+        -DLIBSERIAL
         -DRESDIR="/tmp/dosbox-x"
         # missed in libserial.cpp
         -DCBAUD=0
@@ -240,7 +241,6 @@ set(SOURCES_X_CORE
         "${DBX_PATH}/src/aviwriter/riff.cpp"
         "${DBX_PATH}/src/aviwriter/guid.cpp"
         #	"${DBX_PATH}/src/libs/xBRZ/xbrz.cpp"
-        #	"${DBX_PATH}/src/libs/tinyfiledialogs/tinyfiledialogs.c"
         "${DBX_PATH}/src/libs/gui_tk/gui_tk.cpp"
         #	"${DBX_PATH}/src/libs/zmbv/zmbv.cpp"
         #	"${DBX_PATH}/src/libs/libchdr/libchdr_chd.c"
@@ -664,7 +664,7 @@ set(DOSBOX_X_INCLUDE_DIRECTORIES
         "${DBX_PATH}/src/hardware/snd_pc98/x11"
         "${DBX_PATH}/src"
         "${DBX_PATH}"
-        "${SDL2_INCLUDE_DIR}"
+        "${SDL2_INCLUDE_DIRS}"
         )
 
 target_include_directories(libdosbox-x-sdl2 PUBLIC
@@ -740,8 +740,7 @@ elseif (MINGW)
 else ()
     target_link_libraries(dosbox-x-sdl2
             X11 z ncurses dl GL pthread asound
-            SDL SDL_mixer SDL2_net
-            )
+            SDL2 SDL2_mixer SDL2_net)
 endif ()
 
 if (${EMSCRIPTEN})

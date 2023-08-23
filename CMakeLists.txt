@@ -2,7 +2,12 @@ project(js-dos)
 cmake_minimum_required(VERSION 3.21)
 
 set(X86 false)
-set(X86_64 false)
+if (${EMSCRIPTEN})
+	set(X86_64 false)
+else ()
+	set(X86_64 true)
+endif ()
+
 set(BUILD_NATIVE_LIBZIP true)
 
 set(SRC_DIR "${CMAKE_CURRENT_LIST_DIR}/src")

@@ -2,7 +2,9 @@
 // Created by caiiiycuk on 27.02.2020.
 //
 
+#include <cassert>
 #include <cstddef>
+#include <cstring>
 #include <protocol.h>
 #include <thread>
 #include <mutex>
