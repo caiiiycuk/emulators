@@ -7,3 +7,7 @@
 [submodule "native/dosbox-x"]
 	path = native/dosbox-x
 	url = git@github.com:js-dos/dosbox-x.git
+[submodule "native/sockdrive"]
+	path = native/sockdrive
+	url = git@github.com:caiiiycuk/sockdrive.git
+	branch = main

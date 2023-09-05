@@ -31,6 +31,8 @@ if(${EMSCRIPTEN})
 	add_definitions(-DEMSCRIPTEN)
 
 	set(EM_LINK_OPTIONS
+		"-Wl,-u,htons" # https://github.com/emscripten-core/emscripten/issues/16836
+		"-Wl,-u,ntohs" # https://github.com/emscripten-core/emscripten/issues/16836
 		"--emit-symbol-map"
 		"-sTOTAL_STACK=1MB"
 		"-sMALLOC=emmalloc"
@@ -60,7 +62,10 @@ else()
 #	add_definitions(-DC_DEBUG=1 -DC_HEAVY_DEBUG=1)
 endif()
 
-include_directories("${SRC_DIR}/protocol")
+include_directories(
+		"${SRC_DIR}/protocol"
+		"${NATIVE_DIR}/sockdrive/lib/ffi"
+)
 
 # tier 1
 include("${TARGETS_DIR}/zip.cmake")
