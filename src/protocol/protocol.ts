@@ -81,6 +81,9 @@ export interface AsyncifyStats {
     driveSent: number,
     driveRecv: number,
     driveRecvTime: number,
+    driveCacheHit: number,
+    driveCacheMiss: number,
+    driveCacheUsed: number,
 }
 
 export interface FsNode {

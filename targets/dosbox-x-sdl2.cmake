@@ -630,6 +630,7 @@ set(SOURCES_X_JSDOS_CORE
         "${NATIVE_DIR}/jsdos/jsdos-support.cpp"
         "${NATIVE_DIR}/jsdos/jsdos-events.cpp"
         "${NATIVE_DIR}/jsdos/jsdos-drive.cpp"
+        "${NATIVE_DIR}/sockdrive/lib/ffi/lz4/lz4.c"
         )
 
 set(SOURCES_X_JSDOS_MAIN

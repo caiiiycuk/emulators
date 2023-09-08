@@ -189,7 +189,7 @@ EM_JS(void, ws_init_runtime, (const char* sessionId), {
           Module._networkDisconnect(data.props.networkType);
         } break;
         case "wc-asyncify-stats": {
-          sendMessage("ws-asyncify-stats", {
+          const stats = {
             messageSent: Module.messageSent,
             messageReceived: Module.messageReceived,
             messageFrame: Module.messageFrame,
@@ -200,10 +200,24 @@ EM_JS(void, ws_init_runtime, (const char* sessionId), {
             cycles: Module.cycles,
             netSent: Module.netSent || 0,
             netRecv: Module.netRecv || 0,
-            driveSent: Module.sockdrive ? Module.sockdrive.stats.write : 0,
-            driveRecv: Module.sockdrive ? Module.sockdrive.stats.read : 0,
-            driveRecvTime: Module.sockdrive ? Module.sockdrive.stats.readTotalTime : 0,
-          });
+            driveSent: 0,
+            driveRecv: 0,
+            driveRecvTime: 0,
+            driveCacheHit: 0,
+            driveCacheMiss: 0,
+            driveCacheUsed: 0,
+          };
+
+          if (Module.sockdrive && Module.sockdrive.stats) {
+            stats.driveSent = Module.sockdrive.stats.write;
+            stats.driveRecv = Module.sockdrive.stats.read;
+            stats.driveRecvTime = Module.sockdrive.stats.readTotalTime;
+            stats.driveCacheHit = Module.sockdrive.stats.cacheHit;
+            stats.driveCacheMiss = Module.sockdrive.stats.cacheMiss;
+            stats.driveCacheUsed = Module.sockdrive.stats.cacheUsed;
+          }
+          
+          sendMessage("ws-asyncify-stats", stats);
         } break;
         case "wc-fs-tree": {
           sendMessage("ws-fs-tree", {
