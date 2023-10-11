@@ -64,7 +64,7 @@ endif()
 
 include_directories(
 		"${SRC_DIR}/protocol"
-		"${NATIVE_DIR}/sockdrive/lib/ffi"
+		"${NATIVE_DIR}/sockdrive/include"
 )
 
 # tier 1

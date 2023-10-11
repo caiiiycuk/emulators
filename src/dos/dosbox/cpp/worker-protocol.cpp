@@ -124,6 +124,7 @@ EM_JS(void, ws_init_runtime, (const char* sessionId), {
 
       switch (data.name) {
         case "wc-run": {
+          Module.token = data.props.token || "";
           Module._extractBundleToFs();
           Module._runRuntime();
           sendMessage("ws-server-ready");

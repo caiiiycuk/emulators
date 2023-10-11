@@ -619,7 +619,7 @@ set(SOURCES_X_SDL_MAIN
         "${DBX_PATH}/src/hardware/mixer.cpp"
         "${DBX_PATH}/src/hardware/ipx.cpp"
         "${DBX_PATH}/src/hardware/ipxserver.cpp"
-        "${NATIVE_DIR}/sockdrive/lib/ffi/SDL2/sockdrive.cpp"
+        "${NATIVE_DIR}/sockdrive/SDL2/sockdrive.cpp"
         )
 
 set(SOURCES_X_JSDOS_CORE
@@ -630,7 +630,7 @@ set(SOURCES_X_JSDOS_CORE
         "${NATIVE_DIR}/jsdos/jsdos-support.cpp"
         "${NATIVE_DIR}/jsdos/jsdos-events.cpp"
         "${NATIVE_DIR}/jsdos/jsdos-drive.cpp"
-        "${NATIVE_DIR}/sockdrive/lib/ffi/lz4/lz4.c"
+        "${NATIVE_DIR}/sockdrive/lz4/lz4.c"
         )
 
 set(SOURCES_X_JSDOS_MAIN
@@ -641,7 +641,7 @@ set(SOURCES_X_JSDOS_MAIN
         "${NATIVE_DIR}/sdl2net/SDLnet.c"
         "${NATIVE_DIR}/sdl2net/SDLnetTCP.c"
         "${NATIVE_DIR}/sdl2net/SDLnetselect.c"
-        "${NATIVE_DIR}/sockdrive/lib/ffi/js/sockdrive.cpp"
+        "${NATIVE_DIR}/sockdrive/js/sockdrive.cpp"
         )
 
 add_library(libdosbox-x-sdl2 OBJECT ${SOURCES_X_SDL} ${SOURCES_X_CORE} ${SOURCES_X_JSDOS_CORE})
@@ -707,8 +707,8 @@ if (${EMSCRIPTEN})
             -fwasm-exceptions
             "-sUSE_ZLIB=1"
             "-sUSE_SDL=2"
-        #    "--profiling-funcs"
-        #    "-sASSERTIONS=1"
+           #    "--profiling-funcs"
+           #    "-sASSERTIONS=1"
         #    "-sSAFE_HEAP=2"
             "-sASYNCIFY=1"
             "-sASYNCIFY_IMPORTS=['syncSleep']"

@@ -1,21 +1,25 @@
 //
-// Created by caiii on 23.08.2023.
+// Created by caiiiycuk on 23.08.2023.
 //
 
 #include <cassert>
 #include <jsdos-drive.h>
 #include <sockdrive.h>
-
 #include <cstdio>
 
-constexpr uint32_t diskSize = 2097152;
-constexpr uint32_t sectorSize = 512;
 
-jsdos::SockDrive::SockDrive(const std::string& host, uint16_t port):
-    imageDisk(nullptr, (std::string(host) + ":" + std::to_string(port)).c_str(), diskSize, true) {
-    handle = sockdrive_open(host.c_str(), port);
-    const uint64_t heads = (double) diskSize / sectorSize / 520 / 63 * 1024;
-    this->Set_Geometry(heads, 520, 63, sectorSize);
+jsdos::SockDrive* jsdos::SockDrive::create(const std::string& url, const std::string& owner, const std::string& name) {
+    auto handle = sockdrive_open(url.c_str(), owner.c_str(), name.c_str(), "");
+    if (handle) {
+       return new jsdos::SockDrive(handle, url, owner, name); 
+    }
+
+    return nullptr;
+}
+
+jsdos::SockDrive::SockDrive(size_t handle, const std::string& url, const std::string& owner, const std::string& name):
+    imageDisk::imageDisk(nullptr, (url + "{" + owner + "/" + name + "}").c_str(), sockdrive_size(handle), true), handle(handle) {
+    this->Set_Geometry(sockdrive_heads(handle), sockdrive_cylinders(handle), sockdrive_sectors(handle), sockdrive_sector_size(handle));
 }
 
 jsdos::SockDrive::~SockDrive() {

@@ -193,7 +193,7 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
 
                 sendBundles()
                     .then(() => {
-                        this.sendClientMessage("wc-run", {});
+                        this.sendClientMessage("wc-run", { token: this.options.token });
                     })
                     .catch((e) => {
                         this.onErr("panic", "Can't send bundles to backend: " + e.message);

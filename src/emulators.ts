@@ -17,6 +17,7 @@ export enum NetworkType {
 /* eslint-enable no-unused-vars */
 
 export interface BackendOptions {
+    token?: string | undefined;
     onExtractProgress?: (bundleIndex: number, file: string, extracted: number, total: number) => void;
 }
 
