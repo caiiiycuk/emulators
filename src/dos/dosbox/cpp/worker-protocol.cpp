@@ -475,13 +475,21 @@ EM_JS(void, emsc_extract_bundle_to_fs, (), {
         
       if (index === 0) {
         try {
-            dosboxConf = Module.FS.readFile("/home/web_user/.jsdos/dosbox.conf");
+          dosboxConf = Module.FS.readFile("/home/web_user/.jsdos/dosbox.conf");
         } catch (e) {
-            Module.err("Broken bundle, .jsdos/dosbox.conf not found");
-            return;
+          // ignore
         }
         
         Module.fsCreatedAt = Module._get_changes_mtime_ms();
+      }
+    }
+
+    if (dosboxConf === null) {
+      try {
+        dosboxConf = Module.FS.readFile("/home/web_user/.jsdos/dosbox.conf");
+      } catch (e) { 
+        Module.err("Broken bundle, .jsdos/dosbox.conf not found");
+        return;
       }
     }
 

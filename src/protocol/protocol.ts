@@ -1,4 +1,4 @@
-import { CommandInterface, NetworkType, BackendOptions, DosConfig } from "../emulators";
+import { CommandInterface, NetworkType, BackendOptions, DosConfig, InitFsEntry, InitFileEntry } from "../emulators";
 import { CommandInterfaceEventsImpl } from "../impl/ci-impl";
 
 export type ClientMessage =
@@ -50,8 +50,8 @@ export type MessageHandler = (name: ServerMessage, props: { [key: string]: any }
 export interface TransportLayer {
     sessionId: string;
     sendMessageToServer(name: ClientMessage,
-            props: { [key: string]: any },
-            transfer?: ArrayBuffer[]): void;
+        props: { [key: string]: any },
+        transfer?: ArrayBuffer[]): void;
     initMessageHandler(handler: MessageHandler): void;
     exit?: () => void;
 }
@@ -101,7 +101,7 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
     private freq = 0;
     private utf8Decoder = new TextDecoder();
 
-    private bundles?: Uint8Array[];
+    private init?: InitFsEntry[];
     private transport: TransportLayer;
     private ready: (err: Error | null) => void;
 
@@ -141,12 +141,12 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
 
     public options: BackendOptions;
 
-    constructor(bundles: Uint8Array[],
+    constructor(init: InitFsEntry[],
         transport: TransportLayer,
         ready: (err: Error | null) => void,
         options: BackendOptions) {
         this.options = options;
-        this.bundles = bundles;
+        this.init = init;
         this.transport = transport;
         this.ready = ready;
         this.configPromise = new Promise<DosConfig>((resolve) => this.configResolve = resolve);
@@ -172,22 +172,45 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
         switch (name) {
             case "ws-ready": {
                 const sendBundles = async () => {
-                    if (!this.bundles) {
+                    if (!this.init || this.init.length === 0) {
                         return;
                     }
 
-                    for (let i = 0; i < this.bundles.length; ++i) {
+                    const encoder = new TextEncoder();
+                    const sendData = async (type: "file" | "bundle", name: string, contents: Uint8Array) => {
                         await this.sendDataChunk({
-                            type: "bundle",
-                            name: i + "",
-                            data: this.bundles[i].buffer,
+                            type,
+                            name,
+                            data: contents.buffer,
                         });
 
                         await this.sendDataChunk({
-                            type: "bundle",
-                            name: i + "",
+                            type,
+                            name,
                             data: null,
                         });
+                    };
+
+                    let bundleIndex = 0;
+                    for (const next of this.init) {
+                        if (ArrayBuffer.isView(next)) {
+                            await sendData("bundle", bundleIndex + "", next);
+                            bundleIndex++;
+                        } else if (typeof next === "string") {
+                            await sendData("file", ".jsdos/dosbox.conf", encoder.encode(next));
+                        } else {
+                            const fileEntry = next as InitFileEntry;
+                            const dosConfig = next as DosConfig;
+
+                            if (dosConfig.jsdosConf.version !== undefined) {
+                                await sendData("file", ".jsdos/dosbox.conf",
+                                    encoder.encode(dosConfig.dosboxConf));
+                                await sendData("file", ".jsdos/jsdos.json",
+                                    encoder.encode(JSON.stringify(dosConfig.jsdosConf, null, 2)));
+                            } else if (fileEntry.path !== undefined) {
+                                await sendData("file", fileEntry.path, fileEntry.contents);
+                            }
+                        }
                     }
                 };
 
@@ -199,7 +222,7 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
                         this.onErr("panic", "Can't send bundles to backend: " + e.message);
                     })
                     .finally(() => {
-                        delete this.bundles;
+                        delete this.init;
                     });
             } break;
             case "ws-server-ready": {
@@ -642,7 +665,7 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
     private async sendDataChunk(chunk: DataChunk): Promise<void> {
         const key = this.dataChunkKey(chunk);
         if (this.dataChunkPromise[key] !== undefined) {
-            throw new Error("sendDataChunk should be accpted before sending new one");
+            throw new Error("sendDataChunk should be accepted before sending new one");
         }
         const promise = new Promise<void>((resolve) => {
             this.dataChunkResolve[key] = resolve;

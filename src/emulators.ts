@@ -21,6 +21,14 @@ export interface BackendOptions {
     onExtractProgress?: (bundleIndex: number, file: string, extracted: number, total: number) => void;
 }
 
+export type InitBundleEntry = Uint8Array;
+export interface InitFileEntry {
+    path: string,
+    contents: Uint8Array,
+};
+export type InitFsEntry = InitBundleEntry | InitFileEntry | DosConfig | string;
+export type InitFs = InitFsEntry | InitFsEntry[];
+
 export interface Emulators {
     // * pathPrefix - by default emulators will load wasm modules relatively from current path,
     // you should specify path prefix if you want to load them from different place
@@ -36,31 +44,31 @@ export interface Emulators {
     bundle: () => Promise<DosBundle>;
 
     // * dosConfig - read bundle config
-    bundleConfig: (bundle: Uint8Array) => Promise<DosConfig | null>;
+    bundleConfig: (bundle: InitBundleEntry) => Promise<DosConfig | null>;
 
     // * updateDosConfig - update bunle config
-    bundleUpdateConfig: (bundle: Uint8Array, config: DosConfig) => Promise<Uint8Array>;
+    bundleUpdateConfig: (bundle: InitBundleEntry, config: DosConfig) => Promise<Uint8Array>;
 
     // * dosboxNode - create dosbox node emulator backend
-    dosboxNode: (bundle: Uint8Array | Uint8Array[], options?: BackendOptions) => Promise<CommandInterface>;
+    dosboxNode: (init: InitFs, options?: BackendOptions) => Promise<CommandInterface>;
 
     // * dosboxDirect - create dosbox direct emulator backend
-    dosboxDirect: (bundle: Uint8Array | Uint8Array[], options?: BackendOptions) => Promise<CommandInterface>;
+    dosboxDirect: (init: InitFs, options?: BackendOptions) => Promise<CommandInterface>;
 
     // * dosboxWorker - create dosbox worker emulator backend
-    dosboxWorker: (bundle: Uint8Array | Uint8Array[], options?: BackendOptions) => Promise<CommandInterface>;
+    dosboxWorker: (init: InitFs, options?: BackendOptions) => Promise<CommandInterface>;
 
     // * dosboxXNode - create dosbox-x node emulator backend
-    dosboxXNode: (bundle: Uint8Array | Uint8Array[], options?: BackendOptions) => Promise<CommandInterface>;
+    dosboxXNode: (init: InitFs, options?: BackendOptions) => Promise<CommandInterface>;
 
     // * dosboxDirect - create dosbox-x direct emulator backend
-    dosboxXDirect: (bundle: Uint8Array | Uint8Array[], options?: BackendOptions) => Promise<CommandInterface>;
+    dosboxXDirect: (init: InitFs, options?: BackendOptions) => Promise<CommandInterface>;
 
     // * dosboxWorker - create dosbox-x worker emulator backend
-    dosboxXWorker: (bundle: Uint8Array | Uint8Array[], options?: BackendOptions) => Promise<CommandInterface>;
+    dosboxXWorker: (init: InitFs, options?: BackendOptions) => Promise<CommandInterface>;
 
     // * backend - create abstract emulation backend by given TransportLayer
-    backend: (bundles: Uint8Array[], transportLayer: TransportLayer,
+    backend: (init: InitFs, transportLayer: TransportLayer,
         options?: BackendOptions) => Promise<CommandInterface>;
 }
 

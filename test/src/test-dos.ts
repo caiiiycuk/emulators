@@ -4,7 +4,7 @@ import { assert } from "chai";
 import { renderComparsionOf, waitImage } from "./compare";
 
 import DosBundle from "../../src/dos/bundle/dos-bundle";
-import { BackendOptions, CommandInterface } from "../../src/emulators";
+import { BackendOptions, CommandInterface, InitFs } from "../../src/emulators";
 import emulatorsImpl from "../../src/impl/emulators-impl";
 
 import { httpRequest } from "../../src/http";
@@ -14,7 +14,7 @@ import { makeLibZip } from "./libzip";
 import { Build } from "../../src/build";
 import emulators from "../../src/impl/emulators-impl";
 
-type CIFactory = (bundle: Uint8Array | Uint8Array[], options?: BackendOptions) => Promise<CommandInterface>;
+type CIFactory = (bundle: InitFs, options?: BackendOptions) => Promise<CommandInterface>;
 
 export function testDos() {
     testServer((bundle, options) => emulatorsImpl.dosboxDirect(bundle, options), "dosboxDirect", "dosbox");
@@ -33,6 +33,24 @@ function testServer(factory: CIFactory, name: string, assets: string) {
         bundle = await Promise.resolve(bundle);
         return await factory(await bundle.toUint8Array(), options);
     }
+
+    test(name + " can read dosbox.conf from string", async () => {
+        const expected = "[sdl]\ntest_prop=1";
+        const actual = new TextDecoder().decode(await (await factory(expected)).fsReadFile(".jsdos/dosbox.conf"));
+        assert.equal(actual, expected);
+    });
+
+    test(name + " can read dosbox.conf from DosConfig", async () => {
+        const dosboxConf = "[sdl]\ntest_prop=1";
+        const jsdosConf = { version: "test" };
+        const ci = await (await factory({
+            dosboxConf,
+            jsdosConf,
+        }));
+        const decoder = new TextDecoder();
+        assert.equal(decoder.decode(await ci.fsReadFile(".jsdos/dosbox.conf")), dosboxConf);
+        assert.equal(decoder.decode(await ci.fsReadFile(".jsdos/jsdos.json")), JSON.stringify(jsdosConf, null, 2));
+    });
 
     test(name + " can track extract progress", async () => {
         const actual: string[] = [];

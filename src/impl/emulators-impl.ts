@@ -1,5 +1,5 @@
 import { Build } from "../build";
-import { Emulators, CommandInterface, BackendOptions, DosConfig } from "../emulators";
+import { Emulators, CommandInterface, BackendOptions, DosConfig, InitFs, InitBundleEntry } from "../emulators";
 
 import { IWasmModules, WasmModulesImpl } from "./modules";
 
@@ -24,7 +24,7 @@ class EmulatorsImpl implements Emulators {
         return new DosBundle(libzipWasm);
     }
 
-    async bundleConfig(bundle: Uint8Array): Promise<DosConfig | null> {
+    async bundleConfig(bundle: InitBundleEntry): Promise<DosConfig | null> {
         const modules = await this.wasmModules();
         const libzipWasm = await modules.libzip();
 
@@ -60,7 +60,7 @@ class EmulatorsImpl implements Emulators {
         }
     }
 
-    async bundleUpdateConfig(bundle: Uint8Array, config: DosConfig): Promise<Uint8Array> {
+    async bundleUpdateConfig(bundle: InitBundleEntry, config: DosConfig): Promise<Uint8Array> {
         const modules = await this.wasmModules();
         const libzipWasm = await modules.libzip();
 
@@ -80,47 +80,47 @@ class EmulatorsImpl implements Emulators {
         }
     }
 
-    async dosboxNode(bundle: Uint8Array | Uint8Array[], options?: BackendOptions): Promise<CommandInterface> {
-        return this.dosboxDirect(bundle, options);
+    async dosboxNode(init: InitFs, options?: BackendOptions): Promise<CommandInterface> {
+        return this.dosboxDirect(init, options);
     }
 
-    async dosboxDirect(bundle: Uint8Array | Uint8Array[], options?: BackendOptions): Promise<CommandInterface> {
+    async dosboxDirect(init: InitFs, options?: BackendOptions): Promise<CommandInterface> {
         const modules = await this.wasmModules();
         const dosboxWasm = await modules.dosbox();
         const transportLayer = await dosDirect(dosboxWasm, "session-" + Date.now());
-        return this.backend(bundle, transportLayer, options);
+        return this.backend(init, transportLayer, options);
     }
 
-    async dosboxWorker(bundle: Uint8Array | Uint8Array[], options?: BackendOptions): Promise<CommandInterface> {
+    async dosboxWorker(init: InitFs, options?: BackendOptions): Promise<CommandInterface> {
         const modules = await this.wasmModules();
         const dosboxWasm = await modules.dosbox();
         const transportLayer = await dosWorker(this.pathPrefix + this.wdosboxJs, dosboxWasm, "session-" + Date.now());
-        return this.backend(bundle, transportLayer, options);
+        return this.backend(init, transportLayer, options);
     }
 
-    async dosboxXNode(bundle: Uint8Array | Uint8Array[], options?: BackendOptions): Promise<CommandInterface> {
-        return this.dosboxXDirect(bundle, options);
+    async dosboxXNode(init: InitFs, options?: BackendOptions): Promise<CommandInterface> {
+        return this.dosboxXDirect(init, options);
     }
 
-    async dosboxXDirect(bundle: Uint8Array | Uint8Array[], options?: BackendOptions): Promise<CommandInterface> {
+    async dosboxXDirect(init: InitFs, options?: BackendOptions): Promise<CommandInterface> {
         const modules = await this.wasmModules();
         const dosboxxWasm = await modules.dosboxx();
         const transportLayer = await dosDirect(dosboxxWasm, "session-" + Date.now());
-        return this.backend(bundle, transportLayer, options);
+        return this.backend(init, transportLayer, options);
     }
 
-    async dosboxXWorker(bundle: Uint8Array | Uint8Array[], options?: BackendOptions): Promise<CommandInterface> {
+    async dosboxXWorker(init: InitFs, options?: BackendOptions): Promise<CommandInterface> {
         const modules = await this.wasmModules();
         const dosboxxWasm = await modules.dosboxx();
         const transportLayer = await dosWorker(this.pathPrefix + this.wdosboxxJs, dosboxxWasm, "session-" + Date.now());
-        return this.backend(bundle, transportLayer, options);
+        return this.backend(init, transportLayer, options);
     }
 
-    async backend(bundle: Uint8Array | Uint8Array[], transportLayer: TransportLayer,
+    async backend(init: InitFs, transportLayer: TransportLayer,
         options?: BackendOptions): Promise<CommandInterface> {
         return new Promise<CommandInterface>((resolve, reject) => {
             const ci = new CommandInterfaceOverTransportLayer(
-                Array.isArray(bundle) ? bundle : [bundle],
+                Array.isArray(init) ? init : [init],
                 transportLayer,
                 (err) => {
                     if (err !== null) {
@@ -148,12 +148,12 @@ class EmulatorsImpl implements Emulators {
         return this.wasmModulesPromise;
     }
 
-    async dosDirect(bundle: Uint8Array | Uint8Array[]): Promise<CommandInterface> {
-        return this.dosboxDirect(bundle);
+    async dosDirect(init: InitFs): Promise<CommandInterface> {
+        return this.dosboxDirect(init);
     }
 
-    async dosWorker(bundle: Uint8Array | Uint8Array[]): Promise<CommandInterface> {
-        return this.dosboxWorker(bundle);
+    async dosWorker(init: InitFs): Promise<CommandInterface> {
+        return this.dosboxWorker(init);
     }
 }
 
