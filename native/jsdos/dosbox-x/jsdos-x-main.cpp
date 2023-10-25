@@ -9690,29 +9690,41 @@ void POD_Load_Sdlmain( std::istream& stream )
 // -- jsdos
 
 void server_mouse_moved(float x, float y, bool relative, uint64_t movedMs) {
-  user_cursor_locked = true;
-  // TODO: @caiiiycuk understand how it works
-  user_cursor_emulation = MOUSE_EMULATION_NEVER;
+    user_cursor_emulation = MOUSE_EMULATION_LOCKED;
 
-  if (relative) {
-    Mouse_CursorMoved(x,
-                      y,
-                      x,
-                      y,
-                      true);
-  } else {
-    user_cursor_x = x * user_cursor_sw;
-    user_cursor_y = y * user_cursor_sh;
-    
-    Mouse_CursorMoved((x - mouseX) * user_cursor_sw,
-                      (y - mouseY) * user_cursor_sh,
-                      x,
-                      y,
-                      false);
+    if (sdl.mouse.emulation == MOUSE_EMULATION_INTEGRATION) {
+        user_cursor_locked = false;
+        user_cursor_x = x * user_cursor_sw;
+        user_cursor_y = y * user_cursor_sh;
 
-    mouseX = x;
-    mouseY = y;
-  }
+        Mouse_CursorMoved(0,
+                          0,
+                          0,
+                          0,
+                          false);
+    } else {
+        user_cursor_locked = true;
+
+        if (relative) {
+            Mouse_CursorMoved(x,
+                              y,
+                              x,
+                              y,
+                              true);
+        } else {
+            user_cursor_x = x * user_cursor_sw;
+            user_cursor_y = y * user_cursor_sh;
+
+            Mouse_CursorMoved((x - mouseX) * user_cursor_sw,
+                              (y - mouseY) * user_cursor_sh,
+                              x,
+                              y,
+                              false);
+
+            mouseX = x;
+            mouseY = y;
+        }
+    }
 }
 
 void server_mouse_button(int button, bool pressed, uint64_t pressedMs) {

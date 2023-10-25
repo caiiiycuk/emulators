@@ -6,6 +6,7 @@
 #define JS_DOS_DRIVE_H
 
 #include "bios_disk.h"
+#include <stdint.h>
 
 namespace jsdos {
     class SockDrive: public imageDisk {
