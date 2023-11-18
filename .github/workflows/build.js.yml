@@ -11,8 +11,9 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node-version: [14.x]
-        emsdk-version: [3.1.28]
+        node-version: [18.x]
+        emsdk-version: [3.1.41]
+        binaryen-version: [version_116_e]
     steps:
     - uses: actions/checkout@v3
       with:
@@ -29,8 +30,12 @@ jobs:
     - run: yarn run eslint src --ext ts,tsx --max-warnings 0
     - run: yarn run eslint test --ext ts,tsx --max-warnings 0
     - run: yarn run tsc --noemit
+    - run: cd native/sockdrive/js && yarn && yarn run webpack && cd ../../..
     - run: git clone https://github.com/emscripten-core/emsdk.git
     - run: cd emsdk && ./emsdk install ${{ matrix.emsdk-version }} && ./emsdk activate ${{ matrix.emsdk-version }} && cd ..
+    - run: wget https://github.com/caiiiycuk/binaryen-fwasm-exceptions/releases/download/${{ matrix.binaryen-version }}/binaryen-${{ matrix.binaryen-version }}-x86_64-linux.tar.gz
+    - run: tar xfv binaryen-${{ matrix.binaryen-version }}-x86_64-linux.tar.gz
+    - run: cp -v binaryen-${{ matrix.binaryen-version }}/bin/wasm-opt ./emsdk/upstream/bin/wasm-opt
     - run: source ./emsdk/emsdk_env.sh && yarn run gulp
     - name: upload
       uses: actions/upload-artifact@v3.0.0
