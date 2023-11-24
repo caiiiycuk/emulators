@@ -15,7 +15,8 @@
 #include "../sokol-lib/sokol_app.h"
 #include "../sokol-lib/sokol_audio.h"
 #include "../sokol-lib/sokol_gfx.h"
-#include "shaders.glsl330.h"
+#include "../sokol-lib/sokol_log.h"
+#include "shaders.h"
 
 #ifdef JSDOS_X
 #include <SDL.h>
@@ -52,13 +53,15 @@ class GfxState {
       : width(width), height(height), pass({}), pipeline({}), bind({}) {
     sg_buffer_desc bufferDescription = {};
     bufferDescription.size = sizeof(vertices);
-    bufferDescription.content =
-        sg_query_features().origin_top_left ? vertices : verticesFlipped;
+    bufferDescription.data = sg_range{
+           .ptr = sg_query_features().origin_top_left ? vertices : verticesFlipped,
+           .size = 64,
+    };
 
     bind.vertex_buffers[0] = sg_make_buffer(&bufferDescription);
 
     sg_pipeline_desc pipelineDescription = {};
-    shader = sg_make_shader(display_shader_desc());
+    shader = sg_make_shader(display_shader_desc(sg_query_backend()));
     pipelineDescription.shader = shader;
     pipelineDescription.primitive_type = SG_PRIMITIVETYPE_TRIANGLE_STRIP;
     pipelineDescription.layout.attrs[0].format = SG_VERTEXFORMAT_FLOAT2;
@@ -69,19 +72,23 @@ class GfxState {
     imageDescription.width = width;
     imageDescription.height = height;
     imageDescription.pixel_format = SG_PIXELFORMAT_RGBA8;
-    imageDescription.min_filter = SG_FILTER_LINEAR;
-    imageDescription.mag_filter = SG_FILTER_LINEAR;
-    imageDescription.wrap_u = SG_WRAP_CLAMP_TO_EDGE;
-    imageDescription.wrap_v = SG_WRAP_CLAMP_TO_EDGE;
     imageDescription.usage = SG_USAGE_STREAM;
-    bind.fs_images[0] = sg_make_image(&imageDescription);
+    bind.fs.images[0]  = sg_make_image(&imageDescription);
+
+    sg_sampler_desc samplerDescription = {};
+    samplerDescription.min_filter = SG_FILTER_LINEAR;
+    samplerDescription.mag_filter = SG_FILTER_NEAREST;
+    samplerDescription.wrap_u = SG_WRAP_CLAMP_TO_EDGE;
+    samplerDescription.wrap_v = SG_WRAP_CLAMP_TO_EDGE;
+    bind.fs.samplers[0] = sg_make_sampler(&samplerDescription);
   }
 
   ~GfxState() {
     sg_destroy_shader(shader);
     sg_destroy_buffer(bind.vertex_buffers[0]);
     sg_destroy_pipeline(pipeline);
-    sg_destroy_image(bind.fs_images[0]);
+    sg_destroy_image(bind.fs.images[0]);
+    sg_destroy_sampler(bind.fs.samplers[0]);
   }
 };
 
@@ -138,9 +145,9 @@ void client_sound_init(int freq) {
   saudio_desc audioDescription = {};
   audioDescription.sample_rate = static_cast<int>(freq);
   audioDescription.num_channels = 1;
+  audioDescription.logger.func = slog_func;
 
   saudio_setup(&audioDescription);
-  assert(saudio_isvalid());
 }
 
 void client_sound_push(const float *samples, int num_samples) {
@@ -162,6 +169,7 @@ void sokolInit() {
   gfxDescription.shader_pool_size = 4;
   gfxDescription.pipeline_pool_size = 2;
   gfxDescription.context_pool_size = 1;
+  gfxDescription.logger.func = slog_func;
 
   sg_setup(&gfxDescription);
 }
@@ -182,13 +190,13 @@ void sokolFrame() {
     state = new GfxState(frameWidth, frameHeight);
   }
 
-  sg_image_content imageContent = {};
-  imageContent.subimage[0][0] = {};
-  imageContent.subimage[0][0].ptr = frameRgba;
-  imageContent.subimage[0][0].size =
+  sg_image_data imageData = {};
+    imageData.subimage[0][0] = {};
+    imageData.subimage[0][0].ptr = frameRgba;
+    imageData.subimage[0][0].size =
       (state->width) * (state->height) * (int)sizeof(uint32_t);
 
-  sg_update_image(state->bind.fs_images[0], &imageContent);
+  sg_update_image(state->bind.fs.images[0], &imageData);
 
   sg_begin_default_pass(&state->pass, state->width, state->height);
   sg_apply_pipeline(state->pipeline);

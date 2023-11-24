@@ -76,3 +76,9 @@ include("${TARGETS_DIR}/sokol.cmake")
 # tier 2
 include("${TARGETS_DIR}/dosbox-sdl.cmake")
 include("${TARGETS_DIR}/dosbox-x-sdl2.cmake")
+
+add_custom_target(sokol-shaders
+		COMMAND "${CMAKE_CURRENT_LIST_DIR}/native/sokol-tools-bin/bin/linux/sokol-shdc"
+		--input "${CMAKE_CURRENT_LIST_DIR}/native/sokol/shaders.glsl"
+		--output "${CMAKE_CURRENT_LIST_DIR}/native/sokol/shaders.h"
+		--slang glsl330)

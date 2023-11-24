@@ -16,7 +16,7 @@ EM_JS(void, syncSleep, (unsigned int ms, bool nonSkippable), {
 
     const now = Date.now();
     if (Asyncify.state === 0) { // NORMAL
-      if (!nonSkippable && (now - Module.last_wakeup) < 16 /* 60 FPS */) {
+      if (!nonSkippable && (now - Module.last_wakeup) < 24 /* 30 FPS */) {
         return;
       }
       

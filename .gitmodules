@@ -11,3 +11,7 @@
 	path = native/sockdrive
 	url = git@github.com:caiiiycuk/sockdrive.git
 	branch = main
+[submodule "native/sokol-tools-bin"]
+	path = native/sokol-tools-bin
+	url = git@github.com:floooh/sokol-tools-bin.git
+	branch = master

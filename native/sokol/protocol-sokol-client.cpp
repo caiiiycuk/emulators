@@ -11,11 +11,12 @@
 #include "../sokol-lib/sokol_app.h"
 #include "../sokol-lib/sokol_audio.h"
 #include "../sokol-lib/sokol_gfx.h"
+#include "../sokol-lib/sokol_log.h"
 
 #include <protocol.h>
 
 #define WINDOW_WIDTH 640
-#define WINDOW_HEIGHT 417
+#define WINDOW_HEIGHT 480
 
 extern double GetMsPassedFromStart();
 
@@ -54,12 +55,9 @@ void client_run() {
         }
     };
 
+    appDescription.logger.func = slog_func;
     appDescription.width = WINDOW_WIDTH;
     appDescription.height = WINDOW_HEIGHT;
-    appDescription.ios_keyboard_resizes_canvas = false;
-    appDescription.gl_force_gles2 = true;
-    appDescription.html5_ask_leave_site = false;
-    appDescription.html5_canvas_resize = true;
 
     sapp_run(&appDescription);
 }
