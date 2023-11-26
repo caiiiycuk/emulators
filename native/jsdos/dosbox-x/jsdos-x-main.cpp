@@ -9697,7 +9697,7 @@ void server_mouse_moved(float x, float y, bool relative, uint64_t movedMs) {
         user_cursor_x = x * user_cursor_sw;
         user_cursor_y = y * user_cursor_sh;
 
-        Mouse_CursorMoved(0,
+        jsdos::Mouse_CursorMoved(0,
                           0,
                           0,
                           0,
@@ -9706,7 +9706,7 @@ void server_mouse_moved(float x, float y, bool relative, uint64_t movedMs) {
         user_cursor_locked = true;
 
         if (relative) {
-            Mouse_CursorMoved(x,
+            jsdos::Mouse_CursorMoved(x,
                               y,
                               x,
                               y,
@@ -9715,7 +9715,7 @@ void server_mouse_moved(float x, float y, bool relative, uint64_t movedMs) {
             user_cursor_x = x * user_cursor_sw;
             user_cursor_y = y * user_cursor_sh;
 
-            Mouse_CursorMoved((x - mouseX) * user_cursor_sw,
+            jsdos::Mouse_CursorMoved((x - mouseX) * user_cursor_sw,
                               (y - mouseY) * user_cursor_sh,
                               x,
                               y,
@@ -9729,9 +9729,9 @@ void server_mouse_moved(float x, float y, bool relative, uint64_t movedMs) {
 
 void server_mouse_button(int button, bool pressed, uint64_t pressedMs) {
   if (pressed) {
-    Mouse_ButtonPressed(button);
+    jsdos::Mouse_ButtonPressed(button);
   } else {
-    Mouse_ButtonReleased(button);
+    jsdos::Mouse_ButtonReleased(button);
   }
 }
 
@@ -9773,7 +9773,8 @@ extern "C" void EMSCRIPTEN_KEEPALIVE TriggerEventByName(const char* name) {
 }
 
 void GFX_Events() {
-  DoKeyEvents();
+  jsdos::DoKeyEvents();
+  jsdos::DoMouseEvents();
 
 #ifndef EMSCRIPTEN
   std::lock_guard<std::mutex> g(triggerMutex);

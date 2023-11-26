@@ -338,18 +338,19 @@ int jsdos_main(Config *config) {
 
 
 void GFX_Events() {
-  DoKeyEvents();
+  jsdos::DoKeyEvents();
+  jsdos::DoMouseEvents();
 }
 
 void server_mouse_moved(float x, float y, bool relative, uint64_t movedMs) {
   if (relative) {
-    Mouse_CursorMoved(x,
+    jsdos::Mouse_CursorMoved(x,
                     y,
                     x,
                     y,
                     true);
   } else {
-    Mouse_CursorMoved((x - mouseX) * surfaceWidth,
+    jsdos::Mouse_CursorMoved((x - mouseX) * surfaceWidth,
                     (y - mouseY) * surfaceHeight,
                     x,
                     y,
@@ -362,9 +363,9 @@ void server_mouse_moved(float x, float y, bool relative, uint64_t movedMs) {
 
 void server_mouse_button(int button, bool pressed, uint64_t pressedMs) {
   if (pressed) {
-    Mouse_ButtonPressed(button);
+    jsdos::Mouse_ButtonPressed(button);
   } else {
-    Mouse_ButtonReleased(button);
+    jsdos::Mouse_ButtonReleased(button);
   }
 }
 
