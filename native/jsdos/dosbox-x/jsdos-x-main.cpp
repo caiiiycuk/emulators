@@ -393,8 +393,11 @@ extern int aspect_ratio_x, aspect_ratio_y;
 extern bool sync_time, loadlang, addovl;
 extern bool bootguest, bootfast, bootvm;
 
-std::string dosboxpath="";
 std::string GetDOSBoxXPath(bool withexe=false) {
+#ifdef JSDOS
+    return withexe ? "/home/web_user/dosbox-x" : "/home/web_user";
+#else
+    std::string dosboxpath="";
     std::string full;
 #if defined(HX_DOS) || defined(__MINGW32__) && !defined(__MINGW64_VERSION_MAJOR)
     char exepath[MAX_PATH];
@@ -418,6 +421,7 @@ std::string GetDOSBoxXPath(bool withexe=false) {
             dosboxpath="";
     }
     return dosboxpath;
+#endif
 }
 
 #if defined(WIN32) && !defined(C_SDL2)
