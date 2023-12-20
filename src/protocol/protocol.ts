@@ -220,6 +220,7 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
                     })
                     .catch((e) => {
                         this.onErr("panic", "Can't send bundles to backend: " + e.message);
+                        console.error(e);
                     })
                     .finally(() => {
                         delete this.init;
@@ -359,7 +360,7 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
 
     private onFrameLines(lines: FrameLine[], rgbaPtr: number) {
         for (const line of (lines as FrameLine[])) {
-            (this.rgb as Uint8Array).set(line.heapu8, line.start * this.frameWidth * 3);
+            this.rgb!.set(line.heapu8, line.start * this.frameWidth * 3);
         }
 
         this.eventsImpl.fireFrame(this.rgb, this.rgba);

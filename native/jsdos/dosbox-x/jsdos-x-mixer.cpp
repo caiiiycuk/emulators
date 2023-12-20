@@ -48,6 +48,15 @@ constexpr int PUSH_SIZE = 512;
 float blockBuffer[BLOCK_SIZE];
 static void MIXER_CallBack(float *stream, int len);
 
+bool muted = false;
+void server_mute() {
+	muted = true;
+}
+
+void server_unmute() {
+	muted = false;
+}
+
 static INLINE int16_t MIXER_CLIP(Bits SAMP) {
     if (SAMP < MAX_AUDIO) {
         if (SAMP > MIN_AUDIO)
@@ -876,7 +885,7 @@ static void MIXER_Mix(void) {
         samplesCount = BLOCK_SIZE;
       }
       MIXER_CallBack(blockBuffer, samplesCount);
-      if (!mixer.mute) {
+      if (!mixer.mute && !muted) {
         client_sound_push(blockBuffer, samplesCount);
       }
       pushedAt = now;

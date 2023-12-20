@@ -40,6 +40,7 @@ void Logger::operator()(char const* format, ...) {
 #endif
 
   static char buf[1024];
+  buf[1023] = 0;
 
   va_list msg;
   va_start(msg, format);

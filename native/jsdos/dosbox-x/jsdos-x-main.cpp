@@ -191,7 +191,7 @@ typedef enum PROCESS_DPI_AWARENESS {
 } PROCESS_DPI_AWARENESS;
 #endif
 
-#if C_EMSCRIPTEN
+#if EMSCRIPTEN
 # include <emscripten.h>
 #endif
 
@@ -3012,10 +3012,12 @@ void GFX_EndUpdate(const uint16_t *changedLines) {
 
     if (changedLines) {
       std::vector<uint32_t> lines;
-      // TODO: @caiiiycuk menu?
-      lines.push_back(0);
-      lines.push_back(sdl.clip.y);
-      lines.push_back(0);
+
+      if (sdl.clip.y > 0) {
+          lines.push_back(0);
+          lines.push_back(sdl.clip.y);
+          lines.push_back(0);
+      }
 
       Bitu y = 0, index = 0;
       while (y < sdl.draw.height) {
@@ -9803,4 +9805,8 @@ int server_run() {
   auto code = jsdos_main(&config);
   jsdos::destroyAsyncify();
   return code;
+}
+
+void server_mouse_sync(uint64_t syncMs) {
+    // not supported
 }

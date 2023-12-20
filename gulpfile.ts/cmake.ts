@@ -22,7 +22,7 @@ export default async function make(listsPath: string,
 }
 
 async function makeBuild(...targets: string[]) {
-    await execute("ninja", "-j4", ...targets);
+    await execute("ninja", "-j16", ...targets);
 }
 
 async function emcmake(listsPath: string) {

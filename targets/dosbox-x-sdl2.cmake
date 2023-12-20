@@ -9,6 +9,7 @@ set(DEFINITIONS_CORE_X
         # missed in libserial.cpp
         -DCBAUD=0
         -DCMSPAR=0
+        -DC_EMSCRIPTEN
         )
 
 if (${EMSCRIPTEN})
@@ -686,7 +687,8 @@ target_link_libraries(dosbox-x-sdl2 libdosbox-x-sdl2)
 set_property(TARGET dosbox-x-sdl2 PROPERTY CXX_STANDARD 11)
 
 if (${EMSCRIPTEN})
-    target_compile_options(libdosbox-x-jsdos PUBLIC -fwasm-exceptions)
+    target_compile_options(libdosbox-x-sdl2 PUBLIC -fwasm-exceptions)
+    target_include_directories(libdosbox-x-sdl2 PUBLIC "${NATIVE_DIR}/sdl2net")
     set_target_properties(dosbox-x-sdl2 PROPERTIES SUFFIX .html)
     target_link_options(dosbox-x-sdl2 PUBLIC
             ${EM_LINK_OPTIONS}
@@ -696,8 +698,10 @@ if (${EMSCRIPTEN})
             "-sINVOKE_RUN=1"
             "--profiling-funcs"
             "-sASYNCIFY=1"
+            "-sASYNCIFY_IMPORTS=['syncSleep']"
             )
 
+    target_compile_options(libdosbox-x-jsdos PUBLIC -fwasm-exceptions)
     add_executable(wdosbox-x "${SRC_DIR}/dos/dosbox/cpp/worker-protocol.cpp")
     set_target_properties(wdosbox-x PROPERTIES SUFFIX .js)
     target_link_libraries(wdosbox-x libdosbox-x-jsdos libzip)
@@ -714,7 +718,7 @@ if (${EMSCRIPTEN})
             "-sASYNCIFY_IMPORTS=['syncSleep']"
             "-sASYNCIFY_WHITELIST=@${TARGETS_DIR}/dosbox-x-asyncify.txt"
             "-sEXPORT_NAME='WDOSBOXX'"
-            "-sERROR_ON_UNDEFINED_SYMBOLS=0")
+            "-sERROR_ON_UNDEFINED_SYMBOLS=1")
 elseif (APPLE)
     target_link_libraries(dosbox-x-sdl2
             ${SDL2_LIBRARIES}
