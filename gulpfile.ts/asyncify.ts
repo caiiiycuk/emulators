@@ -104,6 +104,14 @@ function extractFnSignature(next: string): string {
         }
     }
 
+    // case 5
+    if (fnSig.length == 0) {
+        const matched = /\s*at\s+([^(]+)/.exec(next);
+        if (matched) {
+            fnSig = matched[1];
+        }
+    }
+
     fnSig = fnSig.trim();
 
     if (fnSig.length == 0) {

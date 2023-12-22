@@ -645,6 +645,27 @@ void DisconnectFromServer(bool unexpected) {
   client_network_disconnected(NETWORK_DOSBOX_IPX);
 }
 
+void ethernetSendToIPX(const unsigned char *outptr, unsigned int outlen, unsigned int vari) {
+  printf("ERR! Not supported yet\n");
+  abort();
+	// UDPpacket outPacket;
+	// Bits result;
+
+	// (void)vari;
+
+	// outPacket.channel = UDPChannel;
+	// outPacket.data = (unsigned char*)outptr;
+	// outPacket.len = outlen;
+	// outPacket.maxlen = outlen;
+	// // Since we're using a channel, we won't send the IP address again
+	// result = SDLNet_UDP_Send(ipxClientSocket, UDPChannel, &outPacket);
+
+	// if(result == 0) {
+	// 	LOG_MSG("IPX: Could not send packet: %s", SDLNet_GetError());
+	// 	DisconnectFromServer(true);
+	// }
+}
+
 static void sendPacket(ECBClass* sendecb) {
   Bit8u outbuffer[IPXBUFFERSIZE];
   fragmentDescriptor tmpFrag;

@@ -223,7 +223,7 @@ function testServer(factory: CIFactory, name: string, assets: string) {
             .extract("digger.zip")
             .autoexec("DIGGER.COM"));
         assert.ok(ci);
-        await waitImage("digger.png", ci);
+        await waitImage("digger.png", ci, { timeout: 5000, resize: assets === "dosbox-x" });
     });
 
     test(name + " can play sound", async () => {
@@ -313,7 +313,9 @@ function testServer(factory: CIFactory, name: string, assets: string) {
             };
 
             const screenshot = () => {
-                waitImage("digger-end.png", ci, { threshold: 2 })
+                waitImage("digger-end.png", ci, {
+                    threshold: 2, resize: assets === "dosbox-x", timeout: 5000
+                })
                     .then(resolve)
                     .catch(reject);
             };

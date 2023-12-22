@@ -160,6 +160,13 @@ extern int tryconvertcp, Reflect_Menu(void);
 # include <shobjidl.h>
 #endif
 
+#include <output/output_direct3d.h>
+#include <output/output_opengl.h>
+#include <output/output_surface.h>
+#include <output/output_tools.h>
+#include <output/output_ttf.h>
+#include <output/output_tools_xbrz.h>
+
 #if defined(WIN32)
 #include "resource.h"
 #if !defined(HX_DOS)

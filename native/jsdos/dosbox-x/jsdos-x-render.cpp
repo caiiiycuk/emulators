@@ -9,6 +9,8 @@
 #include "render.h"
 #include "sdlmain.h"
 
+extern int aspect_ratio_x, aspect_ratio_y;
+extern void E_Exit(const char * format,...);
 extern Bitu MakeAspectTable(Bitu skip, Bitu height, double scaley, Bitu miny);
 extern void RENDER_CallBack(GFX_CallBackFunctions_t function);
 extern void RENDER_FinishLineHandler(const void *s);

@@ -24,6 +24,7 @@ set(DBX_PATH "${NATIVE_DIR}/dosbox-x")
 set(SOURCES_X_CORE
         "${DBX_PATH}/src/dosbox.cpp"
         "${DBX_PATH}/src/misc/ethernet_slirp.cpp"
+        "${DBX_PATH}/src/misc/ethernet_nothing.cpp"
         "${DBX_PATH}/src/misc/messages.cpp"
         "${DBX_PATH}/src/misc/iconvpp.cpp"
         "${DBX_PATH}/src/misc/setup.cpp"
@@ -49,6 +50,7 @@ set(SOURCES_X_CORE
         "${DBX_PATH}/src/hardware/dongle.cpp"
         "${DBX_PATH}/src/hardware/dma.cpp"
         "${DBX_PATH}/src/hardware/voodoo_opengl.cpp"
+        "${DBX_PATH}/src/hardware/vga_ati.cpp"
         "${DBX_PATH}/src/hardware/pci_bus.cpp"
         "${DBX_PATH}/src/hardware/timer.cpp"
         "${DBX_PATH}/src/hardware/vga_pc98_egc.cpp"
@@ -711,9 +713,9 @@ if (${EMSCRIPTEN})
             -fwasm-exceptions
             "-sUSE_ZLIB=1"
             "-sUSE_SDL=2"
-           #    "--profiling-funcs"
-           #    "-sASSERTIONS=1"
-        #    "-sSAFE_HEAP=2"
+        #     "--profiling-funcs"
+        #     "-sASSERTIONS=1"
+        #     "-sSAFE_HEAP=2"
             "-sASYNCIFY=1"
             "-sASYNCIFY_IMPORTS=['syncSleep']"
             "-sASYNCIFY_WHITELIST=@${TARGETS_DIR}/dosbox-x-asyncify.txt"
