@@ -172,7 +172,7 @@ target_include_directories(libdosbox-core PUBLIC ${INCLUDE_DIRECTORIES_CORE})
 add_library(libdosbox OBJECT ${SOURCES_JSDOS_CXX11} ${SOURCES_JSDOS_NET_C})
 target_link_libraries(libdosbox libdosbox-core)
 
-if (MINGW)
+if (MINGW AND TARGET dosbox)
     target_compile_definitions(dosbox PUBLIC -DWIN32)
 endif ()
 

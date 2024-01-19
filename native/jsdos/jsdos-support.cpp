@@ -10,22 +10,22 @@
 
 namespace {
 #ifndef EMSCRIPTEN
-    std::atomic_bool _exit(false);
+    std::atomic_bool jsdos_exit(false);
 #else
-    bool _exit = false;
+    bool jsdos_exit = false;
 #endif
 }
 
 void jsdos::init() {
-    _exit = false;
+    jsdos_exit = false;
 }
 
 bool jsdos::isExitRequested() {
-    return _exit;
+    return jsdos_exit;
 }
 
 void jsdos::requestExit() {
-    _exit = true;
+    jsdos_exit = true;
 }
 
 void jsdos::cout(const char* data, int amount) {
