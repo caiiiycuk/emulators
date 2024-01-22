@@ -1,6 +1,8 @@
 #ifndef _JSDOS_CONFIG_H_
 #define _JSDOS_CONFIG_H_
 
+#include <stdint.h>
+
 #define jsthrow(msg) { printf("%s\n", msg);abort(); }
 
 /* Define if building universal (internal helper macro) */
@@ -83,7 +85,9 @@
 /* #undef C_SDL_SOUND */
 
 /* Define to 1 if you have setpriority support */
+#ifndef WIN32
 #define C_SET_PRIORITY 1
+#endif
 
 /* Define to 1 to enable movie recording, requires zlib built without Z_SOLO
    */

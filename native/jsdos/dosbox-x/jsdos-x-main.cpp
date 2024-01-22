@@ -6398,11 +6398,6 @@ void SDL_OnSectionPropChange(Section *x) {
 
 static void show_warning(char const * const message) {
     bool textonly = true;
-#ifdef WIN32
-    textonly = false;
-    if ( !sdl.inioptionsInit(SDL_INIT_VIDEO|SDL_INIT_NOPARACHUTE) < 0 ) textonly = true;
-    sdl.inited = true;
-#endif
     LOG_MSG( "Warning: %s", message);
     if(textonly) return;
 #if defined(C_SDL2)

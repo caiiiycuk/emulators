@@ -14,7 +14,7 @@ set(DEFINITIONS_CORE_X
 
 if (${EMSCRIPTEN})
     list(APPEND DEFINITIONS_CORE_X -DC_EMSCRIPTEN)
-else ()
+elseif (!CMAKE_NO_FIND)
     find_package(SDL2 REQUIRED)
 endif ()
 
