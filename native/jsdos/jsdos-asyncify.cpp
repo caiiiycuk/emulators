@@ -2,7 +2,7 @@
 // Created by caiiiycuk on 13.11.2019.
 //
 #include <jsdos-asyncify.h>
-#include <cstdint>
+#include <atomic>
 
 #ifdef EMSCRIPTEN
 // clang-format off
@@ -242,15 +242,19 @@ extern "C" void asyncify_sleep(unsigned int ms, bool nonSkippable) {
 }
 
 namespace {
-  uint64_t cycles = 0;
+  std::atomic_uint32_t cycles(0);
 }
 
 void jsdos::incCycles() {
   ::cycles++;
 }
 
-extern "C" uint64_t EMSCRIPTEN_KEEPALIVE getAndResetCycles() {
-  uint64_t tmp = cycles;
-  cycles = 0;
-  return tmp;
+uint32_t jsdos::getAndResetCycles() {
+    uint32_t tmp = ::cycles;
+    ::cycles = 0;
+    return tmp;
+}
+
+extern "C" uint32_t EMSCRIPTEN_KEEPALIVE getAndResetCycles() {
+    return jsdos::getAndResetCycles();
 }
