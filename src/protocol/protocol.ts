@@ -1,6 +1,8 @@
 import { CommandInterface, NetworkType, BackendOptions, DosConfig, InitFsEntry, InitFileEntry } from "../emulators";
 import { CommandInterfaceEventsImpl } from "../impl/ci-impl";
 
+const maxDataChunkSize = 4 * 1024 * 1024;
+
 export type ClientMessage =
     "wc-install" |
     "wc-run" |
@@ -664,6 +666,22 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
     }
 
     private async sendDataChunk(chunk: DataChunk): Promise<void> {
+        if (chunk.data === null || chunk.data.byteLength <= maxDataChunkSize) {
+            return this.sendFullDataChunk(chunk);
+        } else {
+            let pos = 0;
+            while (pos < chunk.data.byteLength) {
+                await this.sendFullDataChunk({
+                    type: chunk.type,
+                    name: chunk.name,
+                    data: chunk.data.slice(pos, Math.min(chunk.data.byteLength, pos + maxDataChunkSize)), 
+                })
+                pos += maxDataChunkSize;
+            }
+        }
+    }
+
+    private async sendFullDataChunk(chunk: DataChunk): Promise<void> {
         const key = this.dataChunkKey(chunk);
         if (this.dataChunkPromise[key] !== undefined) {
             throw new Error("sendDataChunk should be accepted before sending new one");
