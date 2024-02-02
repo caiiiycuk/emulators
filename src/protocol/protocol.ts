@@ -674,8 +674,8 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
                 await this.sendFullDataChunk({
                     type: chunk.type,
                     name: chunk.name,
-                    data: chunk.data.slice(pos, Math.min(chunk.data.byteLength, pos + maxDataChunkSize)), 
-                })
+                    data: chunk.data.slice(pos, Math.min(chunk.data.byteLength, pos + maxDataChunkSize)),
+                });
                 pos += maxDataChunkSize;
             }
         }
