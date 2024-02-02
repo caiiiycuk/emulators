@@ -644,7 +644,6 @@ set(SOURCES_X_JSDOS_MAIN
         "${NATIVE_DIR}/sdl2net/SDLnet.c"
         "${NATIVE_DIR}/sdl2net/SDLnetTCP.c"
         "${NATIVE_DIR}/sdl2net/SDLnetselect.c"
-        "${NATIVE_DIR}/sockdrive/js/sockdrive.cpp"
         )
 
 add_library(libdosbox-x-sdl2 OBJECT ${SOURCES_X_SDL} ${SOURCES_X_CORE} ${SOURCES_X_JSDOS_CORE})

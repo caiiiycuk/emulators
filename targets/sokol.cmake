@@ -28,7 +28,7 @@ else ()
     add_executable(dosbox-sokol ${SOURCES_SOKOL} ${SOURCES_SOKOL_CLIENT})
     target_link_libraries(dosbox-sokol libdosbox libdosbox-core)
 
-    add_executable(dosbox-x-sokol ${SOURCES_SOKOL} ${SOURCES_SOKOL_CLIENT})
+    add_executable(dosbox-x-sokol ${SOURCES_SOKOL} ${SOURCES_SOKOL_CLIENT} "${NATIVE_DIR}/jsdos/sockdrive-noop.cpp")
     target_link_libraries(dosbox-x-sokol libdosbox-x-jsdos)
 
     if (APPLE)
