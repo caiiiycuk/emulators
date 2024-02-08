@@ -33,11 +33,9 @@ const char* LOG_TYPE_NAMES[] = {
 constexpr int LOG_TYPE_NAMES_COUNT = sizeof(LOG_TYPE_NAMES) / sizeof(char*);
 
 void Logger::operator()(char const* format, ...) {
-#ifdef EMSCRIPTEN
-  if (logSeverity != LOG_ERROR && logType != LOG_NET) {
+  if (logSeverity != LOG_ERROR) {
     return;
   }
-#endif
 
   static char buf[1024];
   buf[1023] = 0;
