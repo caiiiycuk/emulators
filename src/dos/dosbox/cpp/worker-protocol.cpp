@@ -122,7 +122,9 @@ EM_JS(void, ws_init_runtime, (const char* sessionId), {
     }
 
     function processMessage(data) {
-      ++Module.messageReceived;
+      if (data.name !== "wc-sync-sleep") {
+        ++Module.messageReceived;
+      }
 
       switch (data.name) {
         case "wc-run": {
