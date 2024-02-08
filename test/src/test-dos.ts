@@ -314,7 +314,7 @@ function testServer(factory: CIFactory, name: string, assets: string) {
 
             const screenshot = () => {
                 waitImage("digger-end.png", ci, {
-                    threshold: 2, resize: assets === "dosbox-x", timeout: 5000
+                    threshold: 2, resize: assets === "dosbox-x", timeout: 5000,
                 })
                     .then(resolve)
                     .catch(reject);
