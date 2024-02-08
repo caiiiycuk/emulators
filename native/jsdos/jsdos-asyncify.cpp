@@ -233,7 +233,7 @@ extern "C" void asyncify_sleep(unsigned int ms, bool nonSkippable) {
     std::this_thread::sleep_for(std::chrono::milliseconds(16));
   }
 
-  if (ms == 0) {
+  if (ms == 0 || !nonSkippable) {
     return;
   }
 
