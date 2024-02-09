@@ -12,7 +12,7 @@ namespace jsdos {
   void asyncifyLock();
   void asyncifyUnlock();
   void destroyAsyncify();
-  void incCycles();
+  void incCycles(int32_t count);
   uint32_t getAndResetCycles();
 }
 

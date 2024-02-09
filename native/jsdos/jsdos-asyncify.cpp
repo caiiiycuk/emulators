@@ -245,8 +245,10 @@ namespace {
   std::atomic_uint32_t cycles(0);
 }
 
-void jsdos::incCycles() {
-  ::cycles++;
+void jsdos::incCycles(int32_t count) {
+    if (count > 0) {
+        ::cycles += count;
+    }
 }
 
 uint32_t jsdos::getAndResetCycles() {
