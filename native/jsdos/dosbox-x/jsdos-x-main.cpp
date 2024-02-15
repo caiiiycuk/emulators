@@ -7824,7 +7824,7 @@ int jsdos_main(Config *config) SDL_MAIN_NOEXCEPT {
            that we were started by the Finder */
         /* FIXME: Is there a better way to detect whether we were started by the Finder
                   or any other part of the macOS desktop? */
-        if (control->opt_promptfolder > 0) {
+        if (false) {
 #if defined(MACOSX)
             /* NTS: Do NOT call macosx_prompt_folder() to show a modal NSOpenPanel without
                first initializing the SDL video subsystem. SDL1 must initialize
