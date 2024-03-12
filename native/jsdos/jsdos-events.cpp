@@ -6,6 +6,7 @@
 
 #include <jsdos-events.h>
 #include <jsdos-timer.h>
+#include <cstdlib>
 
 #ifndef EMSCRIPTEN
 #include <mutex>
