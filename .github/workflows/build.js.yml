@@ -3,6 +3,8 @@ name: build
 on:
   push:
     branches: [ 8.xx ]
+    tags:
+      - "v*.*.*"
   pull_request:
     branches: [ 8.xx ]
 
@@ -44,7 +46,7 @@ jobs:
         name: 'dist'
         path: 'dist'
     - name: Release
-      uses: softprops/action-gh-release@v1
+      uses: softprops/action-gh-release@v2
       if: startsWith(github.ref, 'refs/tags/')
       with:
         name: ${{ github.ref_name }}
