@@ -17,13 +17,14 @@ jobs:
         emsdk-version: [3.1.41]
         binaryen-version: [version_116_e]
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
       with:
         submodules: recursive
     - name: build emulators
-      uses: actions/setup-node@v3
+      uses: actions/setup-node@v4
       with:
         node-version: ${{ matrix.node-version }}
+        registry-url: 'https://registry.npmjs.org'
         cache: 'npm'
     - run: sudo apt-get -yqq update
     - run: sudo apt-get install -yq --no-install-recommends cmake ninja-build zip

@@ -36,3 +36,5 @@ targets
 .eslintrc.json
 Dockerfile
 .dockerignore
+release.zip
+binaryen-*
