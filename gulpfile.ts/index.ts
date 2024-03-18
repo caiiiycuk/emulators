@@ -9,8 +9,8 @@ import { dosboxAsyncify, dosboxXAsyncify } from "./asyncify";
 
 function build(compress: boolean) {
     return series(
-        compileJs,
         wasm(compress),
+        compileJs,
         parallel(emulators, test),
     );
 }

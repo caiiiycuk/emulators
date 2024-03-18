@@ -39,7 +39,7 @@ jobs:
     - run: wget https://github.com/caiiiycuk/binaryen-fwasm-exceptions/releases/download/${{ matrix.binaryen-version }}/binaryen-${{ matrix.binaryen-version }}-x86_64-linux.tar.gz
     - run: tar xfv binaryen-${{ matrix.binaryen-version }}-x86_64-linux.tar.gz
     - run: cp -v binaryen-${{ matrix.binaryen-version }}/bin/wasm-opt ./emsdk/upstream/bin/wasm-opt
-    - run: source ./emsdk/emsdk_env.sh && yarn run gulp
+    - run: source ./emsdk/emsdk_env.sh && yarn run gulp production
     - run: zip -9r release.zip dist/*
     - name: publish
       if: startsWith(github.ref, 'refs/tags/')
