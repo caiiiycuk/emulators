@@ -622,7 +622,8 @@ set(SOURCES_X_SDL_MAIN
         "${DBX_PATH}/src/hardware/mixer.cpp"
         "${DBX_PATH}/src/hardware/ipx.cpp"
         "${DBX_PATH}/src/hardware/ipxserver.cpp"
-        "${NATIVE_DIR}/sockdrive/SDL2/sockdrive.cpp"
+        "${DBX_PATH}/src/hardware/imfc.cpp"
+        "${NATIVE_DIR}/jsdos/sockdrive-noop.cpp"
         )
 
 set(SOURCES_X_JSDOS_CORE
@@ -633,7 +634,6 @@ set(SOURCES_X_JSDOS_CORE
         "${NATIVE_DIR}/jsdos/jsdos-support.cpp"
         "${NATIVE_DIR}/jsdos/jsdos-events.cpp"
         "${NATIVE_DIR}/jsdos/jsdos-drive.cpp"
-        "${NATIVE_DIR}/sockdrive/lz4/lz4.c"
         )
 
 set(SOURCES_X_JSDOS_MAIN
