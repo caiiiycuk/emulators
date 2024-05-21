@@ -1,6 +1,7 @@
 import * as process from "process";
 import * as fs from "fs-extra";
 import * as path from "path";
+import { cpus } from "os";
 import { execute } from "./execute";
 
 export default async function make(listsPath: string,
@@ -22,7 +23,7 @@ export default async function make(listsPath: string,
 }
 
 async function makeBuild(...targets: string[]) {
-    await execute("ninja", "-j16", ...targets);
+    await execute("ninja", "-j" + cpus().length, ...targets);
 }
 
 async function emcmake(listsPath: string) {
