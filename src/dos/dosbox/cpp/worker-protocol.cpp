@@ -714,10 +714,13 @@ EM_ASYNC_JS(size_t, em_sockdrive_open, (const char* url,
         jsImpl = UTF8ToString(jsImpl);
         eval(jsImpl);
         Module.sockdrive.onOpen =  (drive, read, write, imageSize, preloadQueue) => {
-            Module.log("sockdrive: " + drive + ", read=" + read + ", write=" + write + ", imageSize=" + Math.round(imageSize / 1024 / 1024) + "Mb" + ", preloadQueue=" + preloadQueue.length);
+          Module.log("sockdrive: " + drive + ", read=" + read + ", write=" + write + ", imageSize=" + Math.round(imageSize / 1024 / 1024) + "Mb" + ", preloadQueue=" + preloadQueue.length);
         };
         Module.sockdrive.onError = (e) => {
-            Module.err(e.message ?? "unable to open sockdrive");
+          Module.err(e.message ?? "unable to open sockdrive");
+        };
+        Module.sockdrive.onPreloadProgress = (drive, restBytes) => {
+          Module.log("sockdrive: " + drive + ", preload=" + restBytes);
         };
     }
 
