@@ -12,6 +12,9 @@ export interface IWasmModules {
 
 interface Globals {
     exports: {[moduleName: string]: any},
+    module: {
+        exports?: () => void,
+    },
     compiled: {[moduleName: string]: Promise<WasmModule>},
 }
 
@@ -20,6 +23,9 @@ class Host {
     public globals: Globals;
     constructor() {
         this.globals = typeof window === "undefined" ? {} : window as any;
+        if (!this.globals.module) {
+            this.globals.module = {};
+        }
         if (!this.globals.exports) {
             this.globals.exports = {};
         }
@@ -211,6 +217,7 @@ function loadWasmModuleBrowser(url: string,
         };
 
         eval.call(window, script as string);
+        host.globals.exports[moduleName] = host.globals.module.exports;
 
         return new CompiledBrowserModule(wasmModule,
             host.globals.exports[moduleName],

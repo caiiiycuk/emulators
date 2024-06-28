@@ -33,7 +33,7 @@ const char* LOG_TYPE_NAMES[] = {
 constexpr int LOG_TYPE_NAMES_COUNT = sizeof(LOG_TYPE_NAMES) / sizeof(char*);
 
 void Logger::operator()(char const* format, ...) {
-  if (logSeverity != LOG_ERROR) {
+  if (logSeverity != LOG_ERROR && !(logSeverity == LOG_NORMAL && logType == LOG_NET)) {
     return;
   }
 
