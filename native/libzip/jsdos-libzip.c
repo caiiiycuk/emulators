@@ -187,7 +187,10 @@ ZipArchive zip_fs(double changedAfterMs) {
 
     int success = zip_recursively(zipArchive, ".", changedAfterMs);
     if (zip_close(zipArchive) == -1) {
-        fprintf(stderr, "zip_from_fs: can't close zip archive %s\n", zip_strerror(zipArchive));
+        const char* strerr = zip_strerror(zipArchive);
+        if (strstr(strerr, "Can't remove file") == 0) {
+            fprintf(stderr, "zip_from_fs: can't close zip archive %s\n", strerr);
+        }
         return 0;
     }
 
