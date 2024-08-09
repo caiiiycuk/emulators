@@ -232,3 +232,12 @@ int main(int argc, char *argv[]) {
   runRuntime();
   return 0;
 }
+
+int server_net_connect(const char* address) {
+    return NETWORK_NA;
+}
+int  server_net_send(int networkId, const void *datap, int len) {
+    return 0;
+}
+void server_net_disconnect(int networkId) {
+}

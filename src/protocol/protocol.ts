@@ -23,7 +23,9 @@ export type ClientMessage =
     "wc-asyncify-stats" |
     "wc-fs-tree" |
     "wc-fs-get-file" |
-    "wc-send-data-chunk";
+    "wc-send-data-chunk" |
+    "wc-net-connected" |
+    "wc-net-received";
 
 export type ServerMessage =
     "ws-extract-progress" |
@@ -45,7 +47,10 @@ export type ServerMessage =
     "ws-disconnected" |
     "ws-asyncify-stats" |
     "ws-fs-tree" |
-    "ws-send-data-chunk";
+    "ws-send-data-chunk" |
+    "ws-net-connect" |
+    "ws-net-disconnect" |
+    "ws-net-send";
 
 export type MessageHandler = (name: ServerMessage, props: { [key: string]: any }) => void;
 
@@ -96,6 +101,7 @@ export interface FsNode {
 
 export class CommandInterfaceOverTransportLayer implements CommandInterface {
     private startedAt = Date.now();
+    private exited = false;
     private frameWidth = 0;
     private frameHeight = 0;
     private rgb: Uint8Array | null = null;
@@ -140,6 +146,8 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
 
     private dataChunkPromise: { [name: string]: Promise<void> } = {};
     private dataChunkResolve: { [name: string]: () => void } = {};
+    private networkId = 0;
+    private network: { [id: number]: WebSocket } = {};
 
     public options: BackendOptions;
 
@@ -338,6 +346,39 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
                     console.log("Unknown chunk type:", chunk.type);
                 }
             } break;
+            case "ws-net-connect": {
+                this.networkId += 1;
+                const networkId = this.networkId;
+                const socket = new WebSocket(props.address);
+                socket.binaryType = "arraybuffer";
+                socket.addEventListener("error", (e) => {
+                    console.error("Can't connect to", props.address);
+                    this.sendClientMessage("wc-net-connected", { networkId: -1 });
+                });
+                socket.addEventListener("open", () => {
+                    this.network[networkId] = socket;
+                    this.sendClientMessage("wc-net-connected", { networkId });
+                });
+                socket.addEventListener("message", (message) => {
+                    this.sendClientMessage("wc-net-received", {
+                        networkId,
+                        data: message.data,
+                    }, [message.data]);
+                });
+            } break;
+            case "ws-net-send": {
+                const socket = this.network[props.networkId];
+                if (socket) {
+                    socket.send(props.data);
+                }
+            } break;
+            case "ws-net-disconnect": {
+                const socket = this.network[props.networkId];
+                delete this.network[props.networkId];
+                if (socket) {
+                    socket.close();
+                }
+            } break;
             default: {
                 // eslint-disable-next-line
                 console.log("Unknown server message (ws):", name);
@@ -520,6 +561,9 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
     }
 
     public exit(): Promise<void> {
+        if (this.exited) {
+            return Promise.resolve();
+        }
         if (this.exitPromise !== undefined) {
             return this.exitPromise;
         }
@@ -529,19 +573,26 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
         });
 
         this.resume();
+        for (const next of Object.values(this.network)) {
+            next.close();
+        }
+        this.network = {};
         this.sendClientMessage("wc-exit");
 
         return this.exitPromise;
     }
 
     private onExit() {
-        if (this.transport.exit !== undefined) {
-            this.transport.exit();
-        }
-        if (this.exitResolve) {
-            this.exitResolve();
-            delete this.exitPromise;
-            delete this.exitResolve;
+        if (!this.exited) {
+            this.exited = true;
+            if (this.transport.exit !== undefined) {
+                this.transport.exit();
+            }
+            if (this.exitResolve) {
+                this.exitResolve();
+                delete this.exitPromise;
+                delete this.exitResolve;
+            }
         }
     }
 

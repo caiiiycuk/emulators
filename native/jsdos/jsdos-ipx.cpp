@@ -20,6 +20,7 @@
 #include <time.h>
 
 #include <cstdlib>
+#include <unordered_map>
 
 #include "SDL_net.h"
 #include "callback.h"
@@ -41,6 +42,102 @@
 
 #include "control.h"
 
+struct WsBuffer {
+    int len;
+    void *data;
+};
+struct WsHandle {
+    bool valid;
+    NetworkId id;
+};
+std::unordered_map<NetworkId, std::vector<WsBuffer>> wsBuffers;
+WsHandle wsOpen(const std::string& address, int) {
+    NetworkId id = server_net_connect(address.c_str());
+    if (id != NETWORK_NA) {
+      wsBuffers.insert(std::make_pair<>(id, std::vector<WsBuffer>()));
+    }
+    return {
+        id != NETWORK_NA,
+        id,
+    };
+}
+
+int wsSend(const WsHandle& handle, const void *datap, int len) {
+    return server_net_send(handle.id, datap, len);
+}
+
+int wsRecv(const WsHandle& handle, void *datap, int maxlen) {
+    auto it = wsBuffers.find(handle.id);
+    if (it != wsBuffers.end()) {
+        if (it->second.size() == 0) {
+            return 0;
+        } else {
+            auto data = (uint8_t *) datap;
+            auto &buffers = it->second;
+            auto buff = buffers.begin();
+            while (buff != buffers.end() && maxlen > 0) {
+                if (buff->len == maxlen) {
+                    memcpy(data, buff->data, maxlen);
+                    data += maxlen;
+                    maxlen = 0;
+                    free(buff->data);
+                    buff = buffers.erase(buff);
+                } else if (buff->len > maxlen) {
+                    memcpy(data, buff->data, maxlen);
+                    auto restLen = buff->len - maxlen;
+                    void* restData  = malloc(restLen);
+                    memcpy(restData, (uint8_t *) buff->data + maxlen, restLen);
+                    free(buff->data);
+                    buff->len = restLen;
+                    buff->data = restData;
+                    data += maxlen;
+                    maxlen = 0;
+                } else {
+                    memcpy(data, buff->data, buff->len);
+                    data += buff->len;
+                    maxlen -= buff->len;
+                    free(buff->data);
+                    buff = buffers.erase(buff);
+                }
+            }
+
+            return data - (uint8_t*) datap;
+        }
+    } else {
+        return -1;
+    }
+}
+
+void wsClose(const WsHandle& handle) {
+    auto it = wsBuffers.find(handle.id);
+    if (it != wsBuffers.end()) {
+        for (auto &next: it->second) {
+            free(next.data);
+        }
+        wsBuffers.erase(handle.id);
+    }
+    server_net_disconnect(handle.id);
+}
+
+void client_net_recv(int networkId, void *datap, int len) {
+    auto it = wsBuffers.find(networkId);
+    if (it != wsBuffers.end()) {
+        if (len == -1) { // error
+            for (auto &next: it->second) {
+                free(next.data);
+            }
+            wsBuffers.erase(networkId);
+        } else if (len > 0) {
+            it->second.push_back({
+                len,
+                datap
+            });
+        }
+    } else {
+      printf("ERR! wsBuffers for id does not exists\n");
+    }
+}
+
 #define SOCKTABLESIZE	150 // DOS IPX driver was limited to 150 open sockets
 
 extern int SDLnet_useCallbackIdle;
@@ -51,8 +148,9 @@ struct ipxnetaddr {
 } localIpxAddr;
 
 Bit32u udpPort;
-IPaddress ipxServConnIp;			// IPAddress for client connection to server
-TCPsocket ipxClientSocket;
+std::string ipxServConnIp;
+int ipxServConnPort;
+WsHandle ipxClientHandle;           // ConnectionBackend
 Bit8u recvBuffer[IPXBUFFERSIZE];	// Incoming packet buffer
 
 static RealPt ipx_callback;
@@ -84,15 +182,15 @@ void PackIP(IPaddress ipAddr, PackedIP *ipPack) {
   ipPack->port = ipAddr.port;
 }
 
-IPXHeader* readNextIPXHeader(TCPsocket clientSocket) {
+IPXHeader* readNextIPXHeader(const WsHandle& wsHandle) {
   static Uint8 buffer[IPXBUFFERSIZE];
-  int available = SDLNet_TCP_Recv(clientSocket, buffer, 4); // read up to length
+  int available = wsRecv(wsHandle, buffer, 4); // read up to length
   if (available <= 0) {
     return nullptr;
   }
 
   while (available < 4) {
-    available += SDLNet_TCP_Recv(clientSocket, buffer + available, 4 - available);
+    available += wsRecv(wsHandle, buffer + available, 4 - available);
     if (available < 4) {
       CALLBACK_Idle();
     }
@@ -101,7 +199,7 @@ IPXHeader* readNextIPXHeader(TCPsocket clientSocket) {
   auto header = (IPXHeader*) buffer;
   auto length = SDLNet_Read16(header->length);
   while (available < length) {
-    available += SDLNet_TCP_Recv(clientSocket, buffer + available, length - available);
+    available += wsRecv(wsHandle, buffer + available, length - available);
     if (available < length) {
       CALLBACK_Idle();
     }
@@ -554,7 +652,7 @@ static void pingAck(IPaddress retAddr) {
   regHeader.transControl = 0;
   regHeader.pType = 0x0;
 
-  result = SDLNet_TCP_Send(ipxClientSocket, &regHeader, sizeof(regHeader));
+  result = wsSend(ipxClientHandle, &regHeader, sizeof(regHeader));
 }
 
 static void pingSend(void) {
@@ -575,7 +673,7 @@ static void pingSend(void) {
   regHeader.transControl = 0;
   regHeader.pType = 0x0;
 
-  result = SDLNet_TCP_Send(ipxClientSocket, &regHeader, sizeof(regHeader));
+  result = wsSend(ipxClientHandle, &regHeader, sizeof(regHeader));
   if(!result) {
     LOG_ERR("IPX: SDLNet_UDP_Send: %s\n", SDLNet_GetError());
   }
@@ -625,7 +723,7 @@ static void IPX_ClientLoop(void) {
   reentranceLock = true;
   IPXHeader* next;
   while (true) {
-    next = readNextIPXHeader(ipxClientSocket);
+    next = readNextIPXHeader(ipxClientHandle);
     if (next == nullptr) {
       break;
     }
@@ -640,7 +738,7 @@ void DisconnectFromServer(bool unexpected) {
   if(incomingPacket.connected) {
     incomingPacket.connected = false;
     TIMER_DelTickHandler(&IPX_ClientLoop);
-    SDLNet_TCP_Close(ipxClientSocket);
+    wsClose(ipxClientHandle);
   }
   client_network_disconnected(NETWORK_DOSBOX_IPX);
 }
@@ -658,7 +756,7 @@ void ethernetSendToIPX(const unsigned char *outptr, unsigned int outlen, unsigne
 	// outPacket.len = outlen;
 	// outPacket.maxlen = outlen;
 	// // Since we're using a channel, we won't send the IP address again
-	// result = SDLNet_UDP_Send(ipxClientSocket, UDPChannel, &outPacket);
+	// result = SDLNet_UDP_Send(ipxClientHandle, UDPChannel, &outPacket);
 
 	// if(result == 0) {
 	// 	LOG_MSG("IPX: Could not send packet: %s", SDLNet_GetError());
@@ -748,7 +846,7 @@ static void sendPacket(ECBClass* sendecb) {
   LOG_IPX("SEND crc:%2x",packetCRC(&outbuffer[0], packetsize));
   if(!isloopback) {
     // Since we're using a channel, we won't send the IP address again
-    result = SDLNet_TCP_Send(ipxClientSocket, &outbuffer[0], packetsize);
+    result = wsSend(ipxClientHandle, &outbuffer[0], packetsize);
 
     if(result == 0) {
       LOG_ERR("IPX: Could not send packet: %s", SDLNet_GetError());
@@ -772,7 +870,7 @@ static void sendPacket(ECBClass* sendecb) {
 }
 
 static bool pingCheck(IPXHeader * outHeader) {
-  IPXHeader *regHeader = readNextIPXHeader(ipxClientSocket);
+  IPXHeader *regHeader = readNextIPXHeader(ipxClientHandle);
   if (regHeader != nullptr) {
     assert(SDLNet_Read16(regHeader->length) == sizeof(IPXHeader));
     memcpy(outHeader, regHeader, sizeof(IPXHeader));
@@ -782,26 +880,21 @@ static bool pingCheck(IPXHeader * outHeader) {
 }
 
 bool _ConnectToServer(char const *strAddr) {
-#ifdef EMSCRIPTEN
-  EM_ASM(({
-           Module["websocket"]["url"] = UTF8ToString($0);
-         }), strAddr);
-#else
-  strAddr = "127.0.0.1";
-#endif
+    ipxServConnIp = strAddr;
+    ipxServConnPort = udpPort;
+
   int numsent;
   IPXHeader regHeader;
-  if(!SDLNet_ResolveHost(&ipxServConnIp, strAddr, (Bit16u)udpPort)) {
 
     // Generate the MAC address.  This is made by zeroing out the first two
     // octets and then using the actual IP address for the last 4 octets.
     // This idea is from the IPX over IP implementation as specified in RFC 1234:
     // http://www.faqs.org/rfcs/rfc1234.html
-    ipxClientSocket = SDLNet_TCP_Open(&ipxServConnIp);
-    if(ipxClientSocket) {
+    ipxClientHandle = wsOpen(strAddr, udpPort);
+    if(ipxClientHandle.valid) {
       // Bind UDP port to address to channel
-      //UDPChannel = SDLNet_TCP_Bind(ipxClientSocket,-1,&ipxServConnIp);
-      //			ipxClientSocket = SDLNet_TCP_Open(&ipxServConnIp);
+      //UDPChannel = SDLNet_TCP_Bind(ipxClientHandle,-1,&ipxServConnIp);
+      //			ipxClientHandle = SDLNet_TCP_Open(&ipxServConnIp);
       SDLNet_Write16(0xffff, regHeader.checkSum);
       SDLNet_Write16(sizeof(regHeader), regHeader.length);
 
@@ -819,11 +912,11 @@ bool _ConnectToServer(char const *strAddr) {
 
       // Send registration string to server.  If server doesn't get
       // this, client will not be registered
-      numsent = SDLNet_TCP_Send(ipxClientSocket, &regHeader, sizeof(regHeader));
+      numsent = wsSend(ipxClientHandle, &regHeader, sizeof(regHeader));
 
       if(!numsent) {
         LOG_ERR("IPX: Unable to connect to server: %s", SDLNet_GetError());
-        SDLNet_TCP_Close(ipxClientSocket);
+        wsClose(ipxClientHandle);
         return false;
       } else {
         // Wait for return packet from server.
@@ -836,14 +929,14 @@ bool _ConnectToServer(char const *strAddr) {
           elapsed = GetTicks() - ticks;
           if(elapsed > 1500) {
             LOG_ERR("Timeout connecting to server at %s", strAddr);
-            SDLNet_TCP_Close(ipxClientSocket);
+            wsClose(ipxClientHandle);
 
             return false;
           }
-          
+
           asyncify_sleep(4, true);
 
-          result = SDLNet_TCP_Recv(ipxClientSocket, &regHeader, sizeof(regHeader));
+          result = wsRecv(ipxClientHandle, &regHeader, sizeof(regHeader));
           if (result != 0) {
             memcpy(localIpxAddr.netnode, regHeader.dest.addr.byNode.node, sizeof(localIpxAddr.netnode));
             memcpy(localIpxAddr.netnum, regHeader.dest.network, sizeof(localIpxAddr.netnum));
@@ -862,9 +955,6 @@ bool _ConnectToServer(char const *strAddr) {
     } else {
       LOG_ERR("IPX: Unable to open socket");
     }
-  } else {
-    LOG_ERR("IPX: Unable resolve connection to server");
-  }
   return false;
 }
 
@@ -1024,7 +1114,7 @@ class IPXNET : public Program {
         WriteOut("INACTIVE\n");
         WriteOut("Client status: ");
         if(incomingPacket.connected) {
-          WriteOut("CONNECTED -- Server at %d.%d.%d.%d port %d\n", CONVIP(ipxServConnIp.host), udpPort);
+          WriteOut("CONNECTED -- Server at %s port %d\n", ipxServConnIp.c_str(), ipxServConnPort);
         } else {
           WriteOut("DISCONNECTED\n");
         }

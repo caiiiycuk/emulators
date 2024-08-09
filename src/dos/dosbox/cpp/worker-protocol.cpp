@@ -26,6 +26,7 @@ EM_JS(void, ws_init_runtime, (const char* sessionId), {
     Module.bundles = [];
     Module.files = {};
     Module.FS.ignorePermissions = true;
+    Module.wsNetIds = {};
 
     function fsTree(root, parent) {
       for (const name of Object.keys(root)) {
@@ -146,6 +147,10 @@ EM_JS(void, ws_init_runtime, (const char* sessionId), {
           Module._requestUnmute();
         } break;
         case "wc-exit": {
+          Module.wsNetIds = {};
+          if (Module.wsNetConnectResolve) {
+            Module.wsNetConnectResolve(-1);
+          }
           Module._requestExit();
         } break;
         case "wc-pack-fs-to-bundle": {
@@ -337,6 +342,23 @@ EM_JS(void, ws_init_runtime, (const char* sessionId), {
               data: null,
             },
           });
+        } break;
+        case "wc-net-connected": {
+          if (Module.wsNetConnectResolve) {
+            Module.wsNetConnectResolve(data.props.networkId);
+          } else {
+            console.error("wc-net-connected recived but no awaiting promises");
+          }
+        } break;
+        case "wc-net-received": {
+          if (Module.wsNetIds[data.props.networkId]) {
+            const buffer = new Uint8Array(data.props.data);
+            const ptr = Module._malloc(buffer.length);
+            Module.HEAPU8.set(buffer, ptr);
+            Module._ws_client_net_recv(data.props.networkId, ptr, buffer.length);
+          } else {
+            console.error("wc-net-received recived but network is not registered");
+          }
         } break;
         default: {
           console.log("Unknown client message (wc): " + JSON.stringify(data));
@@ -779,4 +801,51 @@ uint8_t sockdrive_read(size_t handle, uint32_t sector, uint8_t * buffer) {
         return em_sockdrive_read_async(handle, sector, buffer);
     }
     return status;
+}
+
+EM_ASYNC_JS(int, em_net_connect, (const char* address), {
+  return await (new Promise((resolve) => {
+    if (Module.wsNetConnectResolve) {
+      console.error("wsOpen is called while another one is still processing");
+      return -1;
+    }
+    Module.wsNetConnectResolve = (id) => {
+      delete Module.wsNetConnectResolve;
+      if (id !== -1) {
+        Module.wsNetIds[id] = true;
+      }
+      resolve(id);
+    };
+    Module.sendMessage("ws-net-connect", { address: UTF8ToString(address) });
+  }));
+});
+
+EM_JS(bool, em_net_send, (int networkId, const void *datap, int len), {
+  if (Module.wsNetIds[networkId]) {
+    Module.sendMessage("ws-net-send", { networkId, data: Module.HEAPU8.slice(datap, datap + len) });
+  }
+  return Module.wsNetIds[networkId] === true;
+});
+
+EM_JS(void, em_net_disconnect, (int networkId), {
+  if (Module.wsNetIds[networkId]) {
+    Module.sendMessage("ws-net-disconnect", { networkId });
+    delete Module.wsNetIds[networkId];
+  }
+});
+
+int server_net_connect(const char* address) {
+  return em_net_connect(address);
+}
+
+int server_net_send(int networkId, const void *datap, int len) {
+  return em_net_send(networkId, datap, len) ? len : -1;
+}
+
+extern "C" void EMSCRIPTEN_KEEPALIVE ws_client_net_recv(int networkId, void *datap, int len) {
+  client_net_recv(networkId, datap, len);
+}
+
+void server_net_disconnect(int networkId) {
+  em_net_disconnect(networkId);
 }
