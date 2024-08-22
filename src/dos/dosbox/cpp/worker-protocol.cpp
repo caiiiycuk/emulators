@@ -216,6 +216,7 @@ EM_JS(void, ws_init_runtime, (const char* sessionId), {
             driveCacheHit: 0,
             driveCacheMiss: 0,
             driveCacheUsed: 0,
+            driveIo: [],
           };
 
           if (Module.sockdrive && Module.sockdrive.stats) {
@@ -225,6 +226,7 @@ EM_JS(void, ws_init_runtime, (const char* sessionId), {
             stats.driveCacheHit = Module.sockdrive.stats.cacheHit;
             stats.driveCacheMiss = Module.sockdrive.stats.cacheMiss;
             stats.driveCacheUsed = Module.sockdrive.stats.cacheUsed;
+            stats.driveIo = Module.sockdrive.stats.io;
           }
           
           sendMessage("ws-asyncify-stats", stats);

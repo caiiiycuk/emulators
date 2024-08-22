@@ -91,6 +91,7 @@ export interface AsyncifyStats {
     driveCacheHit: number,
     driveCacheMiss: number,
     driveCacheUsed: number,
+    driveIo: { read: number, write: number }[];
 }
 
 export interface FsNode {
