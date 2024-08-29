@@ -213,13 +213,15 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
                             const fileEntry = next as InitFileEntry;
                             const dosConfig = next as DosConfig;
 
-                            if (dosConfig.jsdosConf.version !== undefined) {
+                            if (dosConfig.jsdosConf?.version !== undefined) {
                                 await sendData("file", ".jsdos/dosbox.conf",
                                     encoder.encode(dosConfig.dosboxConf));
                                 await sendData("file", ".jsdos/jsdos.json",
                                     encoder.encode(JSON.stringify(dosConfig.jsdosConf, null, 2)));
                             } else if (fileEntry.path !== undefined) {
                                 await sendData("file", fileEntry.path, fileEntry.contents);
+                            } else {
+                                console.error("Unknown init part", next);
                             }
                         }
                     }
