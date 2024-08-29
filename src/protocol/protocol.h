@@ -18,7 +18,7 @@ typedef int NetworkId;
 // -- Client (Web Page)
 
 void client_frame_set_size(int width, int height);
-void client_frame_update_lines(uint32_t* lines, uint32_t count, void* rgba);
+void client_frame_update_lines(uint32_t* lines, uint32_t count, void* rgba, bool bgra);
 void client_sound_init(int freq);
 void client_sound_push(const float* samples, int num_samples);
 void client_stdout(const char* data, uint32_t amount);

@@ -105,7 +105,7 @@ void client_frame_set_size(int width, int height) {
   frameRgba = new uint32_t[width * height];
 }
 
-void client_frame_update_lines(uint32_t *lines, uint32_t count, void *rgba) {
+void client_frame_update_lines(uint32_t *lines, uint32_t count, void *rgba, bool bgra) {
   std::lock_guard<std::mutex> g(mutex);
 
   if (!frameRgba) {
@@ -113,11 +113,20 @@ void client_frame_update_lines(uint32_t *lines, uint32_t count, void *rgba) {
   }
 
   for (uint32_t i = 0; i < count; ++i) {
-    uint32_t start = lines[i * 3];
-    uint32_t count = lines[i * 3 + 1];
+    uint32_t start = lines[i * 3] * frameWidth;
+    uint32_t count = lines[i * 3 + 1] * sizeof(uint32_t) * frameWidth;
     uint32_t offset = lines[i * 3 + 2];
-    memcpy(&frameRgba[start * frameWidth], (char *)rgba + offset,
-           sizeof(uint32_t) * count * frameWidth);
+    memcpy(&frameRgba[start], (char *)rgba + offset, count);
+    if (bgra) {
+        auto begin = (uint8_t*) &frameRgba[start];
+        auto end = begin + count;
+        while (begin < end) {
+            auto r = begin[0];
+            begin[0] = begin[2];
+            begin[2] = r;
+            begin += sizeof(uint32_t);
+        }
+    }
   }
 
   frameCount++;
@@ -236,8 +245,8 @@ int main(int argc, char *argv[]) {
 int server_net_connect(const char* address) {
     return NETWORK_NA;
 }
-int  server_net_send(int networkId, const void *datap, int len) {
-    return 0;
+int server_net_send(int networkId, const void *datap, int len) {
+    return -1;
 }
 void server_net_disconnect(int networkId) {
 }

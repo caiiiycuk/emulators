@@ -3040,7 +3040,8 @@ void GFX_EndUpdate(const uint16_t *changedLines) {
         }
         index++;
       }
-      client_frame_update_lines(lines.data(), lines.size() / 3, (uint32_t*) sdl.surface->pixels);
+      client_frame_update_lines(lines.data(), lines.size() / 3, (uint32_t *) sdl.surface->pixels,
+                                vga.mode == M_LIN16 || vga.mode == M_LIN24 || vga.mode == M_LIN32);
     }
 }
 

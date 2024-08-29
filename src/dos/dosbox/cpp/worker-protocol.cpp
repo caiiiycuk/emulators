@@ -14,6 +14,7 @@ std::string connectToAddress("");
 
 int frameHeight = 0;
 int frameWidth = 0;
+uint8_t *frameRgb = nullptr;
 
 // clang-format off
 EM_JS(void, ws_init_runtime, (const char* sessionId), {
@@ -388,25 +389,13 @@ EM_JS(void, emsc_ws_client_frame_set_size, (int width, int height), {
     Module.sendMessage("ws-frame-set-size", {width : width, height : height});
   });
 
-EM_JS(bool, emsc_start_frame_update, (void* rgba), {
+EM_JS(void, emsc_start_frame_update, (), {
     Module.frame_update_lines = [];
     Module.frame_update_lines_transferable = [];
-    return true;
   });
 
-EM_JS(void, emsc_add_frame_line, (uint32_t start, char* ptr, uint32_t bpp4len), {
-    var bpp3 = new Uint8Array(bpp4len / 4 * 3);
-    var bpp4 = Module.HEAPU8;
-
-    var bpp3Offset = 0;
-    var bpp4Offset = ptr;
-    while (bpp3Offset < bpp3.length) {
-      bpp3[bpp3Offset++] = bpp4[bpp4Offset++];
-      bpp3[bpp3Offset++] = bpp4[bpp4Offset++];
-      bpp3[bpp3Offset++] = bpp4[bpp4Offset++];
-      bpp4Offset++;
-    }
-
+EM_JS(void, emsc_add_frame_line, (uint32_t start, uint8_t* ptr, uint32_t len), {
+    var bpp3 = Module.HEAPU8.slice(ptr, ptr + len);
     Module.frame_update_lines.push({start : start, heapu8 : bpp3});
     Module.frame_update_lines_transferable.push(bpp3.buffer);
   });
@@ -557,23 +546,46 @@ EM_JS(void, emsc_pack_fs_to_bundle, (bool onlyChanges), {
 // clang-format on
 
 void client_frame_set_size(int width, int height) {
+  if (frameRgb) {
+    delete[] frameRgb;
+  }
   frameHeight = height;
   frameWidth = width;
+  frameRgb = new uint8_t[width * height * 3];
   emsc_ws_client_frame_set_size(width, height);
 }
 
-void client_frame_update_lines(uint32_t *lines, uint32_t batchCount, void *rgba) {
-  if (!emsc_start_frame_update(rgba)) {
-      return;
+void client_frame_update_lines(uint32_t *lines, uint32_t batchCount, void *rgba, bool bgra) {
+  if (!frameRgb) {
+    return;
   }
 
+  uint8_t r = 0;
+  uint8_t b = 2;
+  if (bgra) {
+    r = 2;
+    b = 0;
+  }
+
+  emsc_start_frame_update();
   for (uint32_t i = 0; i < batchCount; ++i) {
     uint32_t base = i * 3;
     uint32_t start = lines[base];
     uint32_t count = lines[base + 1];
     uint32_t offset = lines[base + 2];
-    emsc_add_frame_line(start, (char *)rgba + offset,
-                        sizeof(uint32_t) * count * frameWidth);
+
+    uint8_t* bpp3Begin = frameRgb + start * frameWidth * 3;
+    uint8_t* bpp3 = bpp3Begin;
+    uint8_t* bpp4 = (uint8_t*) rgba + offset;
+    uint8_t* bpp4End = bpp4 + sizeof(uint32_t) * count * frameWidth;
+    while (bpp4 < bpp4End) {
+      bpp3[0] = bpp4[r];
+      bpp3[1] = bpp4[1];
+      bpp3[2] = bpp4[b];
+      bpp3 += 3;
+      bpp4 += 4;
+    }
+    emsc_add_frame_line(start, bpp3Begin, 3 * count * frameWidth);
   }
   emsc_end_frame_update();
 }
@@ -824,7 +836,8 @@ EM_ASYNC_JS(int, em_net_connect, (const char* address), {
 
 EM_JS(bool, em_net_send, (int networkId, const void *datap, int len), {
   if (Module.wsNetIds[networkId]) {
-    Module.sendMessage("ws-net-send", { networkId, data: Module.HEAPU8.slice(datap, datap + len) });
+    const data = Module.HEAPU8.slice(datap, datap + len);
+    Module.sendMessage("ws-net-send", { networkId, data  }, [ data.buffer ]);
   }
   return Module.wsNetIds[networkId] === true;
 });

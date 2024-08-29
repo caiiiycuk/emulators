@@ -13,7 +13,7 @@
 #include "dosbox_conf.h"
 
 void client_frame_set_size(int width, int height) {}
-void client_frame_update_lines(uint32_t* lines, uint32_t count, void* rgba) {}
+void client_frame_update_lines(uint32_t* lines, uint32_t count, void* rgba, bool bgra) {}
 void client_sound_init(int freq) {}
 void client_sound_push(const float* samples, int num_samples) {}
 void client_stdout(const char* data, uint32_t amount) {
@@ -70,3 +70,11 @@ void client_error(const char* tag, const char* message) {}
 void client_network_connected(enum NetworkType networkType, const char* address) {}
 void client_network_disconnected(enum NetworkType networkType) {}
 void client_tick() {}
+int server_net_connect(const char* address) {
+    return NETWORK_NA;
+}
+int server_net_send(int networkId, const void *datap, int len) {
+    return -1;
+}
+void server_net_disconnect(int networkId) {
+}

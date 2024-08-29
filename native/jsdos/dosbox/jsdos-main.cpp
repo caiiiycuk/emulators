@@ -14,6 +14,7 @@
 #include <protocol.h>
 #include <video.h>
 #include <mouse.h>
+#include <vga.h>
 #include <cstdarg>
 
 #include "timer.h"
@@ -100,7 +101,8 @@ void GFX_EndUpdate(const Bit16u *changedLines) {
             }
             index++;
         }
-        client_frame_update_lines(lines.data(), lines.size() / 3, (uint32_t*) surface);
+        client_frame_update_lines(lines.data(), lines.size() / 3, (uint32_t*) surface,
+                                  vga.mode == M_LIN16 || vga.mode == M_LIN32);
     }
 
     surfaceUpdating = false;
