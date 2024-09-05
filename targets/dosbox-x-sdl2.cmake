@@ -718,6 +718,7 @@ if (${EMSCRIPTEN})
             "-sASYNCIFY=1"
             "-sASYNCIFY_IMPORTS=['syncSleep']"
             "-sASYNCIFY_WHITELIST=@${TARGETS_DIR}/dosbox-x-asyncify.txt"
+        #     "-sASYNCIFY_STACK_SIZE=16384"
             "-sEXPORT_NAME='WDOSBOXX'"
             "-sERROR_ON_UNDEFINED_SYMBOLS=1")
 elseif (APPLE)
