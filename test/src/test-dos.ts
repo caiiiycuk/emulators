@@ -96,6 +96,22 @@ function testServer(factory: CIFactory, name: string, assets: string) {
         await ci.exit();
     });
 
+    test(name + " can config js-dos through initFs", async () => {
+        const dosboxConf = "[autoexec]\necho \"ok\"\n";
+        const jsdosConf = "{\"initFs\":true}";
+        const ci = await factory(
+            [
+                { path: ".jsdos/dosbox.conf", contents: new TextEncoder().encode(dosboxConf) },
+                { path: ".jsdos/jsdos.json", contents: new TextEncoder().encode(jsdosConf) },
+            ],
+        );
+        assert.ok(ci);
+        const config = await ci.config();
+        assert.equal(config.dosboxConf, dosboxConf);
+        assert.equal(JSON.stringify(config.jsdosConf), jsdosConf);
+        await ci.exit();
+    });
+
     suite(name + ".persistency");
 
     let cachedBundle: Uint8Array = new Uint8Array();
