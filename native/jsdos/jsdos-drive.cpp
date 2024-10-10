@@ -30,9 +30,8 @@ uint8_t jsdos::SockDrive::Read_AbsoluteSector(uint32_t sectnum, void* data) {
     int errcode = sockdrive_read(handle, sectnum, (uint8_t*) data);
     if (errcode) {
         std::cerr << "sockdrive_read error " << errcode << std::endl;
-        abort();
     }
-    return 0;
+    return errcode;
 }
 
 uint8_t jsdos::SockDrive::Write_AbsoluteSector(uint32_t sectnum, const void* data) {
@@ -41,5 +40,5 @@ uint8_t jsdos::SockDrive::Write_AbsoluteSector(uint32_t sectnum, const void* dat
         std::cerr << "sockdrive_write error " << errcode << std::endl;
         abort();
     }
-    return 0;
+    return errcode;
 }
