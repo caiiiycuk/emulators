@@ -7,6 +7,8 @@
 #include <sockdrive.h>
 #include <cstdio>
 
+void sockdrive_delay();
+bool jsdos::SockDrive::asyncRead = false;
 
 jsdos::SockDrive* jsdos::SockDrive::create(const std::string& url, const std::string& owner, const std::string& name) {
     auto handle = sockdrive_open(url.c_str(), owner.c_str(), name.c_str(), "");
@@ -27,10 +29,17 @@ jsdos::SockDrive::~SockDrive() {
 }
 
 uint8_t jsdos::SockDrive::Read_AbsoluteSector(uint32_t sectnum, void* data) {
-    int errcode = sockdrive_read(handle, sectnum, (uint8_t*) data);
-    if (errcode) {
-        std::cerr << "sockdrive_read error " << errcode << std::endl;
+    bool async = jsdos::SockDrive::asyncRead;
+    uint8_t errcode = sockdrive_read(handle, sectnum, (uint8_t*) data, async);
+    if (errcode && (!async || errcode != 255)) {
+        return errcode;
     }
+
+    while (async && errcode == 255) {
+        sockdrive_delay();
+        errcode = sockdrive_read_async_code(handle, sectnum, (uint8_t*) data);
+    }
+
     return errcode;
 }
 
