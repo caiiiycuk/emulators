@@ -2,15 +2,17 @@
 // Created by caiiiycuk on 27.02.2020.
 //
 
+#include <jsdos-timer.h>
+#include <protocol.h>
+#include <timer.h>
+
 #include <cassert>
 #include <cstddef>
+#include <cstdio>
 #include <cstring>
-#include <protocol.h>
-#include <thread>
 #include <mutex>
-#include <timer.h>
+#include <thread>
 #include <unordered_map>
-#include <jsdos-timer.h>
 
 #include "../sokol-lib/sokol_app.h"
 #include "../sokol-lib/sokol_audio.h"

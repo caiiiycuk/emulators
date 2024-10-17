@@ -5,7 +5,11 @@ size_t sockdrive_open(const char* url,
     return 0;
 }
 
-uint8_t sockdrive_read(size_t handle, uint32_t sector, uint8_t * buffer) {
+uint8_t sockdrive_read(size_t handle, uint32_t sector, uint8_t * buffer, bool async) {
+    return 5;
+}
+
+uint8_t sockdrive_read_async_code(size_t handle, uint32_t sector, uint8_t * buffer) {
     return 5;
 }
 

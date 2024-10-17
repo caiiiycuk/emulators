@@ -8,6 +8,12 @@
 
 #include <sockdrive.h>
 
+// sockdrive impl
+
+const char *sockdriveJsImpl =
+#include "../../../../native/sockdrive/js/dist/sockdriveNative.js"
+;
+
 NetworkType connectNetwork = NETWORK_NA;
 std::string connectToAddress("");
 
@@ -17,7 +23,7 @@ int frameWidth = 0;
 uint8_t *frameRgb = nullptr;
 
 // clang-format off
-EM_JS(void, ws_init_runtime, (const char* sessionId), {
+EM_JS(void, ws_init_runtime, (const char* sessionId, const char* sockdriveImpl), {
     var worker = typeof importScripts === "function";
     Module.messageSent = 0;
     Module.messageReceived = 0;
@@ -28,6 +34,14 @@ EM_JS(void, ws_init_runtime, (const char* sessionId), {
     Module.files = {};
     Module.FS.ignorePermissions = true;
     Module.wsNetIds = {};
+
+    eval(UTF8ToString(sockdriveImpl));
+    Module.sockdrive.onOpen =  (drive, read, write, imageSize) => {
+      Module.log("sockdrive: " + drive + ", read=" + read + ", write=" + write + ", imageSize=" + Math.round(imageSize / 1024 / 1024) + "Mb");
+    };
+    Module.sockdrive.onError = (e) => {
+      Module.err(e.message ?? "unable to open sockdrive");
+    };
 
     function fsTree(root, parent) {
       for (const name of Object.keys(root)) {
@@ -518,6 +532,21 @@ EM_JS(void, emsc_extract_bundle_to_fs, (), {
       jsdosConf: configContent,
     });
 
+    const sockdriveImgmount = new RegExp("imgmount\\\\s+(\\\\d+)\\\\s+sockdrive\\\\s+([^\\\\s]+)\\\\s+([^\\\\s]+)\\\\s+([^\\\\s]+)\\\\s*$", "gm");
+    const cache = Module.sockdrive.cache;
+    const conf = new TextDecoder().decode(dosboxConf);
+    let m = null;
+    while (m = sockdriveImgmount.exec(conf)) {
+        const [_, num, backend, owner, drive] = m;
+        if (!cache[backend]) {
+            cache[backend] = Module.sockdrive.createCache(backend, true);
+        }
+        cache[backend].onProgress((owner, drive, rest, total) => {
+            Module.log("sockdrive: " + owner + "/" + drive + ", preload=" + rest);
+        });
+        cache[backend].open(owner, drive, Module.token);
+    }
+
     delete Module.libzip_progress;
     delete Module.bundles;
   });
@@ -726,39 +755,18 @@ extern "C" char* EMSCRIPTEN_KEEPALIVE getConfigContent() {
 }
 
 int main(int argc, char **argv) {
-  ws_init_runtime(argc > 1 ? argv[1] : "id-null");
+  ws_init_runtime(argc > 1 ? argv[1] : "id-null", sockdriveJsImpl);
   emscripten_exit_with_live_runtime();
   return 0;
 }
 
 
-// sockdrive impl
-
-const char *sockdriveJsImpl =
-#include "../../../../native/sockdrive/js/dist/sockdriveNative.js"
-;
-
 EM_ASYNC_JS(size_t, em_sockdrive_open, (const char* url, 
-    const char* owner, const char* name, const char* token,
-    const char* jsImpl), {
+    const char* owner, const char* name, const char* token), {
     url = UTF8ToString(url);
     owner = UTF8ToString(owner);
     name = UTF8ToString(name);
     token = UTF8ToString(token);
-
-    if (!Module.sockdrive) {
-        jsImpl = UTF8ToString(jsImpl);
-        eval(jsImpl);
-        Module.sockdrive.onOpen =  (drive, read, write, imageSize, preloadQueue) => {
-          Module.log("sockdrive: " + drive + ", read=" + read + ", write=" + write + ", imageSize=" + Math.round(imageSize / 1024 / 1024) + "Mb" + ", preloadQueue=" + preloadQueue.length);
-        };
-        Module.sockdrive.onError = (e) => {
-          Module.err(e.message ?? "unable to open sockdrive");
-        };
-        Module.sockdrive.onPreloadProgress = (drive, restBytes) => {
-          Module.log("sockdrive: " + drive + ", preload=" + restBytes);
-        };
-    }
 
     try {
         return await Module.sockdrive.open(url, owner, name, token.length > 0 ? token : Module.token)
@@ -774,6 +782,22 @@ EM_JS(uint8_t, em_sockdrive_read_sync, (size_t handle, uint32_t sector, uint8_t 
 
 EM_ASYNC_JS(uint8_t, em_sockdrive_read_async, (size_t handle, uint32_t sector, uint8_t * buffer), {
     return Module.sockdrive.read(handle, sector, buffer, false);
+});
+
+EM_JS(uint8_t, em_sockdrive_read_promise, (size_t handle, uint32_t sector, uint8_t * buffer), {
+    if (Module.sockdrivePromiseCode === 255) {
+      console.error("Trying to read while previous request is ongoing");
+      return 5;
+    }
+    Module.sockdrivePromiseCode = 255;
+    Module.sockdrive.read(handle, sector, buffer, false).then((code) => {
+      Module.sockdrivePromiseCode = code;
+    });
+    return Module.sockdrivePromiseCode;
+});
+
+EM_JS(uint8_t, em_sockdrive_read_promise_code, (), {
+    return Module.sockdrivePromiseCode;
 });
 
 EM_JS(uint8_t, sockdrive_write, (size_t handle, uint32_t sector, uint8_t * buffer), {
@@ -806,15 +830,23 @@ EM_JS(uint32_t, sockdrive_cylinders, (size_t handle), {
 
 size_t sockdrive_open(const char* url, 
     const char* owner, const char* name, const char* token) {
-    return em_sockdrive_open(url, owner, name, token, sockdriveJsImpl);
+    return em_sockdrive_open(url, owner, name, token);
 }
 
-uint8_t sockdrive_read(size_t handle, uint32_t sector, uint8_t * buffer) {
+uint8_t sockdrive_read(size_t handle, uint32_t sector, uint8_t * buffer, bool async) {
     auto status = em_sockdrive_read_sync(handle, sector, buffer);
     if (status == 255) {
+      if (async) {
+        return em_sockdrive_read_promise(handle, sector, buffer);
+      } else {
         return em_sockdrive_read_async(handle, sector, buffer);
+      }
     }
     return status;
+}
+
+uint8_t sockdrive_read_async_code(size_t handle, uint32_t sector, uint8_t * buffer) {
+    return em_sockdrive_read_promise_code();
 }
 
 EM_ASYNC_JS(int, em_net_connect, (const char* address), {

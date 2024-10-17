@@ -8,6 +8,9 @@
 #include <jsdos-libzip.h>
 #endif
 
+#include <stdio.h>
+#include <stdlib.h>
+
 int main(int argc, char** argv) {
 #ifdef EMSCRIPTEN
     emscripten_exit_with_live_runtime();
@@ -17,10 +20,10 @@ int main(int argc, char** argv) {
       return -1;
     }
 
-    auto length = ((uint32_t*) archive)[0];
-    auto data = ((char*) archive + sizeof(uint32_t));
+    uint32_t length = ((uint32_t*) archive)[0];
+    char* data = ((char*) archive + sizeof(uint32_t));
 
-    auto* f = fopen("/tmp/archive.zip", "wb");
+    FILE* f = fopen("/tmp/archive.zip", "wb");
     fwrite(data, sizeof(char), length, f);
     fclose(f);
 

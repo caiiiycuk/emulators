@@ -36,7 +36,9 @@ uint8_t jsdos::SockDrive::Read_AbsoluteSector(uint32_t sectnum, void* data) {
     }
 
     while (async && errcode == 255) {
+#ifdef JSDOS_X
         sockdrive_delay();
+#endif
         errcode = sockdrive_read_async_code(handle, sectnum, (uint8_t*) data);
     }
 
