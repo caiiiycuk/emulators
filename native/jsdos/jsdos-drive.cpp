@@ -39,6 +39,9 @@ uint8_t jsdos::SockDrive::Read_AbsoluteSector(uint32_t sectnum, void* data) {
 #ifdef JSDOS_X
         sockdrive_delay();
 #endif
+#if !defined(EMSCRIPTEN) && !defined(ANDROID)
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+#endif
         errcode = sockdrive_read_async_code(handle, sectnum, (uint8_t*) data);
     }
 
