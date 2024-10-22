@@ -231,6 +231,7 @@ EM_JS(void, ws_init_runtime, (const char* sessionId, const char* sockdriveImpl),
             driveCacheHit: 0,
             driveCacheMiss: 0,
             driveCacheUsed: 0,
+            driveBufferedAmount: 0,
             driveIo: [],
           };
 
@@ -241,6 +242,7 @@ EM_JS(void, ws_init_runtime, (const char* sessionId, const char* sockdriveImpl),
             stats.driveCacheHit = Module.sockdrive.stats.cacheHit;
             stats.driveCacheMiss = Module.sockdrive.stats.cacheMiss;
             stats.driveCacheUsed = Module.sockdrive.stats.cacheUsed;
+            stats.driveBufferedAmount = Module.sockdrive.bufferedAmount();
             stats.driveIo = Module.sockdrive.stats.io;
           }
           
