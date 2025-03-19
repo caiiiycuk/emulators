@@ -34,6 +34,11 @@ void client_net_recv(int networkId, void *datap, int len);
 
 void client_tick();
 
+void client_sockdrive_opened(uint32_t handle, uint32_t size, uint32_t heads, uint32_t cylinders, uint32_t sectors,
+                             uint32_t sectorSize, uint32_t aheadRange, uint32_t emptyRangesCount,
+                             uint8_t* emptyRanges);
+void client_sockdrive_new_range(uint32_t handle, uint32_t range, uint8_t* buffer);
+
 // -- Server (Worker)
 
 extern int server_run();
@@ -53,5 +58,12 @@ extern void server_network_disconnect(enum NetworkType networkType);
 extern int  server_net_connect(const char* address);
 extern int  server_net_send(int networkId, const void *datap, int len);
 extern void server_net_disconnect(int networkId);
+
+extern void server_sockdrive_open(uint32_t handle, const char* address);
+extern void server_sockdrive_ready(uint32_t handle);
+extern void server_sockdrive_close(uint32_t handle);
+extern void server_sockdrive_load_range(uint32_t handle, uint32_t range);
+extern void server_sockdrive_write_sector(uint32_t handle, uint32_t sector, uint8_t* buffer);
+
 
 #endif  // JS_DOS_JS_DOS_PROTOCOL_H

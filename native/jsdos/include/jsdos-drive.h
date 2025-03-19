@@ -11,15 +11,13 @@
 namespace jsdos {
     class SockDrive: public imageDisk {
         size_t handle;
-        SockDrive(size_t handle, const std::string& url, const std::string& owner, const std::string& name);
+        SockDrive(size_t handle, const std::string& url);
     public:
-        static bool asyncRead;
-
         virtual ~SockDrive();
         virtual uint8_t Read_AbsoluteSector(uint32_t sectnum, void* data) override;
         virtual uint8_t Write_AbsoluteSector(uint32_t sectnum, const void* data) override;
 
-        static SockDrive* create(const std::string& url, const std::string& owner, const std::string& name);
+        static SockDrive* create(const std::string& url);
     };
 }
 
