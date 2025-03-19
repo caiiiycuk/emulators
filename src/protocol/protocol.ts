@@ -1,5 +1,6 @@
 import { CommandInterface, NetworkType, BackendOptions, DosConfig, InitFsEntry, InitFileEntry } from "../emulators";
 import { CommandInterfaceEventsImpl } from "../impl/ci-impl";
+import { Drive, sockdrive } from "./sockdrive";
 
 const maxDataChunkSize = 4 * 1024 * 1024;
 
@@ -25,7 +26,9 @@ export type ClientMessage =
     "wc-fs-get-file" |
     "wc-send-data-chunk" |
     "wc-net-connected" |
-    "wc-net-received";
+    "wc-net-received" |
+    "wc-sockdrive-opened" |
+    "wc-sockdrive-new-range";
 
 export type ServerMessage =
     "ws-extract-progress" |
@@ -50,7 +53,12 @@ export type ServerMessage =
     "ws-send-data-chunk" |
     "ws-net-connect" |
     "ws-net-disconnect" |
-    "ws-net-send";
+    "ws-net-send" |
+    "ws-sockdrive-open" |
+    "ws-sockdrive-ready" |
+    "ws-sockdrive-close" |
+    "ws-sockdrive-load-range" |
+    "ws-sockdrive-write-sector";
 
 export type MessageHandler = (name: ServerMessage, props: { [key: string]: any }) => void;
 
@@ -85,14 +93,12 @@ export interface AsyncifyStats {
     cycles: number,
     netSent: number,
     netRecv: number,
-    driveSent: number,
-    driveRecv: number,
-    driveRecvTime: number,
-    driveCacheHit: number,
-    driveCacheMiss: number,
-    driveCacheUsed: number,
-    driveBufferedAmount: number,
-    driveIo: { read: number, write: number }[];
+    driveIo: {
+        url: string,
+        total: number,
+        read: number,
+        write: number,
+    }[];
 }
 
 export interface FsNode {
@@ -150,6 +156,8 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
     private dataChunkResolve: { [name: string]: () => void } = {};
     private networkId = 0;
     private network: { [id: number]: WebSocket } = {};
+
+    private sockdrives: { [handle: number]: Drive } = {};
 
     public options: BackendOptions;
 
@@ -319,6 +327,15 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
                 }
             } break;
             case "ws-asyncify-stats": {
+                props.driveIo = [];
+                for (const drive of Object.values(this.sockdrives)) {
+                    props.driveIo.push({
+                        url: drive.info.url,
+                        total: drive.info.sizeInBytes,
+                        read: drive.info.readInBytes,
+                        write: drive.info.writeInBytes,
+                    });
+                }
                 this.asyncifyStatsResolve(props as AsyncifyStats);
                 this.asyncifyStatsResolve = () => {/**/};
                 this.asyncifyStatsPromise = null;
@@ -382,6 +399,62 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
                 if (socket) {
                     socket.close();
                 }
+            } break;
+            case "ws-sockdrive-open": {
+                const handle = props.handle;
+                let url = props.url.replace("wss://sockdrive.js-dos.com:8001/dos.zone/",
+                    "https://br.cdn.dos.zone/sockdrive/");
+                if (url.endsWith("/")) {
+                    url = url.slice(0, -1);
+                }
+                sockdrive(url, (range, buffer) => {
+                    this.sendClientMessage("wc-sockdrive-new-range", {
+                        handle: handle,
+                        range: range,
+                        buffer,
+                    });
+                }).then((drive) => {
+                    this.sockdrives[props.handle] = drive;
+                    const emptyRanges = Array.from(drive.info.dropped_ranges);
+                    this.sendClientMessage("wc-sockdrive-opened", {
+                        handle: handle,
+                        size: drive.info.size,
+                        heads: drive.info.heads,
+                        cylinders: drive.info.cylinders,
+                        sectors: drive.info.sectors,
+                        sectorSize: drive.info.sector_size,
+                        aheadRange: drive.info.ahead_read,
+                        emptyRangesCount: drive.info.dropped_ranges.length,
+                        emptyRanges,
+                    });
+                }).catch((e: Error) => {
+                    this.onErr("panic", "Can't open sockdrive(" + url + "): " + e.message);
+                    console.error(e);
+
+                    this.sendClientMessage("wc-sockdrive-opened", {
+                        handle: handle,
+                        size: 0,
+                        heads: 0,
+                        cylinders: 0,
+                        sectors: 0,
+                        sectorSize: 0,
+                        aheadRange: 0,
+                        emptyRangesCount: 0,
+                        emptyRanges: [],
+                    });
+                });
+            } break;
+            case "ws-sockdrive-ready": {
+                this.sockdrives[props.handle].ready();
+            } break;
+            case "ws-sockdrive-load-range": {
+                this.sockdrives[props.handle].readRangeAsync(props.range);
+            } break;
+            case "ws-sockdrive-write-sector": {
+                this.sockdrives[props.handle].write(props.sector, props.data);
+            } break;
+            case "ws-sockdrive-close": {
+                delete this.sockdrives[props.handle];
             } break;
             default: {
                 // eslint-disable-next-line

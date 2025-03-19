@@ -8,12 +8,6 @@
 
 #include <sockdrive.h>
 
-// sockdrive impl
-
-const char *sockdriveJsImpl =
-#include "../../../../native/sockdrive/js/dist/sockdriveNative.js"
-;
-
 NetworkType connectNetwork = NETWORK_NA;
 std::string connectToAddress("");
 
@@ -23,7 +17,7 @@ int frameWidth = 0;
 uint8_t *frameRgb = nullptr;
 
 // clang-format off
-EM_JS(void, ws_init_runtime, (const char* sessionId, const char* sockdriveImpl), {
+EM_JS(void, ws_init_runtime, (const char* sessionId), {
     var worker = typeof importScripts === "function";
     Module.messageSent = 0;
     Module.messageReceived = 0;
@@ -34,15 +28,7 @@ EM_JS(void, ws_init_runtime, (const char* sessionId, const char* sockdriveImpl),
     Module.files = {};
     Module.FS.ignorePermissions = true;
     Module.wsNetIds = {};
-
-    eval(UTF8ToString(sockdriveImpl));
-    Module.sockdrive.onOpen =  (drive, read, write, imageSize) => {
-      Module.log("sockdrive: " + drive + ", read=" + read + ", write=" + write + ", imageSize=" + Math.round(imageSize / 1024 / 1024) + "Mb");
-    };
-    Module.sockdrive.onError = (e) => {
-      Module.err(e.message ?? "unable to open sockdrive");
-    };
-
+    Module.driveIo = {};
     function fsTree(root, parent) {
       for (const name of Object.keys(root)) {
         const fsNode = root[name];
@@ -225,27 +211,8 @@ EM_JS(void, ws_init_runtime, (const char* sessionId, const char* sockdriveImpl),
             cycles: Module.cycles,
             netSent: Module.netSent || 0,
             netRecv: Module.netRecv || 0,
-            driveSent: 0,
-            driveRecv: 0,
-            driveRecvTime: 0,
-            driveCacheHit: 0,
-            driveCacheMiss: 0,
-            driveCacheUsed: 0,
-            driveBufferedAmount: 0,
-            driveIo: [],
           };
 
-          if (Module.sockdrive && Module.sockdrive.stats) {
-            stats.driveSent = Module.sockdrive.stats.write;
-            stats.driveRecv = Module.sockdrive.stats.read;
-            stats.driveRecvTime = Module.sockdrive.stats.readTotalTime;
-            stats.driveCacheHit = Module.sockdrive.stats.cacheHit;
-            stats.driveCacheMiss = Module.sockdrive.stats.cacheMiss;
-            stats.driveCacheUsed = Module.sockdrive.stats.cacheUsed;
-            stats.driveBufferedAmount = Module.sockdrive.bufferedAmount();
-            stats.driveIo = Module.sockdrive.stats.io;
-          }
-          
           sendMessage("ws-asyncify-stats", stats);
         } break;
         case "wc-fs-tree": {
@@ -378,6 +345,28 @@ EM_JS(void, ws_init_runtime, (const char* sessionId, const char* sockdriveImpl),
           } else {
             console.error("wc-net-received recived but network is not registered");
           }
+        } break;
+        case "wc-sockdrive-opened": {
+          Module.sockdriveSectorSize = data.props.sectorSize;
+          const ptr = Module["_malloc"](data.props.emptyRangesCount * 4);
+          for (let i = 0; i < data.props.emptyRangesCount; ++i) {
+            const value = data.props.emptyRanges[i];
+            const offset = ptr + i * 4;
+            Module.HEAPU8[offset] = value & 0xFF;
+            Module.HEAPU8[offset + 1] = (value & 0x0000FF00) >> 8;
+            Module.HEAPU8[offset + 2] = (value & 0x00FF0000) >> 16;
+            Module.HEAPU8[offset + 3] = (value & 0xFF000000) >> 24;
+          }
+          Module["_em_client_sockdrive_opened"](data.props.handle, data.props.size, data.props.heads, 
+            data.props.cylinders, data.props.sectors, data.props.sectorSize, data.props.aheadRange, 
+            data.props.emptyRangesCount, ptr);
+          Module["_free"](ptr);
+        } break;
+        case "wc-sockdrive-new-range": {
+          const ptr = Module["_malloc"](data.props.buffer.length);
+          Module.HEAPU8.set(data.props.buffer, ptr);
+          Module["_em_client_sockdrive_new_range"](data.props.handle, data.props.range, ptr);
+          Module["_free"](ptr);
         } break;
         default: {
           console.log("Unknown client message (wc): " + JSON.stringify(data));
@@ -533,21 +522,6 @@ EM_JS(void, emsc_extract_bundle_to_fs, (), {
       dosboxConf,
       jsdosConf: configContent,
     });
-
-    const sockdriveImgmount = new RegExp("imgmount\\\\s+(\\\\d+)\\\\s+sockdrive\\\\s+([^\\\\s]+)\\\\s+([^\\\\s]+)\\\\s+([^\\\\s]+)\\\\s*$", "gm");
-    const cache = Module.sockdrive.cache;
-    const conf = new TextDecoder().decode(dosboxConf);
-    let m = null;
-    while (m = sockdriveImgmount.exec(conf)) {
-        const [_, num, backend, owner, drive] = m;
-        if (!cache[backend]) {
-            cache[backend] = Module.sockdrive.createCache(backend, true);
-        }
-        cache[backend].onProgress((owner, drive, rest, total) => {
-            Module.log("sockdrive: " + owner + "/" + drive + ", preload=" + rest);
-        });
-        cache[backend].open(owner, drive, Module.token);
-    }
 
     delete Module.libzip_progress;
     delete Module.bundles;
@@ -757,98 +731,9 @@ extern "C" char* EMSCRIPTEN_KEEPALIVE getConfigContent() {
 }
 
 int main(int argc, char **argv) {
-  ws_init_runtime(argc > 1 ? argv[1] : "id-null", sockdriveJsImpl);
+  ws_init_runtime(argc > 1 ? argv[1] : "id-null");
   emscripten_exit_with_live_runtime();
   return 0;
-}
-
-
-EM_ASYNC_JS(size_t, em_sockdrive_open, (const char* url, 
-    const char* owner, const char* name, const char* token), {
-    url = UTF8ToString(url);
-    owner = UTF8ToString(owner);
-    name = UTF8ToString(name);
-    token = UTF8ToString(token);
-
-    try {
-        return await Module.sockdrive.open(url, owner, name, token.length > 0 ? token : Module.token)
-    } catch (e) {
-        Module.err(e.message ?? "sockdrive not connected");
-        return 0;
-    }
-});
-
-EM_JS(uint8_t, em_sockdrive_read_sync, (size_t handle, uint32_t sector, uint8_t * buffer), {
-    return Module.sockdrive.read(handle, sector, buffer, true);
-});
-
-EM_ASYNC_JS(uint8_t, em_sockdrive_read_async, (size_t handle, uint32_t sector, uint8_t * buffer), {
-    return Module.sockdrive.read(handle, sector, buffer, false);
-});
-
-EM_JS(uint8_t, em_sockdrive_read_promise, (size_t handle, uint32_t sector, uint8_t * buffer), {
-    if (Module.sockdrivePromiseCode === 255) {
-      console.error("Trying to read while previous request is ongoing");
-      return 5;
-    }
-    Module.sockdrivePromiseCode = 255;
-    Module.sockdrive.read(handle, sector, buffer, false).then((code) => {
-      Module.sockdrivePromiseCode = code;
-    });
-    return Module.sockdrivePromiseCode;
-});
-
-EM_JS(uint8_t, em_sockdrive_read_promise_code, (), {
-    return Module.sockdrivePromiseCode;
-});
-
-EM_JS(uint8_t, sockdrive_write, (size_t handle, uint32_t sector, uint8_t * buffer), {
-    return Module.sockdrive.write(handle, sector, buffer);
-});
-
-EM_JS(void, sockdrive_close, (size_t handle), {
-    Module.sockdrive.close(handle);
-});
-
-EM_JS(uint32_t, sockdrive_size, (size_t handle), {
-    return Module.sockdrive.size(handle);
-});
-
-EM_JS(uint32_t, sockdrive_heads, (size_t handle), {
-    return Module.sockdrive.heads(handle);
-});
-
-EM_JS(uint32_t, sockdrive_sectors, (size_t handle), {
-    return Module.sockdrive.sectors(handle);
-});
-
-EM_JS(uint32_t, sockdrive_sector_size, (size_t handle), {
-    return Module.sockdrive.sector_size(handle);
-});
-
-EM_JS(uint32_t, sockdrive_cylinders, (size_t handle), {
-    return Module.sockdrive.cylinders(handle);
-});
-
-size_t sockdrive_open(const char* url, 
-    const char* owner, const char* name, const char* token) {
-    return em_sockdrive_open(url, owner, name, token);
-}
-
-uint8_t sockdrive_read(size_t handle, uint32_t sector, uint8_t * buffer, bool async) {
-    auto status = em_sockdrive_read_sync(handle, sector, buffer);
-    if (status == 255) {
-      if (async) {
-        return em_sockdrive_read_promise(handle, sector, buffer);
-      } else {
-        return em_sockdrive_read_async(handle, sector, buffer);
-      }
-    }
-    return status;
-}
-
-uint8_t sockdrive_read_async_code(size_t handle, uint32_t sector, uint8_t * buffer) {
-    return em_sockdrive_read_promise_code();
 }
 
 EM_ASYNC_JS(int, em_net_connect, (const char* address), {
@@ -882,6 +767,60 @@ EM_JS(void, em_net_disconnect, (int networkId), {
     delete Module.wsNetIds[networkId];
   }
 });
+
+extern "C" void EMSCRIPTEN_KEEPALIVE em_client_sockdrive_opened(
+  uint32_t handle, uint32_t size, uint32_t heads, uint32_t cylinders, uint32_t sectors,
+  uint32_t sectorSize, uint32_t aheadRange, uint32_t emptyRangesCount,
+  uint8_t* emptyRanges) {
+  
+#ifdef JSDOS_X
+  client_sockdrive_opened(handle, size, heads, cylinders, sectors, sectorSize, aheadRange, emptyRangesCount, emptyRanges);
+#endif
+}
+
+extern "C" void EMSCRIPTEN_KEEPALIVE em_client_sockdrive_new_range(
+  uint32_t handle, uint32_t range, uint8_t* buffer) {
+#ifdef JSDOS_X
+  client_sockdrive_new_range(handle, range, buffer);
+#endif
+}
+
+EM_JS(void, em_server_sockdrive_open, (uint32_t handle, const char* url), {
+  Module.sendMessage("ws-sockdrive-open", { handle, url: UTF8ToString(url) });
+});
+
+EM_JS(void, em_server_sockdrive_ready, (uint32_t handle), {
+  Module.sendMessage("ws-sockdrive-ready", { handle });
+});
+
+EM_JS(void, em_server_sockdrive_close, (uint32_t handle), {
+  Module.sendMessage("ws-sockdrive-close", { handle });
+});
+
+EM_JS(void, em_server_sockdrive_load_range, (uint32_t handle, uint32_t range), {
+  Module.sendMessage("ws-sockdrive-load-range", { handle, range });
+});
+
+EM_JS(void, em_server_sockdrive_write_sector, (uint32_t handle, uint32_t sector, uint8_t* buffer), {
+  const data = HEAPU8.slice(buffer, buffer + Module.sockdriveSectorSize);
+  Module.sendMessage("ws-sockdrive-write-sector", { handle, sector, data }, [ data.buffer ]);
+});
+
+void server_sockdrive_open(uint32_t handle, const char* address) {
+  em_server_sockdrive_open(handle, address);
+}
+void server_sockdrive_ready(uint32_t handle) {
+  em_server_sockdrive_ready(handle);
+}
+void server_sockdrive_close(uint32_t handle) {
+  em_server_sockdrive_close(handle);
+}
+void server_sockdrive_load_range(uint32_t handle, uint32_t origin) {
+  em_server_sockdrive_load_range(handle, origin);
+}
+void server_sockdrive_write_sector(uint32_t handle, uint32_t sector, uint8_t* buffer) {
+  em_server_sockdrive_write_sector(handle, sector, buffer);
+}
 
 int server_net_connect(const char* address) {
   return em_net_connect(address);
