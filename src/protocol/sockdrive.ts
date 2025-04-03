@@ -8,6 +8,7 @@ interface DriveInfo {
     range_count: number;
     dropped_ranges: number[];
     preload_ranges: number[] | "_";
+    small_ranges: number[];
     cylinders: number;
     heads: number;
     sectors: number;
@@ -30,14 +31,16 @@ export interface Drive {
 }
 
 export async function sockdrive(url: string, _onNewRange: (range: number, buffer: Uint8Array) => void): Promise<Drive> {
-    let writeStoreDirty = false;
-
     const store = await getStore(url);
     const response = await fetch(url + "/sockdrive.metaj");
     const info = await response.json() as DriveInfo;
     info.url = url;
     info.readInBytes = 0;
     info.writeInBytes = 0;
+    
+    if (info.small_ranges === undefined) {
+        info.small_ranges = [];
+    }
 
     let storedSectors = new Map<number, Map<number, Uint8Array>>();
     const serializedSectors = await store.get(0, WRITE_STORE);
@@ -49,6 +52,16 @@ export async function sockdrive(url: string, _onNewRange: (range: number, buffer
     const storeKeys = new Set<number>();
     for (const key of await store.keys(RAW_STORE)) {
         storeKeys.add(key);
+    }
+
+    if (info.small_ranges.find((range) => !storeKeys.has(range)) !== undefined) {
+        const preload = new Uint8Array(await (await fetch(url + "/preload.raw")).arrayBuffer());
+
+        for (let i = 0; i < info.small_ranges.length; i++) {
+            const range = info.small_ranges[i];
+            storeKeys.add(range);
+            await store.put(range, preload.slice(i * info.ahead_read, (i + 1) * info.ahead_read), RAW_STORE);
+        };
     }
 
     const loaded = new Set<number>();
@@ -194,10 +207,6 @@ export async function sockdrive(url: string, _onNewRange: (range: number, buffer
             offset += chunk.length;
         }
 
-        const uncompressedSize = sectorsData.size * chunksSize;
-        console.log("win size", (uncompressedSize - payload.length) / 1024, "KB",
-            payload.length / 1024, "KB",
-            uncompressedSize / 1024, "KB");
         return payload;
     }
 
@@ -249,15 +258,6 @@ export async function sockdrive(url: string, _onNewRange: (range: number, buffer
 
         return sectors;
     }
-
-    setInterval(() => {
-        if (writeStoreDirty && storedSectors.size > 0) {
-            const serialized = serializeSectors(storedSectors);
-            info.writeInBytes = serialized.length;
-            store.put(0, serialized, WRITE_STORE).catch(console.error);
-            writeStoreDirty = false;
-        }
-    }, 1000);
 
     (window as any).verifySectors = () => {
         if (storedSectors.size === 0) {
@@ -324,8 +324,6 @@ export async function sockdrive(url: string, _onNewRange: (range: number, buffer
             storedSectors.get(rangeOfSector)!.set(
                 sector - (rangeOfSector * info.ahead_read) / info.sector_size,
                 buffer);
-
-            writeStoreDirty = true;
         },
     };
 }
