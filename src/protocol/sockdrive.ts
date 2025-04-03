@@ -28,6 +28,7 @@ export interface Drive {
     readRangeAsync(range: number): void;
     ready(): void;
     write(sector: number, buffer: Uint8Array): void;
+    persist(): Promise<Uint8Array | null>;
 }
 
 export async function sockdrive(url: string, _onNewRange: (range: number, buffer: Uint8Array) => void): Promise<Drive> {
@@ -324,6 +325,14 @@ export async function sockdrive(url: string, _onNewRange: (range: number, buffer
             storedSectors.get(rangeOfSector)!.set(
                 sector - (rangeOfSector * info.ahead_read) / info.sector_size,
                 buffer);
+        },
+        persist: async () => {
+            const serialized = serializeSectors(storedSectors);
+            if (serialized.byteLength > 4) {
+                await store.put(0, serialized, WRITE_STORE);
+                return serialized;
+            }
+            return null;
         },
     };
 }

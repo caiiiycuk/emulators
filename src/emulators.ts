@@ -29,6 +29,13 @@ export interface InitFileEntry {
 export type InitFsEntry = InitBundleEntry | InitFileEntry | DosConfig | string;
 export type InitFs = InitFsEntry | InitFsEntry[];
 
+export type PersistedSockdrives = {
+    drives: {
+        url: string,
+        persist: Uint8Array,
+    }[],
+} | null;
+
 export interface Emulators {
     // * pathPrefix - by default emulators will load wasm modules relatively from current path,
     // you should specify path prefix if you want to load them from different place
@@ -126,7 +133,7 @@ export interface CommandInterface {
     sendBackendEvent: (event: any) => void;
 
     // dump FS as Uint8Array <zip archive>
-    persist(onlyChanges?: boolean): Promise<Uint8Array | null>;
+    persist(onlyChanges?: boolean): Promise<Uint8Array | PersistedSockdrives | null>;
 
     // events
     events(): CommandInterfaceEvents;
