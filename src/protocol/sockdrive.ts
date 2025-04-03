@@ -52,11 +52,11 @@ export async function sockdrive(url: string, _onNewRange: (range: number, buffer
     }
 
     const loaded = new Set<number>();
-    const dropped_ranges: number[] = info.dropped_ranges;
-    const empty_ranges: Set<number> = new Set();
+    const droppedRanges: number[] = info.dropped_ranges;
+    const emptyRanges: Set<number> = new Set();
     info.dropped_ranges = [];
-    for (const next of dropped_ranges) {
-        empty_ranges.add(next);
+    for (const next of droppedRanges) {
+        emptyRanges.add(next);
         if (!storedSectors.has(next)) {
             loaded.add(next);
             info.dropped_ranges.push(next);
@@ -101,7 +101,7 @@ export async function sockdrive(url: string, _onNewRange: (range: number, buffer
 
     async function loadRange(range: number) {
         try {
-            if (empty_ranges.has(range)) {
+            if (emptyRanges.has(range)) {
                 onNewRange(range, new Uint8Array(info.ahead_read));
                 return;
             }
@@ -226,7 +226,8 @@ export async function sockdrive(url: string, _onNewRange: (range: number, buffer
             } else {
                 const uncompressedSize = uncompress(compressedChunk, uncompressedChunk, 0, 0);
                 if (uncompressedSize !== chunkSize) {
-                    console.error("Can't uncompress sectors data, size mismatch", uncompressedSize, "!==", chunkSize, "chunk", i, "offset", offset);
+                    console.error("Can't uncompress sectors data, size mismatch",
+                        uncompressedSize, "!==", chunkSize, "chunk", i, "offset", offset);
                     return new Map();
                 }
                 sector = u32uncompressedChunk[0];

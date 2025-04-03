@@ -402,8 +402,10 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
             } break;
             case "ws-sockdrive-open": {
                 const handle = props.handle;
-                let url = props.url.replace("wss://sockdrive.js-dos.com:8001/dos.zone/",
-                    "https://br.cdn.dos.zone/sockdrive/");
+                let url = 
+                    props.url
+                    .replace("wss://sockdrive.js-dos.com:8001/dos.zone/", "https://br.cdn.dos.zone/sockdrive/dos.zone-")
+                    .replace("wss://sockdrive.js-dos.com:8001/system/", "https://br.cdn.dos.zone/sockdrive/system-");
                 if (url.endsWith("/")) {
                     url = url.slice(0, -1);
                 }
