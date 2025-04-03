@@ -699,7 +699,7 @@ if (${EMSCRIPTEN})
             "-sUSE_SDL=2"
             "-sMODULARIZE=0"
             "-sINVOKE_RUN=1"
-            "--profiling-funcs"
+            # "--profiling-funcs"
             "-sASYNCIFY=1"
             "-sASYNCIFY_IMPORTS=['syncSleep']"
             )

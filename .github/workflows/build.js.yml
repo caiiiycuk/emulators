@@ -14,8 +14,8 @@ jobs:
     strategy:
       matrix:
         node-version: [18.x]
-        emsdk-version: [3.1.68]
-        binaryen-version: [version_119_e]
+        emsdk-version: [4.0.2]
+        binaryen-version: [version_123_e]
     steps:
     - uses: actions/checkout@v4
       with:

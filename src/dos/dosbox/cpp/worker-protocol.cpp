@@ -333,7 +333,7 @@ EM_JS(void, ws_init_runtime, (const char* sessionId), {
           if (Module.wsNetConnectResolve) {
             Module.wsNetConnectResolve(data.props.networkId);
           } else {
-            console.error("wc-net-connected recived but no awaiting promises");
+            console.error("wc-net-connected recived but no awaiting promises, networkId:", data.props.networkId);
           }
         } break;
         case "wc-net-received": {

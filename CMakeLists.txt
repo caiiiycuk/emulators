@@ -36,6 +36,8 @@ if(${EMSCRIPTEN})
 		"--emit-symbol-map"
 		"-sTOTAL_STACK=1MB"
 		"-sMALLOC=emmalloc"
+		"-sMEMORY64=0"
+		"-sWASM_BIGINT=0"
 		"-sASSERTIONS=0"
 		"-sSAFE_HEAP=0"
 		"-sTOTAL_MEMORY=67108864"
@@ -44,7 +46,7 @@ if(${EMSCRIPTEN})
 		"-sINVOKE_RUN=0"
 		"-sMODULARIZE=1"
 		"-sFORCE_FILESYSTEM=1"
-		"-sEXTRA_EXPORTED_RUNTIME_METHODS=['addRunDependency', 'removeRunDependency','FS', 'FS_createPath', 'FS_createPreloadedFile', \
+		"-sEXPORTED_RUNTIME_METHODS=['addRunDependency', 'removeRunDependency','FS', 'FS_createPath', 'FS_createPreloadedFile', \
 			'FS_createDataFile', 'lengthBytesUTF8', 'stringToUTF8', 'UTF16ToString', 'UTF8ToString', 'callMain', 'err']"
 		"-sEXPORTED_FUNCTIONS=['_main', '_malloc', '_free', '_abort']"
 		"-sERROR_ON_UNDEFINED_SYMBOLS=1")

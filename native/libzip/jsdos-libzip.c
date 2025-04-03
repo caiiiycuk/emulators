@@ -15,7 +15,7 @@
 #ifdef EMSCRIPTEN
 EM_JS(double, emsc_getMTimeMs, (const char* path), {
   var lookup = FS.lookupPath(UTF8ToString(path));
-  return lookup.node.timestamp;
+  return lookup.node.mtime;
 });
 
 EM_JS(void, emsc_progress, (const char* file, int32_t extracted, int32_t count), {
