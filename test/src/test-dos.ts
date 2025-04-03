@@ -132,7 +132,7 @@ function testServer(factory: CIFactory, name: string, assets: string) {
         assert.ok(cachedBundle, "cachedBundle is undefined");
         await waitImage(assets + "/persistent-mount.png", ci, {
             success: async () => {
-                cachedBundle = await ci.persist();
+                cachedBundle = await ci.persist() as Uint8Array;
                 const libzip = await makeLibZip();
                 libzip.zipToFs(cachedBundle);
                 assert.ok(libzip.exists("HW.TXT"), "hw.txt not exists");
@@ -155,7 +155,7 @@ function testServer(factory: CIFactory, name: string, assets: string) {
         await waitImage(assets + "/persistent-mount-second.png", ci, {
             success: async () => {
                 const libzip = await makeLibZip();
-                libzip.zipToFs(await ci.persist());
+                libzip.zipToFs(await ci.persist() as Uint8Array);
                 assert.ok(libzip.exists("HW.TXT"), "hw.txt not exists");
                 const content = await libzip.readFile("HW.TXT");
                 libzip.destroy();

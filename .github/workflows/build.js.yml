@@ -33,7 +33,6 @@ jobs:
     - run: yarn run eslint src --ext ts,tsx --max-warnings 0
     - run: yarn run eslint test --ext ts,tsx --max-warnings 0
     - run: yarn run tsc --noemit
-    - run: cd native/sockdrive/js && yarn && yarn run webpack && cd ../../..
     - run: git clone https://github.com/emscripten-core/emsdk.git
     - run: cd emsdk && ./emsdk install ${{ matrix.emsdk-version }} && ./emsdk activate ${{ matrix.emsdk-version }} && cd ..
     - run: wget https://github.com/caiiiycuk/binaryen-fwasm-exceptions/releases/download/${{ matrix.binaryen-version }}/binaryen-${{ matrix.binaryen-version }}-x86_64-linux.tar.gz

@@ -1,4 +1,4 @@
-import { CommandInterface, NetworkType, BackendOptions, DosConfig, InitFsEntry, InitFileEntry } from "../emulators";
+import { CommandInterface, NetworkType, BackendOptions, DosConfig, InitFsEntry, InitFileEntry, PersistedSockdrives } from "../emulators";
 import { CommandInterfaceEventsImpl } from "../impl/ci-impl";
 import { Drive, sockdrive } from "./sockdrive";
 
@@ -121,8 +121,8 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
     private transport: TransportLayer;
     private ready: (err: Error | null) => void;
 
-    private persistPromise?: Promise<Uint8Array | null>;
-    private persistResolve?: (bundle: Uint8Array | null) => void;
+    private persistPromise?: Promise<Uint8Array | PersistedSockdrives | null>;
+    private persistResolve?: (bundle: Uint8Array | PersistedSockdrives | null) => void;
 
     private exitPromise?: Promise<void>;
     private exitResolve?: () => void;
@@ -132,21 +132,21 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
     private keyMatrix: { [keyCode: number]: boolean } = {};
 
     private configPromise: Promise<DosConfig>;
-    private configResolve: (config: DosConfig) => void = () => {/**/};
+    private configResolve: (config: DosConfig) => void = () => {/**/ };
     private panicMessages: string[] = [];
 
     private connectPromise: Promise<void> | null = null;
-    private connectResolve: () => void = () => {/**/};
-    private connectReject: () => void = () => {/**/};
+    private connectResolve: () => void = () => {/**/ };
+    private connectReject: () => void = () => {/**/ };
 
     private disconnectPromise: Promise<void> | null = null;
-    private disconnectResolve: () => void = () => {/**/};
+    private disconnectResolve: () => void = () => {/**/ };
 
     private asyncifyStatsPromise: Promise<AsyncifyStats> | null = null;
-    private asyncifyStatsResolve: (stats: AsyncifyStats) => void = () => {/**/};
+    private asyncifyStatsResolve: (stats: AsyncifyStats) => void = () => {/**/ };
 
     private fsTreePromise: Promise<FsNode> | null = null;
-    private fsTreeResolve: (fsRoot: FsNode) => void = () => {/**/};
+    private fsTreeResolve: (fsRoot: FsNode) => void = () => {/**/ };
 
     private fsGetFilePromise: { [name: string]: Promise<Uint8Array> } = {};
     private fsGetFileResolve: { [name: string]: (file: Uint8Array) => void } = {};
@@ -178,6 +178,8 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
         props.sessionId = props.sessionId || this.transport.sessionId;
         this.transport.sendMessageToServer(name, props, transfer);
     }
+
+
 
     private onServerMessage(name: ServerMessage, props: { [key: string]: any }) {
         if (name === undefined || name.length < 3 ||
@@ -284,7 +286,7 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
                 this.onStdout(props.message);
             } break;
             case "ws-persist": {
-                this.onPersist(props.bundle);
+                this.onPersist(props.bundle ?? props.sockdrives ?? null);
             } break;
             case "ws-sound-init": {
                 this.onSoundInit(props.freq);
@@ -304,20 +306,20 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
             case "ws-connected": {
                 this.connectResolve();
                 this.connectPromise = null;
-                this.connectResolve = () => {/**/};
-                this.connectReject = () => {/**/};
+                this.connectResolve = () => {/**/ };
+                this.connectReject = () => {/**/ };
                 this.eventsImpl.fireNetworkConnected(props.networkType, props.address);
             } break;
             case "ws-disconnected": {
                 if (this.connectPromise !== null) {
                     this.connectReject();
                     this.connectPromise = null;
-                    this.connectResolve = () => {/**/};
-                    this.connectReject = () => {/**/};
+                    this.connectResolve = () => {/**/ };
+                    this.connectReject = () => {/**/ };
                 } else {
                     this.disconnectResolve();
                     this.disconnectPromise = null;
-                    this.disconnectResolve = () => {/**/};
+                    this.disconnectResolve = () => {/**/ };
                 }
                 this.eventsImpl.fireNetworkDisconnected(props.networkType);
             } break;
@@ -337,12 +339,12 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
                     });
                 }
                 this.asyncifyStatsResolve(props as AsyncifyStats);
-                this.asyncifyStatsResolve = () => {/**/};
+                this.asyncifyStatsResolve = () => {/**/ };
                 this.asyncifyStatsPromise = null;
             } break;
             case "ws-fs-tree": {
                 this.fsTreeResolve(props.fsTree as FsNode);
-                this.fsTreeResolve = () => {/**/};
+                this.fsTreeResolve = () => {/**/ };
                 this.fsTreePromise = null;
             } break;
             case "ws-send-data-chunk": {
@@ -402,10 +404,10 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
             } break;
             case "ws-sockdrive-open": {
                 const handle = props.handle;
-                let url = 
+                let url =
                     props.url
-                    .replace("wss://sockdrive.js-dos.com:8001/dos.zone/", "https://br.cdn.dos.zone/sockdrive/dos.zone-")
-                    .replace("wss://sockdrive.js-dos.com:8001/system/", "https://br.cdn.dos.zone/sockdrive/system-");
+                        .replace("wss://sockdrive.js-dos.com:8001/dos.zone/", "https://br.cdn.dos.zone/sockdrive/dos.zone-")
+                        .replace("wss://sockdrive.js-dos.com:8001/system/", "https://br.cdn.dos.zone/sockdrive/system-");
                 if (url.endsWith("/")) {
                     url = url.slice(0, -1);
                 }
@@ -598,13 +600,17 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
     }
 
 
-    public persist(onlyChanges?: boolean): Promise<Uint8Array | null> {
+    public async persist(onlyChanges?: boolean): Promise<Uint8Array | PersistedSockdrives | null> {
         if (this.persistPromise !== undefined) {
             return this.persistPromise;
         }
 
+        const sockdrives = await this.persistSockdrives();
+        if (sockdrives !== null) {
+            return Promise.resolve(sockdrives);
+        }
 
-        const persistPromise = new Promise<Uint8Array | null>((resolve) => {
+        const persistPromise = new Promise<Uint8Array | PersistedSockdrives | null>((resolve) => {
             this.persistResolve = resolve;
         });
         this.persistPromise = persistPromise;
@@ -615,7 +621,7 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
         return persistPromise;
     }
 
-    private onPersist(bundle: Uint8Array) {
+    private onPersist(bundle: Uint8Array | PersistedSockdrives | null) {
         if (this.persistResolve) {
             this.persistResolve(bundle);
             delete this.persistPromise;
@@ -793,6 +799,26 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
 
     async fsDeleteFile(file: string): Promise<void> {
         throw new Error("not implemented");
+    }
+
+    async persistSockdrives(): Promise<PersistedSockdrives> {
+        if (Object.keys(this.sockdrives).length === 0) {
+            return null;
+        }
+
+        const drives = [];
+        for (const [_, drive] of Object.entries(this.sockdrives)) {
+            const persist = await drive.persist();
+            if (persist !== null) {
+                drives.push({
+                    url: drive.info.url,
+                    persist,
+                });
+            }
+        }
+        return {
+            drives,
+        };
     }
 
     private async sendDataChunk(chunk: DataChunk): Promise<void> {
