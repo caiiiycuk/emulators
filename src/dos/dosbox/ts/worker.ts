@@ -25,8 +25,6 @@ export async function dosWorker(workerUrl: string,
         }
     };
 
-    await wasmModule.instantiate({});
-
     const transportLayer: TransportLayer = {
         sessionId,
         sendMessageToServer: (name: ClientMessage,

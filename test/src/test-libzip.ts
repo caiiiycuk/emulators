@@ -105,7 +105,6 @@ export function testLibZip() {
         const changedAfterMs = Date.now();
 
         await (new Promise<void>((r) => setTimeout(r, 4)));
-
         libzip.writeFile("file2", "file2-contents-new");
         libzip.writeFile("dir1/file1", "dir1-file1-contents-changed");
         libzip.writeFile("dir1/file3", "dir1-file3-contents-new");
@@ -116,13 +115,13 @@ export function testLibZip() {
         libzip = await makeLibZip();
         await libzip.zipToFs(updated);
 
-        assert.ok(!libzip.exists("file1"));
-        assert.ok(!libzip.exists("dir1/file2"));
-        assert.ok(!libzip.exists("dir1/dir2/file1"));
+        assert.ok(!libzip.exists("file1"), "file1 should not exists");
+        assert.ok(!libzip.exists("dir1/file2"), "file2 should not exists");
+        assert.ok(!libzip.exists("dir1/dir2/file1"), "file1 should not exists");
 
-        assert.equal(await libzip.readFile("file2"), "file2-contents-new");
-        assert.equal(await libzip.readFile("dir1/file1"), "dir1-file1-contents-changed");
-        assert.equal(await libzip.readFile("dir1/file3"), "dir1-file3-contents-new");
+        assert.equal(await libzip.readFile("file2"), "file2-contents-new", "file2 should be updated");
+        assert.equal(await libzip.readFile("dir1/file1"), "dir1-file1-contents-changed", "file1 should be updated");
+        assert.equal(await libzip.readFile("dir1/file3"), "dir1-file3-contents-new", "file3 should be added");
 
         destroy(libzip);
     });

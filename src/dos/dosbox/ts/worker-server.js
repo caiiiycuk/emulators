@@ -15,9 +15,8 @@ if (worker) {
                 const wasmModule = data.props.module;
                 const instantiateWasm = (info, receiveInstance) => {
                     info.env = info.env || {};
-                    WebAssembly.instantiate(wasmModule, info)
+                    return WebAssembly.instantiate(wasmModule, info)
                         .then((instance) => receiveInstance(instance, wasmModule));
-                    return; // no-return
                 };
 
                 module.instantiateWasm = instantiateWasm;
@@ -27,7 +26,7 @@ if (worker) {
                 module.callMain([sessionId]);
             };
 
-            new @MODULE_NAME@(module);
+            @MODULE_NAME@(module).catch(console.error);
             return;
         }
     };

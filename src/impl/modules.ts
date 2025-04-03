@@ -211,9 +211,8 @@ function loadWasmModuleBrowser(url: string,
         const wasmModule = await WebAssembly.compile(binary as ArrayBuffer);
         const instantiateWasm = (info: any, receiveInstance: any) => {
             info.env = info.env || {};
-            WebAssembly.instantiate(wasmModule, info)
+            return WebAssembly.instantiate(wasmModule, info)
                 .then((instance) => receiveInstance(instance, wasmModule));
-            return; // no-return
         };
 
         eval.call(window, script as string);
@@ -239,15 +238,8 @@ class CompiledNodeModule implements WasmModule {
         this.emModule = emModule;
     }
 
-    instantiate(initialModule: any): Promise<void> {
-        return new Promise<void>((resolve) => {
-            initialModule.onRuntimeInitialized = () => {
-                resolve();
-            };
-
-            // eslint-disable-next-line new-cap
-            new this.emModule(initialModule);
-        });
+    async instantiate(initialModule: any): Promise<void> {
+        await this.emModule(initialModule);
     }
 }
 
@@ -262,14 +254,8 @@ class CompiledBrowserModule implements WasmModule {
         this.instantiateWasm = instantiateWasm;
     }
 
-    instantiate(initialModule: any): Promise<void> {
-        return new Promise<void>((resolve) => {
-            initialModule.instantiateWasm = this.instantiateWasm;
-            initialModule.onRuntimeInitialized = () => {
-                resolve();
-            };
-            // eslint-disable-next-line new-cap
-            new this.module(initialModule);
-        });
+    async instantiate(initialModule: any): Promise<void> {
+        initialModule.instantiateWasm = this.instantiateWasm;
+        await this.module(initialModule);
     }
 }

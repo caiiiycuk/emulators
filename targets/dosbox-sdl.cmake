@@ -27,7 +27,7 @@ if (${EMSCRIPTEN})
             ${EM_LINK_OPTIONS}
             "-sMODULARIZE=0"
             "-sINVOKE_RUN=1"
-            "--profiling-funcs"
+            # "--profiling-funcs"
             "-sASYNCIFY=1"
             "-sASYNCIFY_WHITELIST=@${TARGETS_DIR}/dosbox-asyncify.txt"
             "-sERROR_ON_UNDEFINED_SYMBOLS=0"

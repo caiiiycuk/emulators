@@ -103,7 +103,7 @@ function testServer(factory: CIFactory, name: string, backend: "dosbox" | "dosbo
         ci.events().onNetworkDisconnected(() => {
             notifiedDisconnected = true;
         });
-        await sleep(backend === "dosbox-x" ? 3000 : 300);
+        await sleep(3000);
         await ci.networkDisconnect(NetworkType.NETWORK_DOSBOX_IPX);
         await ci.exit();
 
