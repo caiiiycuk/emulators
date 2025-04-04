@@ -167,6 +167,8 @@ export interface CommandInterfaceEvents {
 
     onNetworkConnected: (consumer: (networkType: NetworkType, address: string) => void) => void;
     onNetworkDisconnected: (consumer: (networkType: NetworkType) => void) => void;
+
+    onUnload: (consumer: () => Promise<void>) => void;
 }
 
 if (typeof window !== "undefined") {

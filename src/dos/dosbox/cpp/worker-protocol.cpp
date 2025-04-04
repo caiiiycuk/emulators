@@ -368,6 +368,13 @@ EM_JS(void, ws_init_runtime, (const char* sessionId), {
           Module["_em_client_sockdrive_new_range"](data.props.handle, data.props.range, ptr);
           Module["_free"](ptr);
         } break;
+        case "wc-unload": {
+          if (Module.wsUnloadResolve) {
+            Module.wsUnloadResolve();
+          } else {
+            console.error("wc-unload recived but no awaiting promises");
+          }
+        } break;
         default: {
           console.log("Unknown client message (wc): " + JSON.stringify(data));
         } break;
@@ -737,7 +744,7 @@ int main(int argc, char **argv) {
 }
 
 EM_ASYNC_JS(int, em_net_connect, (const char* address), {
-  return await (new Promise((resolve) => {
+  return new Promise((resolve) => {
     if (Module.wsNetConnectResolve) {
       console.error("wsOpen is called while another one is still processing");
       return -1;
@@ -750,7 +757,17 @@ EM_ASYNC_JS(int, em_net_connect, (const char* address), {
       resolve(id);
     };
     Module.sendMessage("ws-net-connect", { address: UTF8ToString(address) });
-  }));
+  });
+});
+
+EM_ASYNC_JS(void, em_unload, (), {
+  return new Promise((resolve) => {
+    Module.sendMessage("ws-unload");
+    Module.wsUnloadResolve = () => {
+      delete Module.wsUnloadResolve;
+      resolve();
+    };
+  });
 });
 
 EM_JS(bool, em_net_send, (int networkId, const void *datap, int len), {
@@ -836,4 +853,8 @@ extern "C" void EMSCRIPTEN_KEEPALIVE ws_client_net_recv(int networkId, void *dat
 
 void server_net_disconnect(int networkId) {
   em_net_disconnect(networkId);
+}
+
+void server_unload() {
+  em_unload();
 }

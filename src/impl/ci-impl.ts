@@ -17,6 +17,8 @@ export class CommandInterfaceEventsImpl implements CommandInterfaceEvents {
     private onNetworkConnectedConsumers: ((networkType: NetworkType, address: string) => void)[] = [];
     private onNetworkDisconnectedConsumers: ((networkType: NetworkType) => void)[] = [];
 
+    private onUnloadConsumers: (() => Promise<void>)[] = [];
+
     onStdout = (consumer: (message: string) => void) => {
         this.onStdoutConsumers.push(consumer);
 
@@ -62,6 +64,10 @@ export class CommandInterfaceEventsImpl implements CommandInterfaceEvents {
     onNetworkDisconnected(consumer: (networkType: NetworkType) => void) {
         this.onNetworkDisconnectedConsumers.push(consumer);
     }
+
+    onUnload = (consumer: () => Promise<void>) => {
+        this.onUnloadConsumers.push(consumer);
+    };
 
     fireStdout = (message: string) => {
         if (this.onStdoutConsumers.length === 0) {
@@ -126,5 +132,13 @@ export class CommandInterfaceEventsImpl implements CommandInterfaceEvents {
         for (const next of this.onNetworkDisconnectedConsumers) {
             next(networkType);
         }
+    };
+
+    fireUnload = async () => {
+        const promises = [];
+        for (const next of this.onUnloadConsumers) {
+            promises.push(next());
+        }
+        await Promise.all(promises);
     };
 }

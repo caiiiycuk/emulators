@@ -28,7 +28,8 @@ export type ClientMessage =
     "wc-net-connected" |
     "wc-net-received" |
     "wc-sockdrive-opened" |
-    "wc-sockdrive-new-range";
+    "wc-sockdrive-new-range" |
+    "wc-unload";
 
 export type ServerMessage =
     "ws-extract-progress" |
@@ -58,7 +59,8 @@ export type ServerMessage =
     "ws-sockdrive-ready" |
     "ws-sockdrive-close" |
     "ws-sockdrive-load-range" |
-    "ws-sockdrive-write-sector";
+    "ws-sockdrive-write-sector" |
+    "ws-unload";
 
 export type MessageHandler = (name: ServerMessage, props: { [key: string]: any }) => void;
 
@@ -460,6 +462,11 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
             case "ws-sockdrive-close": {
                 delete this.sockdrives[props.handle];
             } break;
+            case "ws-unload": {
+                this.eventsImpl.fireUnload().finally(() => {
+                    this.sendClientMessage("wc-unload");
+                });
+            } break;
             default: {
                 // eslint-disable-next-line
                 console.log("Unknown server message (ws):", name);
@@ -606,7 +613,7 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
         }
 
         const sockdrives = await this.persistSockdrives();
-        if (sockdrives !== null) {
+        if (sockdrives !== null && onlyChanges) {
             return Promise.resolve(sockdrives);
         }
 
