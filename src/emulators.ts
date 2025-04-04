@@ -41,6 +41,9 @@ export interface Emulators {
     // you should specify path prefix if you want to load them from different place
     pathPrefix: string;
 
+    // * pathSuffix - suffix fill be added to end of the each path
+    pathSuffix: string;
+
     // * version - version of emulators build
     version: string;
 
