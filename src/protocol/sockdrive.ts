@@ -38,7 +38,7 @@ export async function sockdrive(url: string, _onNewRange: (range: number, buffer
     info.url = url;
     info.readInBytes = 0;
     info.writeInBytes = 0;
-    
+
     if (info.small_ranges === undefined) {
         info.small_ranges = [];
     }
@@ -91,6 +91,23 @@ export async function sockdrive(url: string, _onNewRange: (range: number, buffer
             loadQueue.push(i);
         }
     }
+
+    // validate queue
+    {
+        let invalidRanges = [];
+        for (const range of loadQueue) {
+            if (range < 0 || range >= info.range_count) {
+                invalidRanges.push(range);
+            }
+        }
+        if (invalidRanges.length > 0) {
+            console.error("sockdrive-error: invalid ranges", invalidRanges);
+            for (const range of invalidRanges) {
+                loadQueue.splice(loadQueue.indexOf(range), 1);
+            }
+        }
+    }
+
     loadQueue.reverse();
 
     info.sizeInBytes = loadQueue.length * info.ahead_read;
