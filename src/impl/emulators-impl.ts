@@ -12,6 +12,7 @@ import LibZip from "../libzip/libzip";
 
 class EmulatorsImpl implements Emulators {
     pathPrefix = "";
+    pathSuffix = "";
     version = Build.version;
     wdosboxJs = "wdosbox.js";
     wdosboxxJs = "wdosbox-x.js";
@@ -94,7 +95,7 @@ class EmulatorsImpl implements Emulators {
     async dosboxWorker(init: InitFs, options?: BackendOptions): Promise<CommandInterface> {
         const modules = await this.wasmModules();
         const dosboxWasm = await modules.dosbox();
-        const transportLayer = await dosWorker(this.pathPrefix + this.wdosboxJs, dosboxWasm, "session-" + Date.now());
+        const transportLayer = await dosWorker(this.pathPrefix + this.wdosboxJs + this.pathSuffix, dosboxWasm, "session-" + Date.now());
         return this.backend(init, transportLayer, options);
     }
 
@@ -112,7 +113,7 @@ class EmulatorsImpl implements Emulators {
     async dosboxXWorker(init: InitFs, options?: BackendOptions): Promise<CommandInterface> {
         const modules = await this.wasmModules();
         const dosboxxWasm = await modules.dosboxx();
-        const transportLayer = await dosWorker(this.pathPrefix + this.wdosboxxJs, dosboxxWasm, "session-" + Date.now());
+        const transportLayer = await dosWorker(this.pathPrefix + this.wdosboxxJs + this.pathSuffix, dosboxxWasm, "session-" + Date.now());
         return this.backend(init, transportLayer, options);
     }
 
@@ -141,7 +142,7 @@ class EmulatorsImpl implements Emulators {
         }
 
         const make = async () => {
-            return new WasmModulesImpl(this.pathPrefix, this.wdosboxJs, this.wdosboxxJs);
+            return new WasmModulesImpl(this.pathPrefix, this.pathSuffix, this.wdosboxJs, this.wdosboxxJs);
         };
 
         this.wasmModulesPromise = make();

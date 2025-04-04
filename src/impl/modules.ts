@@ -93,6 +93,7 @@ export const host = new Host();
 
 export class WasmModulesImpl implements IWasmModules {
     private pathPrefix: string;
+    private pathSuffix: string;
     private wdosboxJs: string;
     private wdosboxxJs: string;
 
@@ -103,6 +104,7 @@ export class WasmModulesImpl implements IWasmModules {
     public wasmSupported = false;
 
     constructor(pathPrefix: string,
+        pathSuffix: string,
         wdosboxJs: string,
         wdosboxxJs: string) {
         if (pathPrefix.length > 0 && pathPrefix[pathPrefix.length - 1] !== "/") {
@@ -110,6 +112,7 @@ export class WasmModulesImpl implements IWasmModules {
         }
 
         this.pathPrefix = pathPrefix;
+        this.pathSuffix = pathSuffix;
         this.wdosboxJs = wdosboxJs;
         this.wdosboxxJs = wdosboxxJs;
     }
@@ -119,7 +122,7 @@ export class WasmModulesImpl implements IWasmModules {
             return this.libzipPromise;
         }
 
-        this.libzipPromise = this.loadModule(this.pathPrefix + "wlibzip.js", "WLIBZIP");
+        this.libzipPromise = this.loadModule(this.pathPrefix + "wlibzip.js" + this.pathSuffix, "WLIBZIP");
         return this.libzipPromise;
     }
 
@@ -128,7 +131,7 @@ export class WasmModulesImpl implements IWasmModules {
             return this.dosboxPromise;
         }
 
-        this.dosboxPromise = this.loadModule(this.pathPrefix + this.wdosboxJs, "WDOSBOX");
+        this.dosboxPromise = this.loadModule(this.pathPrefix + this.wdosboxJs + this.pathSuffix, "WDOSBOX");
 
         return this.dosboxPromise;
     }
@@ -138,7 +141,7 @@ export class WasmModulesImpl implements IWasmModules {
             return this.dosboxxPromise;
         }
 
-        this.dosboxxPromise = this.loadModule(this.pathPrefix + this.wdosboxxJs, "WDOSBOXX");
+        this.dosboxxPromise = this.loadModule(this.pathPrefix + this.wdosboxxJs + this.pathSuffix, "WDOSBOXX");
 
         return this.dosboxxPromise;
     }
@@ -194,7 +197,8 @@ function loadWasmModuleBrowser(url: string,
             throw new Error("Starting from js-dos 6.22.60 js environment is not supported");
         }
 
-        const wasmUrl = url.substr(0, url.lastIndexOf(".js")) + ".wasm";
+        const indexOfJs = url.lastIndexOf(".js");
+        const wasmUrl = url.substring(0, indexOfJs) + ".wasm" + url.substring(indexOfJs + 3);
         const binaryPromise = httpRequest(wasmUrl, {
             responseType: "arraybuffer",
             progress: (total, loaded) => {
