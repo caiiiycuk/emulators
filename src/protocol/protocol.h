@@ -51,6 +51,7 @@ extern void server_resume();
 extern void server_mute();
 extern void server_unmute();
 extern void server_exit();
+extern void server_unload();
 
 extern void server_network_connect(enum NetworkType networkType, const char* address);
 extern void server_network_disconnect(enum NetworkType networkType);

@@ -252,3 +252,6 @@ int server_net_send(int networkId, const void *datap, int len) {
 }
 void server_net_disconnect(int networkId) {
 }
+
+void server_unload() {
+}

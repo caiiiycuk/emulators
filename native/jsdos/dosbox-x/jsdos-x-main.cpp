@@ -9470,6 +9470,7 @@ fresh_boot:
             goto fresh_boot;
         }
 
+        server_unload();
 #if DOSBOXMENU_TYPE == DOSBOXMENU_HMENU
         Reflect_Menu();
 #endif
