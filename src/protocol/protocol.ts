@@ -419,9 +419,9 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
                 let url =
                     props.url
                         .replace("wss://sockdrive.js-dos.com:8001/dos.zone/",
-                            "https://br.cdn.dos.zone/sockdrive/dos.zone-")
+                            "https://br.cdn.dos.zone/sockdrive-qcow2/dos.zone-")
                         .replace("wss://sockdrive.js-dos.com:8001/system/",
-                            "https://br.cdn.dos.zone/sockdrive/system-");
+                            "https://br.cdn.dos.zone/sockdrive-qcow2/system-");
                 if (url.endsWith("/")) {
                     url = url.slice(0, -1);
                 }
