@@ -1,7 +1,7 @@
 import { getStore, RAW_STORE, WRITE_STORE } from "./sockdrive-store";
 import { compress, compressBound, uncompress } from "./mini-lz4";
 
-const BATCH_SIZE = 3;
+const BATCH_SIZE = 1;
 
 interface DriveInfo {
     ahead_read: number;
