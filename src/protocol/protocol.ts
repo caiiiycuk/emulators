@@ -1,4 +1,5 @@
-import { CommandInterface, NetworkType, BackendOptions, DosConfig, InitFsEntry, InitFileEntry, PersistedSockdrives } from "../emulators";
+import { CommandInterface, NetworkType, BackendOptions, DosConfig,
+    InitFsEntry, InitFileEntry, PersistedSockdrives } from "../emulators";
 import { CommandInterfaceEventsImpl } from "../impl/ci-impl";
 import { Drive, sockdrive } from "./sockdrive";
 
@@ -29,7 +30,8 @@ export type ClientMessage =
     "wc-net-received" |
     "wc-sockdrive-opened" |
     "wc-sockdrive-new-range" |
-    "wc-unload";
+    "wc-unload" |
+    "wc-fs-delete-file";
 
 export type ServerMessage =
     "ws-extract-progress" |
@@ -60,7 +62,8 @@ export type ServerMessage =
     "ws-sockdrive-close" |
     "ws-sockdrive-load-range" |
     "ws-sockdrive-write-sector" |
-    "ws-unload";
+    "ws-unload" |
+    "ws-fs-delete-file";
 
 export type MessageHandler = (name: ServerMessage, props: { [key: string]: any }) => void;
 
@@ -134,25 +137,28 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
     private keyMatrix: { [keyCode: number]: boolean } = {};
 
     private configPromise: Promise<DosConfig>;
-    private configResolve: (config: DosConfig) => void = () => {/**/ };
+    private configResolve: (config: DosConfig) => void = () => {/**/};
     private panicMessages: string[] = [];
 
     private connectPromise: Promise<void> | null = null;
-    private connectResolve: () => void = () => {/**/ };
-    private connectReject: () => void = () => {/**/ };
+    private connectResolve: () => void = () => {/**/};
+    private connectReject: () => void = () => {/**/};
 
     private disconnectPromise: Promise<void> | null = null;
-    private disconnectResolve: () => void = () => {/**/ };
+    private disconnectResolve: () => void = () => {/**/};
 
     private asyncifyStatsPromise: Promise<AsyncifyStats> | null = null;
-    private asyncifyStatsResolve: (stats: AsyncifyStats) => void = () => {/**/ };
+    private asyncifyStatsResolve: (stats: AsyncifyStats) => void = () => {/**/};
 
     private fsTreePromise: Promise<FsNode> | null = null;
-    private fsTreeResolve: (fsRoot: FsNode) => void = () => {/**/ };
+    private fsTreeResolve: (fsRoot: FsNode) => void = () => {/**/};
 
     private fsGetFilePromise: { [name: string]: Promise<Uint8Array> } = {};
     private fsGetFileResolve: { [name: string]: (file: Uint8Array) => void } = {};
     private fsGetFileParts: { [name: string]: Uint8Array[] } = {};
+
+    private fsDeleteFilePromise: Promise<boolean> | null = null;
+    private fsDeleteFileResolve: (deleted: boolean) => void = () => {/**/};
 
     private dataChunkPromise: { [name: string]: Promise<void> } = {};
     private dataChunkResolve: { [name: string]: () => void } = {};
@@ -180,7 +186,6 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
         props.sessionId = props.sessionId || this.transport.sessionId;
         this.transport.sendMessageToServer(name, props, transfer);
     }
-
 
 
     private onServerMessage(name: ServerMessage, props: { [key: string]: any }) {
@@ -308,20 +313,20 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
             case "ws-connected": {
                 this.connectResolve();
                 this.connectPromise = null;
-                this.connectResolve = () => {/**/ };
-                this.connectReject = () => {/**/ };
+                this.connectResolve = () => {/**/};
+                this.connectReject = () => {/**/};
                 this.eventsImpl.fireNetworkConnected(props.networkType, props.address);
             } break;
             case "ws-disconnected": {
                 if (this.connectPromise !== null) {
                     this.connectReject();
                     this.connectPromise = null;
-                    this.connectResolve = () => {/**/ };
-                    this.connectReject = () => {/**/ };
+                    this.connectResolve = () => {/**/};
+                    this.connectReject = () => {/**/};
                 } else {
                     this.disconnectResolve();
                     this.disconnectPromise = null;
-                    this.disconnectResolve = () => {/**/ };
+                    this.disconnectResolve = () => {/**/};
                 }
                 this.eventsImpl.fireNetworkDisconnected(props.networkType);
             } break;
@@ -341,13 +346,18 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
                     });
                 }
                 this.asyncifyStatsResolve(props as AsyncifyStats);
-                this.asyncifyStatsResolve = () => {/**/ };
+                this.asyncifyStatsResolve = () => {/**/};
                 this.asyncifyStatsPromise = null;
             } break;
             case "ws-fs-tree": {
                 this.fsTreeResolve(props.fsTree as FsNode);
-                this.fsTreeResolve = () => {/**/ };
+                this.fsTreeResolve = () => {/**/};
                 this.fsTreePromise = null;
+            } break;
+            case "ws-fs-delete-file": {
+                this.fsDeleteFileResolve(props.deleted);
+                this.fsDeleteFileResolve = () => {/**/};
+                this.fsDeleteFilePromise = null;
             } break;
             case "ws-send-data-chunk": {
                 const chunk: DataChunk = props.chunk;
@@ -408,8 +418,10 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
                 const handle = props.handle;
                 let url =
                     props.url
-                        .replace("wss://sockdrive.js-dos.com:8001/dos.zone/", "https://br.cdn.dos.zone/sockdrive/dos.zone-")
-                        .replace("wss://sockdrive.js-dos.com:8001/system/", "https://br.cdn.dos.zone/sockdrive/system-");
+                        .replace("wss://sockdrive.js-dos.com:8001/dos.zone/",
+                            "https://br.cdn.dos.zone/sockdrive/dos.zone-")
+                        .replace("wss://sockdrive.js-dos.com:8001/system/",
+                            "https://br.cdn.dos.zone/sockdrive/system-");
                 if (url.endsWith("/")) {
                     url = url.slice(0, -1);
                 }
@@ -804,8 +816,17 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
         });
     }
 
-    async fsDeleteFile(file: string): Promise<void> {
-        throw new Error("not implemented");
+    async fsDeleteFile(file: string): Promise<boolean> {
+        if (this.fsDeleteFilePromise !== null) {
+            throw new Error("fsDeleteFile should not be called while previous one is not resolved");
+        }
+
+        const promise = new Promise<boolean>((resolve) => {
+            this.fsDeleteFileResolve = resolve;
+        });
+        this.fsDeleteFilePromise = promise;
+        this.sendClientMessage("wc-fs-delete-file", { file });
+        return promise;
     }
 
     async persistSockdrives(): Promise<PersistedSockdrives> {
@@ -814,6 +835,7 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
         }
 
         const drives = [];
+        // eslint-disable-next-line no-unused-vars
         for (const [_, drive] of Object.entries(this.sockdrives)) {
             const persist = await drive.persist();
             if (persist !== null) {

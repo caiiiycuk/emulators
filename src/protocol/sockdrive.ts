@@ -94,7 +94,7 @@ export async function sockdrive(url: string, _onNewRange: (range: number, buffer
 
     // validate queue
     {
-        let invalidRanges = [];
+        const invalidRanges = [];
         for (const range of loadQueue) {
             if (range < 0 || range >= info.range_count) {
                 invalidRanges.push(range);
