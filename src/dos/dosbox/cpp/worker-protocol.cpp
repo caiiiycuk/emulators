@@ -7,6 +7,7 @@
 #include <string>
 
 #include <sockdrive.h>
+#include <filesystem>
 
 NetworkType connectNetwork = NETWORK_NA;
 std::string connectToAddress("");
@@ -17,6 +18,7 @@ int frameWidth = 0;
 uint8_t *frameRgb = nullptr;
 
 // clang-format off
+#include <filesystem>
 EM_JS(void, ws_init_runtime, (const char* sessionId), {
     var worker = typeof importScripts === "function";
     Module.messageSent = 0;
@@ -222,6 +224,12 @@ EM_JS(void, ws_init_runtime, (const char* sessionId), {
               nodes: [],
               size: null,
             }),
+          });
+        } break;
+        case "wc-fs-delete-file": {
+          Module.withString(data.props.file, (cstr) => {
+            const deleted = Module._fsDeleteFile(cstr) === 1;
+            sendMessage("ws-fs-delete-file", { deleted });
           });
         } break;
         case "wc-send-data-chunk": {
@@ -857,4 +865,8 @@ void server_net_disconnect(int networkId) {
 
 void server_unload() {
   em_unload();
+}
+
+extern "C" int EMSCRIPTEN_KEEPALIVE fsDeleteFile(const char* path) {
+  return std::filesystem::remove_all(path) ? 1 : 0;
 }

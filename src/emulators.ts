@@ -153,7 +153,7 @@ export interface CommandInterface {
 
     fsWriteFile(file: string, contents: ReadableStream<Uint8Array> | Uint8Array): Promise<void>;
 
-    fsDeleteFile(file: string): Promise<void>;
+    fsDeleteFile(file: string): Promise<boolean>;
 
 }
 

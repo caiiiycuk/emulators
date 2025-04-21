@@ -232,6 +232,27 @@ function testServer(factory: CIFactory, name: string, assets: string) {
         await ci.exit();
     });
 
+    test(name + " can delete files and folders from fs", async () => {
+        const ci = await CI((await emulatorsImpl.bundle())
+            .extract("digger.zip"));
+        assert.ok(ci);
+        assert.ok((await ci.fsDeleteFile("not-existing-file.txt")) === false, "should return false if file not exists");
+        assert.ok(await ci.fsDeleteFile("DIGGER.COM"), "should return true if file exists and deleted");
+        assert.ok(await ci.fsDeleteFile(".jsdos/dosbox.conf"), "able to delete file in subfolder");
+        assert.ok(await ci.fsDeleteFile(".jsdos"), "able to delete folder with files");
+
+        const fsTree = await ci.fsTree();
+        const expected = JSON.stringify({
+            "name": ".",
+            "nodes": [],
+            "size": null,
+        }, null, 2);
+        const actual = JSON.stringify(fsTree, null, 2);
+        assert.equal(actual, expected);
+
+        await ci.exit();
+    });
+
     suite(name + ".game");
 
     test(name + " can run digger.jsdos", async () => {
