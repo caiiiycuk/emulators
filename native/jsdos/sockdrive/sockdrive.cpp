@@ -106,7 +106,7 @@ uint8_t sockdrive_read(uint32_t handle, uint32_t sector, uint8_t* buffer) {
         if (!sectorPtr) {
           server_sockdrive_load_range(handle, range);
           while (!sectorPtr) {
-            asyncify_sleep(4, true);
+            asyncify_sleep(0, true);
             sectorPtr = cache->read(sector);
           }
         }
