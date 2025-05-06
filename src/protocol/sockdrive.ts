@@ -346,7 +346,6 @@ export async function sockdrive(url: string, _onNewRange: (range: number, buffer
         persist: async () => {
             const serialized = serializeSectors(storedSectors);
             if (serialized.byteLength > 4) {
-                await store.put(0, serialized, WRITE_STORE);
                 return serialized;
             }
             return null;
