@@ -63,6 +63,7 @@ set(SOURCES_X_CORE
         "${DBX_PATH}/src/hardware/sblaster.cpp"
         "${DBX_PATH}/src/hardware/tandy_sound.cpp"
         "${DBX_PATH}/src/hardware/pc98.cpp"
+        "${DBX_PATH}/src/hardware/pc98_artic.cpp"
         "${DBX_PATH}/src/hardware/hardopl.cpp"
         "${DBX_PATH}/src/hardware/voodoo_vogl.cpp"
         "${DBX_PATH}/src/hardware/innova.cpp"
@@ -75,6 +76,8 @@ set(SOURCES_X_CORE
         "${DBX_PATH}/src/hardware/iohandler.cpp"
         "${DBX_PATH}/src/hardware/vga_tseng.cpp"
         "${DBX_PATH}/src/hardware/adlib.cpp"
+        "${DBX_PATH}/src/hardware/esfmu/esfm.c"
+        "${DBX_PATH}/src/hardware/esfmu/esfm_registers.c"
         "${DBX_PATH}/src/hardware/cmos.cpp"
         "${DBX_PATH}/src/hardware/voodoo_interface.cpp"
         "${DBX_PATH}/src/hardware/vga_dac.cpp"
@@ -187,6 +190,7 @@ set(SOURCES_X_CORE
         "${DBX_PATH}/src/dos/dos_tables.cpp"
         "${DBX_PATH}/src/dos/dos_ioctl.cpp"
         "${DBX_PATH}/src/dos/cdrom.cpp"
+        "${DBX_PATH}/src/dos/eltorito.cpp"
         "${DBX_PATH}/src/dos/cdrom_image.cpp"
         "${DBX_PATH}/src/dos/cdrom_ioctl_linux.cpp"
         "${DBX_PATH}/src/dos/drive_overlay.cpp"
@@ -605,6 +609,7 @@ set(SOURCES_X_CORE
         # "${DBX_PATH}/src/tool/mach-o-matic.cpp"
         "${DBX_PATH}/src/debug/debug.cpp"
         "${DBX_PATH}/src/debug/debug_disasm.cpp"
+        "${DBX_PATH}/src/hardware/imfc.cpp"
         #	"${DBX_PATH}/src/debug/debug_win32.cpp"
         )
 
@@ -622,7 +627,6 @@ set(SOURCES_X_SDL_MAIN
         "${DBX_PATH}/src/hardware/mixer.cpp"
         "${DBX_PATH}/src/hardware/ipx.cpp"
         "${DBX_PATH}/src/hardware/ipxserver.cpp"
-        "${DBX_PATH}/src/hardware/imfc.cpp"
         "${NATIVE_DIR}/jsdos/sockdrive/sockdrive.cpp"
         "${NATIVE_DIR}/jsdos/sockdrive/sockdrive-noop.cpp"
         )
