@@ -5,8 +5,9 @@
 #ifndef JS_DOS_JS_DOS_PROTOCOL_H
 #define JS_DOS_JS_DOS_PROTOCOL_H
 
-#include <keyboard.h>
+#include <stddef.h>
 #include <stdint.h>
+#include <keyboard.h>
 
 enum NetworkType {
   NETWORK_NA = -1,
