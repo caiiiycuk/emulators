@@ -17,6 +17,7 @@ interface DriveInfo {
     name: string;
     url: string;
 
+    preloadSizeInBytes: number;
     sizeInBytes: number;
     readInBytes: number;
     writeInBytes: number;
@@ -84,11 +85,11 @@ export async function sockdrive(url: string, _onNewRange: (range: number, buffer
             loadQueue.push(next);
             preloaded.add(next);
         }
-    }
-
-    for (let i = 0; i < info.range_count; i++) {
-        if (!loaded.has(i) && !preloaded.has(i)) {
-            loadQueue.push(i);
+    } else {
+        for (let i = 0; i < info.range_count; i++) {
+            if (!loaded.has(i) && !preloaded.has(i)) {
+                loadQueue.push(i);
+            }
         }
     }
 
@@ -110,7 +111,15 @@ export async function sockdrive(url: string, _onNewRange: (range: number, buffer
 
     loadQueue.reverse();
 
-    info.sizeInBytes = loadQueue.length * info.ahead_read;
+
+    let rangesToLoad = loadQueue.length;
+    for (let i = 0; i < info.range_count; i++) {
+        if (!loaded.has(i) && !preloaded.has(i)) {
+            rangesToLoad++;
+        }
+    }
+    info.preloadSizeInBytes = loadQueue.length * info.ahead_read;
+    info.sizeInBytes = rangesToLoad * info.ahead_read;
 
     function range(sector: number) {
         return Math.floor(sector * info.sector_size / info.ahead_read);

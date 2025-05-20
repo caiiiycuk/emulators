@@ -100,6 +100,7 @@ export interface AsyncifyStats {
     netRecv: number,
     driveIo: {
         url: string,
+        preload: number,
         total: number,
         read: number,
         write: number,
@@ -340,6 +341,7 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
                 for (const drive of Object.values(this.sockdrives)) {
                     props.driveIo.push({
                         url: drive.info.url,
+                        preload: drive.info.preloadSizeInBytes,
                         total: drive.info.sizeInBytes,
                         read: drive.info.readInBytes,
                         write: drive.info.writeInBytes,
