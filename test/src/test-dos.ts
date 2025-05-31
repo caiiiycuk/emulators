@@ -36,8 +36,10 @@ function testServer(factory: CIFactory, name: string, assets: string) {
 
     test(name + " can read dosbox.conf from string", async () => {
         const expected = "[sdl]\ntest_prop=1";
-        const actual = new TextDecoder().decode(await (await factory(expected)).fsReadFile(".jsdos/dosbox.conf"));
+        const ci = await factory(expected);
+        const actual = new TextDecoder().decode(await ci.fsReadFile(".jsdos/dosbox.conf"));
         assert.equal(actual, expected);
+        await ci.exit();
     });
 
     test(name + " can read dosbox.conf from DosConfig", async () => {
@@ -50,6 +52,7 @@ function testServer(factory: CIFactory, name: string, assets: string) {
         const decoder = new TextDecoder();
         assert.equal(decoder.decode(await ci.fsReadFile(".jsdos/dosbox.conf")), dosboxConf);
         assert.equal(decoder.decode(await ci.fsReadFile(".jsdos/jsdos.json")), JSON.stringify(jsdosConf, null, 2));
+        await ci.exit();
     });
 
     test(name + " can track extract progress", async () => {
@@ -66,6 +69,7 @@ function testServer(factory: CIFactory, name: string, assets: string) {
             "0 .jsdos/readme.txt 3 4",
             "0 .jsdos/jsdos.json 4 4",
         ]);
+        await ci.exit();
     });
 
     test(name + " can take screenshot of dosbox", async () => {
@@ -113,17 +117,6 @@ function testServer(factory: CIFactory, name: string, assets: string) {
     });
 
     suite(name + ".persistency");
-
-    let cachedBundle: Uint8Array = new Uint8Array();
-    test(name + " should not return empty updates", async () => {
-        const bundle = await emulators.bundle();
-        const ci = await CI(bundle);
-        assert.ok(ci);
-        const changes = await ci.persist();
-        assert.ok(changes === null, "changes not empty!");
-        await ci.exit();
-    });
-
     async function testChangesFile(changes: Uint8Array, fileName: string, contents: string) {
         if (changes === null) {
             assert.fail("changes is null");
@@ -136,37 +129,48 @@ function testServer(factory: CIFactory, name: string, assets: string) {
         assert.equal(content, contents);
     }
 
-    test(name + " should store fs updates between sessions [empty db]", async () => {
-        const buffer = await httpRequest("helloworld.jsdos", {
-            responseType: "arraybuffer",
-        });
-
-        const ci = await factory(new Uint8Array(buffer as ArrayBuffer));
+    test(name + " should not return empty updates", async () => {
+        const bundle = await emulators.bundle();
+        const ci = await CI(bundle);
         assert.ok(ci);
-        assert.ok(cachedBundle, "cachedBundle is undefined");
-        await waitImage(assets + "/persistent-mount.png", ci, {
-            success: async () => {
-                cachedBundle = await ci.persist() as Uint8Array;
-                await testChangesFile(cachedBundle, "HW.TXT", "HELLO, WROLD!\r\n");
-                await ci.exit();
-            },
-        });
+        const changes = await ci.persist();
+        assert.ok(changes === null, "changes not empty!");
+        await ci.exit();
     });
 
-    test(name + " should store fs updates between sessions [existent db]", async () => {
-        const buffer = await httpRequest("helloworld.jsdos", {
-            responseType: "arraybuffer",
-        });
+    test(name + " should store fs updates between sessions [empty db/existent db]", async () => {
+        let cachedBundle: Uint8Array = new Uint8Array();
+        {
+            const buffer = await httpRequest("helloworld.jsdos", {
+                responseType: "arraybuffer",
+            });
 
-        const ci = await factory([new Uint8Array(buffer as ArrayBuffer), cachedBundle]);
-        assert.ok(ci);
-        cachedBundle = new Uint8Array();
-        await waitImage(assets + "/persistent-mount-second.png", ci, {
-            success: async () => {
-                await testChangesFile(await ci.persist() as Uint8Array, "HW.TXT", "HELLO, WROLD!\r\nHELLO, WROLD!\r\n");
-                await ci.exit();
-            },
-        });
+            const ci = await factory(new Uint8Array(buffer as ArrayBuffer));
+            assert.ok(ci);
+            assert.ok(cachedBundle, "cachedBundle is undefined");
+            await waitImage(assets + "/persistent-mount.png", ci, {
+                success: async () => {
+                    cachedBundle = await ci.persist() as Uint8Array;
+                    await testChangesFile(cachedBundle, "HW.TXT", "HELLO, WROLD!\r\n");
+                },
+            });
+        }
+
+        {
+            const buffer = await httpRequest("helloworld.jsdos", {
+                responseType: "arraybuffer",
+            });
+
+            const ci = await factory([new Uint8Array(buffer as ArrayBuffer), cachedBundle]);
+            assert.ok(ci);
+            cachedBundle = new Uint8Array();
+            await waitImage(assets + "/persistent-mount-second.png", ci, {
+                success: async () => {
+                    await testChangesFile(await ci.persist() as Uint8Array,
+                        "HW.TXT", "HELLO, WROLD!\r\nHELLO, WROLD!\r\n");
+                },
+            });
+        }
     });
 
     test(name + " should track new files [existent db]", async () => {

@@ -24,7 +24,7 @@ export function testLoader() {
             await loadWasmModule("wrongurl.js", "", () => {/**/});
             assert.fail();
         } catch (e) {
-            assert.ok(e.message.startsWith("Unable to download '") && e.message.endsWith("', code: 404"), 
+            assert.ok(e.message.startsWith("Unable to download '") && e.message.endsWith("', code: 404"),
                 "wrong error message: " + e.message);
         }
     });
