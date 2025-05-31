@@ -4,7 +4,7 @@ import { assert } from "chai";
 import { renderComparsionOf, waitImage } from "./compare";
 
 import DosBundle from "../../src/dos/bundle/dos-bundle";
-import { BackendOptions, CommandInterface, InitFs } from "../../src/emulators";
+import { BackendOptions, CommandInterface, InitFs, PersistedSockdrives } from "../../src/emulators";
 import emulatorsImpl from "../../src/impl/emulators-impl";
 
 import { httpRequest } from "../../src/http";
@@ -121,7 +121,21 @@ function testServer(factory: CIFactory, name: string, assets: string) {
         assert.ok(ci);
         const changes = await ci.persist();
         assert.ok(changes === null, "changes not empty!");
+        await ci.exit();
     });
+
+    async function testChangesFile(changes: Uint8Array, fileName: string, contents: string) {
+        if (changes === null) {
+            assert.fail("changes is null");
+        }
+        const libzip = await makeLibZip();
+        libzip.zipToFs(changes);
+        assert.ok(libzip.exists(fileName), fileName + " not exists");
+        const content = await libzip.readFile(fileName);
+        libzip.destroy();
+        assert.equal(content, contents);
+    }
+
     test(name + " should store fs updates between sessions [empty db]", async () => {
         const buffer = await httpRequest("helloworld.jsdos", {
             responseType: "arraybuffer",
@@ -133,13 +147,8 @@ function testServer(factory: CIFactory, name: string, assets: string) {
         await waitImage(assets + "/persistent-mount.png", ci, {
             success: async () => {
                 cachedBundle = await ci.persist() as Uint8Array;
-                const libzip = await makeLibZip();
-                libzip.zipToFs(cachedBundle);
-                assert.ok(libzip.exists("HW.TXT"), "hw.txt not exists");
-                const content = await libzip.readFile("HW.TXT");
-                libzip.destroy();
-
-                assert.equal(content, "HELLO, WROLD!\r\n");
+                await testChangesFile(cachedBundle, "HW.TXT", "HELLO, WROLD!\r\n");
+                await ci.exit();
             },
         });
     });
@@ -154,15 +163,43 @@ function testServer(factory: CIFactory, name: string, assets: string) {
         cachedBundle = new Uint8Array();
         await waitImage(assets + "/persistent-mount-second.png", ci, {
             success: async () => {
-                const libzip = await makeLibZip();
-                libzip.zipToFs(await ci.persist() as Uint8Array);
-                assert.ok(libzip.exists("HW.TXT"), "hw.txt not exists");
-                const content = await libzip.readFile("HW.TXT");
-                libzip.destroy();
-
-                assert.equal(content, "HELLO, WROLD!\r\nHELLO, WROLD!\r\n");
+                await testChangesFile(await ci.persist() as Uint8Array, "HW.TXT", "HELLO, WROLD!\r\nHELLO, WROLD!\r\n");
+                await ci.exit();
             },
         });
+    });
+
+    test(name + " should track new files [existent db]", async () => {
+        let changes: Uint8Array | PersistedSockdrives | null = null;
+
+        {
+            const bundle = await (await emulatorsImpl.bundle()).toUint8Array();
+            const ci = await factory([bundle]);
+            assert.ok(ci);
+            await ci.config();
+            await ci.fsWriteFile("File1.txt", new TextEncoder().encode("FILE1\n"));
+            changes = await ci.persist();
+            await testChangesFile(changes as Uint8Array, "File1.txt", "FILE1\n");
+            await ci.exit();
+        }
+
+        {
+            const bundle = await (await emulatorsImpl.bundle()).toUint8Array();
+            const ci = await factory([bundle, changes as Uint8Array]);
+            assert.ok(ci);
+            await ci.config();
+            try {
+                assert.equal(new TextDecoder().decode(await ci.fsReadFile("File1.txt")), "FILE1\n");
+            } catch (e) {
+                console.log(e);
+                assert.fail("File1.txt not found");
+            }
+            await ci.fsWriteFile("File2.txt", new TextEncoder().encode("FILE2\n"));
+            changes = await ci.persist();
+            await testChangesFile(changes as Uint8Array, "File1.txt", "FILE1\n");
+            await testChangesFile(changes as Uint8Array, "File2.txt", "FILE2\n");
+            await ci.exit();
+        }
     });
 
     suite(name + ".fs");

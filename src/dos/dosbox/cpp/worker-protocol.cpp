@@ -518,6 +518,12 @@ EM_JS(void, emsc_extract_bundle_to_fs, (), {
         }
         
         Module.fsCreatedAt = Module._get_changes_mtime_ms();
+
+        // delay needed to create rest of files after fsCreatedAt
+        const nowTime = Date.now();
+        while (Date.now() < nowTime + 4) {
+          // wait
+        }
       }
     }
 

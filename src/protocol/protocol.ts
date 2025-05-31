@@ -621,7 +621,8 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
     }
 
 
-    public async persist(onlyChanges?: boolean): Promise<Uint8Array | PersistedSockdrives | null> {
+    public async persist(optOnlyChanges?: boolean): Promise<Uint8Array | PersistedSockdrives | null> {
+        const onlyChanges = optOnlyChanges ?? true;
         if (this.persistPromise !== undefined) {
             return this.persistPromise;
         }
@@ -636,7 +637,7 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
         });
         this.persistPromise = persistPromise;
         this.sendClientMessage("wc-pack-fs-to-bundle", {
-            onlyChanges: onlyChanges !== false,
+            onlyChanges,
         });
 
         return persistPromise;

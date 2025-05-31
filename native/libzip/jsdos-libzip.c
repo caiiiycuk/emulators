@@ -140,6 +140,8 @@ int zip_recursively(zip_t *zipArchive, const char *directory, double changedAfte
                 }
             } else {
                 if (changedAfterMs > 0) {
+                  // printf("Time of file %s, mtime: %f, changedAfterMs: %f, diff: %f\n", nameInFs, 
+                  //   getMTimeMs(nameInFs), changedAfterMs, getMTimeMs(nameInFs) - changedAfterMs);
                   if (getMTimeMs(nameInFs) <= changedAfterMs) {
                     free(nameInFs);
                     continue;
