@@ -639,6 +639,8 @@ set(SOURCES_X_JSDOS_CORE
         "${NATIVE_DIR}/jsdos/jsdos-support.cpp"
         "${NATIVE_DIR}/jsdos/jsdos-events.cpp"
         "${NATIVE_DIR}/jsdos/jsdos-drive.cpp"
+        "${NATIVE_DIR}/jsdos/jsdos-voodoo.cpp"
+        "${NATIVE_DIR}/jsdos/jsdos-voodoo-vogl.cpp"
         "${NATIVE_DIR}/jsdos/sockdrive/sockdrive.cpp"
         )
 

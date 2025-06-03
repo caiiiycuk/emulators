@@ -21,6 +21,10 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -w -Werror=return-type -fsigned-char")
 
 if ((CMAKE_BUILD_TYPE STREQUAL "Debug") OR (CMAKE_BUILD_TYPE STREQUAL ""))
 	message(STATUS "DEBUG BUILD")
+
+	# asan
+	# add_compile_options(-fsanitize=address -fno-omit-frame-pointer)
+	# add_link_options(-fsanitize=address)
 else ()
 	message(STATUS "RELEASE BUILD")
 	add_compile_options(-Oz)
