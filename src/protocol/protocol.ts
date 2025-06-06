@@ -71,7 +71,7 @@ export interface TransportLayer {
     sessionId: string;
     sendMessageToServer(name: ClientMessage,
         props: { [key: string]: any },
-        transfer?: ArrayBuffer[]): void;
+        transfer?: (ArrayBuffer | OffscreenCanvas)[]): void;
     initMessageHandler(handler: MessageHandler): void;
     exit?: () => void;
 }
@@ -88,6 +88,7 @@ export interface DataChunk {
 }
 
 export interface AsyncifyStats {
+    offscreenCanvas?: boolean,
     messageSent: number,
     messageReceived: number,
     messageFrame: number,

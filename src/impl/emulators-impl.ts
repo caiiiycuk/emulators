@@ -88,7 +88,7 @@ class EmulatorsImpl implements Emulators {
     async dosboxDirect(init: InitFs, options?: BackendOptions): Promise<CommandInterface> {
         const modules = await this.wasmModules();
         const dosboxWasm = await modules.dosbox();
-        const transportLayer = await dosDirect(dosboxWasm, "session-" + Date.now());
+        const transportLayer = await dosDirect(dosboxWasm, "session-" + Date.now(), options?.canvas);
         return this.backend(init, transportLayer, options);
     }
 
@@ -96,7 +96,7 @@ class EmulatorsImpl implements Emulators {
         const modules = await this.wasmModules();
         const dosboxWasm = await modules.dosbox();
         const transportLayer = await dosWorker(this.pathPrefix + this.wdosboxJs + this.pathSuffix,
-            dosboxWasm, "session-" + Date.now());
+            dosboxWasm, "session-" + Date.now(), options?.canvas);
         return this.backend(init, transportLayer, options);
     }
 
@@ -107,7 +107,7 @@ class EmulatorsImpl implements Emulators {
     async dosboxXDirect(init: InitFs, options?: BackendOptions): Promise<CommandInterface> {
         const modules = await this.wasmModules();
         const dosboxxWasm = await modules.dosboxx();
-        const transportLayer = await dosDirect(dosboxxWasm, "session-" + Date.now());
+        const transportLayer = await dosDirect(dosboxxWasm, "session-" + Date.now(), options?.canvas);
         return this.backend(init, transportLayer, options);
     }
 
@@ -115,7 +115,7 @@ class EmulatorsImpl implements Emulators {
         const modules = await this.wasmModules();
         const dosboxxWasm = await modules.dosboxx();
         const transportLayer = await dosWorker(this.pathPrefix + this.wdosboxxJs + this.pathSuffix,
-            dosboxxWasm, "session-" + Date.now());
+            dosboxxWasm, "session-" + Date.now(), options?.canvas);
         return this.backend(init, transportLayer, options);
     }
 

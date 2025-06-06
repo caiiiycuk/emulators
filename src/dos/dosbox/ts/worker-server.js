@@ -26,6 +26,10 @@ if (worker) {
                 module.callMain([sessionId]);
             };
 
+            if (data.props.canvas !== undefined) {
+                module.canvas = data.props.canvas;
+            }
+
             @MODULE_NAME@(module).catch(console.error);
             return;
         }

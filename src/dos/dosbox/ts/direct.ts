@@ -2,7 +2,8 @@ import { WasmModule } from "../../../impl/modules";
 import { TransportLayer, MessageHandler, ClientMessage, ServerMessage } from "../../../protocol/protocol";
 import { MessagesQueue } from "../../../protocol/messages-queue";
 
-export async function dosDirect(wasmModule: WasmModule, sessionId: string): Promise<TransportLayer> {
+export async function dosDirect(wasmModule: WasmModule, sessionId: string,
+                                canvas?: OffscreenCanvas): Promise<TransportLayer> {
     const messagesQueue = new MessagesQueue();
     let handler: MessageHandler = messagesQueue.handler.bind(messagesQueue);
 
@@ -41,6 +42,7 @@ export async function dosDirect(wasmModule: WasmModule, sessionId: string): Prom
         window.addEventListener("message", sleepHandler, { passive: true });
     }
 
+    module.canvas = canvas;
     await wasmModule.instantiate(module);
     module.callMain([sessionId]);
 

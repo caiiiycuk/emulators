@@ -4,7 +4,8 @@ import { MessagesQueue } from "../../../protocol/messages-queue";
 
 export async function dosWorker(workerUrl: string,
                                 wasmModule: WasmModule,
-                                sessionId: string): Promise<TransportLayer> {
+                                sessionId: string,
+                                canvas?: OffscreenCanvas): Promise<TransportLayer> {
     const messagesQueue = new MessagesQueue();
     let handler: MessageHandler = messagesQueue.handler.bind(messagesQueue);
 
@@ -46,13 +47,19 @@ export async function dosWorker(workerUrl: string,
         },
     };
 
+    const transfer = canvas ? [canvas] : [];
+
     try {
         transportLayer.sendMessageToServer("wc-install", {
             module: (wasmModule as any).wasmModule,
             sessionId,
-        });
+            canvas,
+        }, transfer);
     } catch (e) {
-        transportLayer.sendMessageToServer("wc-install", { sessionId });
+        transportLayer.sendMessageToServer("wc-install", {
+            sessionId,
+            canvas,
+        }, transfer);
     }
 
     return transportLayer;

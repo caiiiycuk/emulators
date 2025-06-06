@@ -19,6 +19,7 @@ export enum NetworkType {
 export interface BackendOptions {
     token?: string | undefined;
     onExtractProgress?: (bundleIndex: number, file: string, extracted: number, total: number) => void;
+    canvas?: OffscreenCanvas;
 }
 
 export type InitBundleEntry = Uint8Array;
