@@ -691,6 +691,12 @@ target_include_directories(libdosbox-x-jsdos PUBLIC
         "${NATIVE_DIR}/sdl2net"
         )
 
+if (EMSCRIPTEN)
+    target_include_directories(libdosbox-x-jsdos PUBLIC
+            "${NATIVE_DIR}/gl4es/include"
+    )
+endif()
+
 add_executable(dosbox-x-sdl2 ${SOURCES_X_SDL_MAIN})
 target_link_libraries(dosbox-x-sdl2 libdosbox-x-sdl2)
 set_property(TARGET dosbox-x-sdl2 PROPERTY CXX_STANDARD 11)
@@ -713,20 +719,22 @@ if (${EMSCRIPTEN})
     target_compile_options(libdosbox-x-jsdos PUBLIC -fwasm-exceptions)
     add_executable(wdosbox-x "${SRC_DIR}/dos/dosbox/cpp/worker-protocol.cpp")
     set_target_properties(wdosbox-x PROPERTIES SUFFIX .js)
-    target_link_libraries(wdosbox-x libdosbox-x-jsdos libzip)
+    target_link_libraries(wdosbox-x libdosbox-x-jsdos libzip "${NATIVE_DIR}/gl4es/lib/libGL.a")
+#     target_link_libraries(wdosbox-x libdosbox-x-jsdos libzip)
     # TODO: set sERROR_ON_UNDEFINED_SYMBOLS=1
     target_link_options(wdosbox-x PUBLIC
             ${EM_LINK_OPTIONS}
             -fwasm-exceptions
             "-sUSE_ZLIB=1"
             "-sUSE_SDL=2"
-        #     "--profiling-funcs"
+            "-sFULL_ES2=1"
+            "--profiling-funcs"
         #     "-sASSERTIONS=1"
         #     "-sSAFE_HEAP=2"
             "-sASYNCIFY=1"
             "-sASYNCIFY_IMPORTS=['syncSleep']"
-            "-sASYNCIFY_WHITELIST=@${TARGETS_DIR}/dosbox-x-asyncify.txt"
-        #     "-sASYNCIFY_STACK_SIZE=16384"
+        #    "-sASYNCIFY_WHITELIST=@${TARGETS_DIR}/dosbox-x-asyncify.txt"
+        #    "-sASYNCIFY_STACK_SIZE=16384"
             "-sEXPORT_NAME='WDOSBOXX'"
             "-sERROR_ON_UNDEFINED_SYMBOLS=1")
 elseif (APPLE)

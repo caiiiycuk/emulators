@@ -21,6 +21,7 @@ uint8_t *frameRgb = nullptr;
 #include <filesystem>
 EM_JS(void, ws_init_runtime, (const char* sessionId), {
     var worker = typeof importScripts === "function";
+    Module.worker = worker;
     Module.messageSent = 0;
     Module.messageReceived = 0;
     Module.messageFrame = 0;
@@ -411,6 +412,22 @@ EM_JS(void, ws_init_runtime, (const char* sessionId), {
             throw new Error("Unable to get WebGL context");
           }
 
+          if (worker) {
+            self.screen = {
+              width: 320,
+              height: 200,
+            };
+            self.document = {
+              querySelector: function() {
+                return null;
+              },
+            };
+          }
+
+          if (!Module.canvas.style) {
+            Module.canvas.style = {};
+          }
+
           Module.gl = gl;
           const vsSource = `
             attribute vec4 aVertexPosition;
@@ -538,6 +555,10 @@ EM_JS(void, ws_init_runtime, (const char* sessionId), {
 
 EM_JS(void, emsc_ws_client_frame_set_size, (int width, int height), {
     if (Module.canvas) {
+      if (Module.worker) {
+        self.screen.width = width;
+        self.screen.height = height;
+      }
       Module.canvas.width = width;
       Module.canvas.height = height;
       Module.gl.viewport(0, 0, width, height);

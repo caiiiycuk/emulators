@@ -26,6 +26,10 @@
  *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  */
 
+#ifdef EMSCRIPTEN
+#include <gl4esinit.h>
+#endif
+
 #include <jsdos-support.h>
 #include <jsdos-asyncify.h>
 #include <jsdos-timer.h>
@@ -9018,7 +9022,28 @@ int jsdos_main(Config *config) SDL_MAIN_NOEXCEPT {
 	LOG_MSG("Prevent capture: %u",preventcap);
 
         /* -- SDL init */
-        if (SDL_Init(/*SDL_INIT_AUDIO|SDL_INIT_VIDEO|*/SDL_INIT_TIMER|SDL_INIT_NOPARACHUTE) >= 0)
+        auto initFlags = SDL_INIT_TIMER|SDL_INIT_NOPARACHUTE;
+        auto voodoo = control->GetSection("voodoo");
+        if (voodoo) {
+          auto voodoo_card = voodoo->GetPropValue("voodoo_card");
+          if (voodoo_card == "auto" || voodoo_card == "opengl") {
+#ifdef EMSCRIPTEN
+            auto webgl = EM_ASM_INT((
+              return Module.gl ? 1 : 0;
+            ));
+
+            if (webgl) {
+              printf("SDL_INIT_VIDEO\n");
+              initialize_gl4es();
+              initFlags = initFlags | SDL_INIT_VIDEO;
+            }
+#else
+            initFlags = initFlags | SDL_INIT_VIDEO;
+#endif
+          }
+        }
+
+        if (SDL_Init(/*SDL_INIT_AUDIO|SDL_INIT_VIDEO|*/initFlags) >= 0)
             sdl.inited = true;
         else
             E_Exit("Can't init SDL %s",SDL_GetError());

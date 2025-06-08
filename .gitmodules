@@ -11,3 +11,7 @@
 	path = native/sokol-tools-bin
 	url = git@github.com:floooh/sokol-tools-bin.git
 	branch = master
+[submodule "native/gl4es"]
+	path = native/gl4es
+	url = git@github.com:ptitSeb/gl4es.git
+	branch = master
