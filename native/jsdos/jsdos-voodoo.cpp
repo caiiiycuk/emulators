@@ -20,28 +20,11 @@ enum SCREEN_TYPES {
   SCREEN_OPENGL
 };
 
-extern bool GFX_IsFullscreen();
-
-extern void GFX_SwitchFullScreen();
-
-extern void GFX_TearDown();
-
-extern bool GFX_LazyFullscreenRequested();
-
-extern void GFX_SwitchFullscreenNoReset();
-
-extern void GFX_UpdateSDLCaptureState();
-
-extern void GFX_RestoreMode();
-
 namespace {
 
 struct sdl {
   SDL_Window *window = nullptr;
 } sdl;
-
-int currentWindowWidth = 640;
-int currentWindowHeight = 480;
 
 }
 
@@ -83,8 +66,6 @@ UINT32 texrgb[256*256];
 /* texture address map */
 std::map <const UINT32, ogl_texmap> textures[2];
 
-bool Direct3D_using(void);
-void GFX_PreventFullscreen(bool lockout), GFX_SetResizeable(bool enable), change_output(int output), SetWindowTransparency(int trans);
 #if defined(C_SDL2)
 SDL_Window* GFX_SetSDLWindowMode(uint16_t width, uint16_t height, SCREEN_TYPES screenType);
 #endif
@@ -1306,10 +1287,6 @@ void voodoo_ogl_draw_triangle(poly_extra_data *extra) {
 
 
 void voodoo_ogl_swap_buffer() {
-	if (GFX_LazyFullscreenRequested()) {
-		v->ogl_dimchange = true;
-	}
-
 	VOGL_ClearBeginMode();
 
         glFlush();
@@ -1663,8 +1640,6 @@ void voodoo_ogl_set_window(voodoo_state *v) {
 	}
 	if (size_changed) {
 		//correction for viewport if 640x400
-		if( new_height < 480 && GFX_IsFullscreen()) adjust_y=(480-new_height)/2;
-		if( new_width < 640 && GFX_IsFullscreen()) adjust_x=(640-new_width)/2;
 		glViewport( adjust_x, adjust_y, (int)new_width, (int)new_height );
 		last_width = new_width;
 		last_height = new_height;
@@ -1672,19 +1647,6 @@ void voodoo_ogl_set_window(voodoo_state *v) {
 }
 
 void voodoo_ogl_reset_videomode(void) {
-#if defined(WIN32) && !defined(C_SDL2)
-    /* always show the menu */
-    void DOSBox_SetMenu(void);
-    DOSBox_SetMenu();
-#endif
-
-    bool isfs = false;
-    if (GFX_IsFullscreen()) {
-        isfs = true;
-        GFX_SwitchFullScreen();
-    }
-    GFX_PreventFullscreen(true);
-
 	last_clear_color=0;
 
 	last_width=0;
@@ -1692,12 +1654,6 @@ void voodoo_ogl_reset_videomode(void) {
 	last_orientation=-1;
 
 	VOGL_Reset();
-
-	GFX_TearDown();
-
-#if !defined(C_SDL2)
-	bool full_sdl_restart = true;	// make dependent on surface=opengl
-#endif
 
 	SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 8);
 	SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 8);
@@ -1749,11 +1705,6 @@ void voodoo_ogl_reset_videomode(void) {
 #endif
 		new_width = v->fbi.width;
 
-	if (GFX_LazyFullscreenRequested()) GFX_SwitchFullscreenNoReset();
-
-#if defined(C_SDL2)
-    GFX_SetResizeable(true);
-
     sdl.window = SDL_CreateWindow("DOSBox",
         SDL_WINDOWPOS_UNDEFINED,
         SDL_WINDOWPOS_UNDEFINED,
@@ -1781,51 +1732,6 @@ void voodoo_ogl_reset_videomode(void) {
 		abort();
     }
 
-#else
-	Uint32 sdl_flags = SDL_OPENGL;
-    sdl_flags |= SDL_RESIZABLE;
-
-	ogl_surface = SDL_SetVideoMode(new_width, new_height, 32, sdl_flags);
-
-	if (ogl_surface == NULL) {
-		if (full_sdl_restart) {
-			SDL_QuitSubSystem(SDL_INIT_VIDEO);
-			SDL_InitSubSystem(SDL_INIT_VIDEO);
-			ogl_surface = SDL_SetVideoMode(new_width, new_height, 32, sdl_flags);
-		}
-		if (ogl_surface == NULL) {
-			has_alpha = false;
-			SDL_GL_SetAttribute(SDL_GL_ALPHA_SIZE, 0);
-			if ((ogl_surface = SDL_SetVideoMode(new_width, new_height, 32, sdl_flags)) == NULL) {
-				has_stencil = false;
-				SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 0);
-				if ((ogl_surface = SDL_SetVideoMode(new_width, new_height, 32, sdl_flags)) == NULL) {
-					if (sdl_flags & SDL_FULLSCREEN) {
-						sdl_flags &= ~(SDL_FULLSCREEN);
-						if ((ogl_surface = SDL_SetVideoMode(new_width, new_height, 32, sdl_flags)) == NULL) {
-							printf("ERROR: opengl init error\n");
-							abort();
-						}
-					} else {
-						printf("ERROR: opengl init error\n");
-						abort();
-					}
-				}
-				LOG_MSG("VOODOO: Graphics mode does not support Stencil/Alpha channels");
-			} else {
-				LOG_MSG("VOODOO: Graphics mode does not support Alpha channel");
-			}
-		}
-	}
-#endif
-
-    if (isfs) {
-#if defined(C_SDL2)
-        SDL_MaximizeWindow(sdl.window);
-#elif defined(WIN32)
-        ShowWindow(GetHWND(), SW_MAXIMIZE);
-#endif
-    }
     ApplyPreventCap();
 
     v->ogl_dimchange = true;
@@ -1839,9 +1745,6 @@ void voodoo_ogl_reset_videomode(void) {
      *      This is in direct contradiction to the OpenGL output setup
      *      in src/gui/sdlmain.cpp that sets up GL_FLAT shading */
     glShadeModel (GL_SMOOTH);
-
-	GFX_PreventFullscreen(true);
-	GFX_UpdateSDLCaptureState();
 
 	int value;
 
@@ -2004,19 +1907,7 @@ void voodoo_ogl_leave(bool leavemode) {
 		LOG_MSG("VOODOO: OpenGL: quit");
 
         ogl_surface = NULL;
-        GFX_PreventFullscreen(false);
-        GFX_RestoreMode();
-#if defined(C_SDL2)
-        if (Direct3D_using()) {
-            GFX_SetSDLWindowMode(currentWindowWidth, currentWindowHeight, SCREEN_SURFACE);
-            change_output(6);
-        }
-#endif
         transparency = 0;
-
-#ifndef JSDOS
-        SetWindowTransparency(static_cast<Section_prop *>(control->GetSection("sdl"))->Get_int("transparency"));
-#endif
     }
 }
 
