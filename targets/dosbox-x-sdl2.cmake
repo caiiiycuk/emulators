@@ -728,6 +728,8 @@ if (${EMSCRIPTEN})
             "-sUSE_ZLIB=1"
             "-sUSE_SDL=2"
             "-sFULL_ES2=1"
+            "-sGL_MAX_TEMP_BUFFER_SIZE=32Mb"
+            "-sGL_PREINITIALIZED_CONTEXT=1"
             "--profiling-funcs"
         #     "-sASSERTIONS=1"
         #     "-sSAFE_HEAP=2"

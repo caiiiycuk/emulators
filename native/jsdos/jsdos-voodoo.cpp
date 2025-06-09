@@ -12,6 +12,7 @@
 #include "hardware/voodoo_data.h"
 #include "logging.h"
 
+
 enum SCREEN_TYPES {
   SCREEN_SURFACE,
   SCREEN_SURFACE_DDRAW,
@@ -1311,6 +1312,7 @@ void voodoo_ogl_swap_buffer() {
 
 	VOGL_ClearBeginMode();
 
+        glFlush();
         SDL_GL_SwapWindow(sdl.window);
 
 	cached_line_front_y=-1;
