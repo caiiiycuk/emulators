@@ -1264,11 +1264,11 @@ void voodoo_ogl_draw_triangle(poly_extra_data *extra) {
 		for (unsigned int t=0;t<2;t++)
 			if (td[t].enable) {
 				glMultiTexCoord4fv(GL_TEXTURE0_ARB+t,&vd[i].m[t].sw);
-				if (extra->info->shader_ulocations[10u+t] >= 0)
+				if (extra->info->shader_ready && extra->info->shader_ulocations[10u+t] >= 0)
 					db_glVertexAttrib1fARB((GLuint)extra->info->shader_ulocations[10u+t],vd[i].m[t].lodblend);
 			}
 
-		if (extra->info->shader_ulocations[9] >= 0)
+		if (extra->info->shader_ready && extra->info->shader_ulocations[9] >= 0)
 			db_glVertexAttrib1fARB((GLuint)extra->info->shader_ulocations[9],vd[i].fogblend);
 
 		glVertex3fv(&vd[i].x);
@@ -1350,7 +1350,7 @@ void voodoo_ogl_draw_pixel(int x, int y, bool has_rgb, bool has_alpha, int r, in
 	{
 		for (int ny = starty; ny < endy; ny++)
 		{
-			glVertex2i(nx, ny);
+		    glVertex2i(nx, ny);
 		}
 	}
 }
