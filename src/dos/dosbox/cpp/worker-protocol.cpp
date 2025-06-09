@@ -412,6 +412,8 @@ EM_JS(void, ws_init_runtime, (const char* sessionId), {
             throw new Error("Unable to get WebGL context");
           }
 
+          Module.preinitializedWebGLContext = gl;
+
           if (worker) {
             self.screen = {
               width: 320,
