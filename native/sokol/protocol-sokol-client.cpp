@@ -10,7 +10,9 @@
 
 #include "../sokol-lib/sokol_app.h"
 #include "../sokol-lib/sokol_audio.h"
+#ifndef GL4ES
 #include "../sokol-lib/sokol_gfx.h"
+#endif
 #include "../sokol-lib/sokol_log.h"
 
 #include <protocol.h>

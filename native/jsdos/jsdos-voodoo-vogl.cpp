@@ -25,7 +25,7 @@ typedef int64_t INT64;
 #include "hardware/voodoo_vogl.h"
 
 
-#ifdef EMSCRIPTEN
+#ifdef GL4ES
 extern "C" void* gl4es_GetProcAddress(const char *name);
 #define SDL_GL_GetProcAddress(x) gl4es_GetProcAddress(x)
 #endif

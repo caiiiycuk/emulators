@@ -16,9 +16,11 @@
 
 #include "../sokol-lib/sokol_app.h"
 #include "../sokol-lib/sokol_audio.h"
+#ifndef GL4ES
 #include "../sokol-lib/sokol_gfx.h"
-#include "../sokol-lib/sokol_log.h"
 #include "shaders.h"
+#endif
+#include "../sokol-lib/sokol_log.h"
 
 #ifdef JSDOS_X
 #include <SDL.h>
@@ -42,6 +44,7 @@ static float verticesFlipped[] = {0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f,
                                   1.0f, 1.0f, 0.0f, 1.0f, 0.0f, 0.0f,
                                   1.0f, 1.0f, 1.0f, 0.0f};
 
+#ifndef GL4ES
 class GfxState {
  public:
   int width;
@@ -95,6 +98,8 @@ class GfxState {
 };
 
 GfxState *state = nullptr;
+#endif
+
 
 void client_frame_set_size(int width, int height) {
   std::lock_guard<std::mutex> g(mutex);
@@ -174,6 +179,7 @@ void client_network_disconnected(NetworkType networkType) {
 }
 
 void sokolInit() {
+#ifndef GL4ES
   sg_desc gfxDescription = {};
   gfxDescription.buffer_pool_size = 4;
   gfxDescription.image_pool_size = 4;
@@ -183,9 +189,11 @@ void sokolInit() {
   gfxDescription.logger.func = slog_func;
 
   sg_setup(&gfxDescription);
+#endif
 }
 
 void sokolFrame() {
+#ifndef GL4ES
   std::lock_guard<std::mutex> g(mutex);
 
 // @caiiiycuk: think about better solution
@@ -217,6 +225,7 @@ void sokolFrame() {
   sg_commit();
 
   renderedFrame = frameCount;
+#endif
 }
 
 void sokolKeyEvent(const sapp_event *event) {
