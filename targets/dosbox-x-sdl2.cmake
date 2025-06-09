@@ -691,7 +691,7 @@ target_include_directories(libdosbox-x-jsdos PUBLIC
         "${NATIVE_DIR}/sdl2net"
         )
 
-if (EMSCRIPTEN)
+if (GL4ES)
     target_include_directories(libdosbox-x-jsdos PUBLIC
             "${NATIVE_DIR}/gl4es/include"
     )

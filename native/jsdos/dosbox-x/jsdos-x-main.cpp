@@ -26,7 +26,7 @@
  *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  */
 
-#ifdef EMSCRIPTEN
+#ifdef GL4ES
 #include <gl4esinit.h>
 #endif
 
@@ -9034,12 +9034,17 @@ int jsdos_main(Config *config) SDL_MAIN_NOEXCEPT {
 
             if (webgl) {
               printf("SDL_INIT_VIDEO\n");
-              initialize_gl4es();
               initFlags = initFlags | SDL_INIT_VIDEO;
             }
 #else
             initFlags = initFlags | SDL_INIT_VIDEO;
 #endif
+
+            if (initFlags & SDL_INIT_VIDEO) {
+#ifdef GL4ES
+              initialize_gl4es();
+#endif
+            }
           }
         }
 

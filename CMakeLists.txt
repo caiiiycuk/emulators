@@ -2,11 +2,17 @@ project(js-dos)
 cmake_minimum_required(VERSION 3.21)
 
 set(X86 false)
+set(GL4ES true)
 if (${EMSCRIPTEN})
 	set(X86_64 false)
+	set(GL4ES true)
 else ()
 	set(X86_64 true)
 endif ()
+
+if (GL4ES)
+	add_compile_definitions(-DGL4ES=1)
+endif()
 
 set(BUILD_NATIVE_LIBZIP true)
 
