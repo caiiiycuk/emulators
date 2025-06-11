@@ -407,13 +407,9 @@ EM_JS(void, ws_init_runtime, (const char* sessionId), {
     if (Module.canvas) {
       try {
         (function () {
-          const gl = Module.canvas.getContext("webgl");
-          if (!gl) {
-            throw new Error("Unable to get WebGL context");
+          if (!Module.canvas.style) {
+            Module.canvas.style = {};
           }
-
-          Module.preinitializedWebGLContext = gl;
-
           if (worker) {
             self.screen = {
               width: 320,
@@ -426,11 +422,15 @@ EM_JS(void, ws_init_runtime, (const char* sessionId), {
             };
           }
 
-          if (!Module.canvas.style) {
-            Module.canvas.style = {};
+          const gl = Module.canvas.getContext("webgl");
+          if (!gl) {
+            throw new Error("Unable to get WebGL context");
           }
 
+          Module.preinitializedWebGLContext = gl;
           Module.gl = gl;
+          Module.glfx = true;
+
           const vsSource = `
             attribute vec4 aVertexPosition;
             attribute vec2 aTextureCoord;
@@ -449,7 +449,7 @@ EM_JS(void, ws_init_runtime, (const char* sessionId), {
 
 
             void main(void) {
-              highp vec4 color = texture2D(uSampler, vTextureCoord);
+              highp vec4 color = texture2D(uSampler, ${Module.glfx ? "vec2(vTextureCoord.x, 1.0 - vTextureCoord.y)" : "vTextureCoord"});
               gl_FragColor = vec4(color.r, color.g, color.b, 1.0);
             }
           `;
@@ -483,10 +483,10 @@ EM_JS(void, ws_init_runtime, (const char* sessionId), {
               return shaderProgram;
           }
 
-          const shaderProgram = initShaderProgram(gl, vsSource, fsSource);
-          const vertexPosition = gl.getAttribLocation(shaderProgram, "aVertexPosition");
-          const textureCoord = gl.getAttribLocation(shaderProgram, "aTextureCoord");
-          const uSampler = gl.getUniformLocation(shaderProgram, "uSampler");
+          const quadProgram = initShaderProgram(gl, vsSource, fsSource);
+          const vertexPosition = gl.getAttribLocation(quadProgram, "aVertexPosition");
+          const textureCoord = gl.getAttribLocation(quadProgram, "aTextureCoord");
+          const uSampler = gl.getUniformLocation(quadProgram, "uSampler");
 
           const positionBuffer = gl.createBuffer();
           gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
@@ -499,8 +499,6 @@ EM_JS(void, ws_init_runtime, (const char* sessionId), {
               -1.0, 1.0, 0.0,
           ];
           gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW);
-          gl.vertexAttribPointer(vertexPosition, 3, gl.FLOAT, false, 0, 0);
-          gl.enableVertexAttribArray(vertexPosition);
 
           const textureCoordBuffer = gl.createBuffer();
           gl.bindBuffer(gl.ARRAY_BUFFER, textureCoordBuffer);
@@ -515,11 +513,8 @@ EM_JS(void, ws_init_runtime, (const char* sessionId), {
           gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(textureCoordinates),
               gl.STATIC_DRAW);
 
-          gl.vertexAttribPointer(textureCoord, 2, gl.FLOAT, false, 0, 0);
-          gl.enableVertexAttribArray(textureCoord);
-
-          const texture = gl.createTexture();
-          gl.bindTexture(gl.TEXTURE_2D, texture);
+          const screenTexture = gl.createTexture();
+          gl.bindTexture(gl.TEXTURE_2D, screenTexture);
           gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
           gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
           gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
@@ -530,18 +525,132 @@ EM_JS(void, ws_init_runtime, (const char* sessionId), {
               1, 1, 0, gl.RGB, gl.UNSIGNED_BYTE,
               pixel);
 
-          gl.useProgram(shaderProgram);
-          gl.activeTexture(gl.TEXTURE0);
-          gl.uniform1i(uSampler, 0);
+          function withQuadProgram(fn) {
+            let binded = false;
+            function bindQuadProgram() {
+                if (binded) {
+                  return;
+                }
+
+                gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+                gl.vertexAttribPointer(vertexPosition, 3, gl.FLOAT, false, 0, 0);
+                gl.enableVertexAttribArray(vertexPosition);
+                gl.bindBuffer(gl.ARRAY_BUFFER, textureCoordBuffer);
+                gl.vertexAttribPointer(textureCoord, 2, gl.FLOAT, false, 0, 0);
+                gl.enableVertexAttribArray(textureCoord);
+                gl.useProgram(quadProgram);
+                gl.activeTexture(gl.TEXTURE0);
+                gl.uniform1i(uSampler, 0);
+                binded = true;
+            }
+
+            if (Module.glfx) {
+              const prevProgram = gl.getParameter(gl.CURRENT_PROGRAM);
+              const prevActiveTexture = gl.getParameter(gl.ACTIVE_TEXTURE);
+              const prevTexture = gl.getParameter(gl.TEXTURE_BINDING_2D);
+              const prevArrayBuffer = gl.getParameter(gl.ARRAY_BUFFER_BINDING);
+              const prevVertexAttribPosition = gl.getVertexAttrib(vertexPosition, gl.VERTEX_ATTRIB_ARRAY_ENABLED);
+              const prevVertexAttribTextureCoord = gl.getVertexAttrib(textureCoord, gl.VERTEX_ATTRIB_ARRAY_ENABLED);
+
+              bindQuadProgram();
+              fn();
+
+              gl.useProgram(prevProgram);
+              gl.activeTexture(prevActiveTexture);
+              gl.bindTexture(gl.TEXTURE_2D, prevTexture);
+              gl.bindBuffer(gl.ARRAY_BUFFER, prevArrayBuffer);
+              if (!prevVertexAttribPosition) gl.disableVertexAttribArray(vertexPosition);
+              if (!prevVertexAttribTextureCoord) gl.disableVertexAttribArray(textureCoord);
+
+              binded = false;
+            } else {
+              bindQuadProgram();
+              fn();
+            }
+          }
+
+          if (Module.glfx) {
+            Module.unbindFbo = function() {};
+            Module.bindFbo = function(width, height) {
+              Module.unbindFbo();
+
+              // screen viewport
+              gl.viewport(0, 0, width, height);
+
+              const fboTexture = gl.createTexture();
+              gl.bindTexture(gl.TEXTURE_2D, fboTexture);
+              gl.texImage2D(
+                  gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0,
+                  gl.RGBA, gl.UNSIGNED_BYTE, null
+              );
+              gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+              gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+              gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+              gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+
+              const depthStencilBuffer = gl.createRenderbuffer();
+              gl.bindRenderbuffer(gl.RENDERBUFFER, depthStencilBuffer);
+              gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_STENCIL, width, height);
+
+              const fbo = gl.createFramebuffer();
+              gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+
+              gl.framebufferTexture2D(
+                gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, fboTexture, 0
+              );
+
+              gl.framebufferRenderbuffer(
+                gl.FRAMEBUFFER,
+                gl.DEPTH_STENCIL_ATTACHMENT,
+                gl.RENDERBUFFER,
+                depthStencilBuffer
+              );
+
+              if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) !== gl.FRAMEBUFFER_COMPLETE) {
+                console.error("Framebuffer is not complete");
+              }
+
+              gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+
+              Module.fboTexture = fboTexture;
+              Module.fbo = fbo;
+              Module.unbindFbo = function() {
+                gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+                gl.deleteTexture(fboTexture);
+                gl.deleteRenderbuffer(depthStencilBuffer);
+                gl.deleteFramebuffer(fbo);
+              };
+
+              Module.swapbuffers = function() {
+                gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+                withQuadProgram(function() {
+                  gl.bindTexture(gl.TEXTURE_2D, fboTexture);
+                  gl.drawArrays(gl.TRIANGLES, 0, 6);
+                });
+                gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+              };
+            };
+          } else {
+            Module.swapbuffers = function() {
+              console.error("swapbuffers called but glfx is not enabled");
+            };
+          }
 
           let requestAnimationFrameId = null;
           Module.updateTexture = (frame, frameWidth, frameHeight) => {
             if (requestAnimationFrameId === null) {
               requestAnimationFrameId = requestAnimationFrame(() => {
-                gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB,
-                  frameWidth, frameHeight, 0, gl.RGB, gl.UNSIGNED_BYTE,
-                  Module.HEAPU8.slice(frame, frame + frameWidth * frameHeight * 3));
-                gl.drawArrays(gl.TRIANGLES, 0, 6);
+                withQuadProgram(function() {
+                  gl.bindTexture(gl.TEXTURE_2D, screenTexture);
+                  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB,
+                    frameWidth, frameHeight, 0, gl.RGB, gl.UNSIGNED_BYTE,
+                    Module.HEAPU8.slice(frame, frame + frameWidth * frameHeight * 3));
+                  gl.drawArrays(gl.TRIANGLES, 0, 6);
+                });
+
+                if (Module.glfx) {
+                  Module.swapbuffers();
+                }
                 requestAnimationFrameId = null;
               });
             }
@@ -563,6 +672,11 @@ EM_JS(void, emsc_ws_client_frame_set_size, (int width, int height), {
       }
       Module.canvas.width = width;
       Module.canvas.height = height;
+      
+      if (Module.glfx) {
+        Module.bindFbo(width, height);
+      }
+
       Module.gl.viewport(0, 0, width, height);
     }
   
