@@ -1,6 +1,9 @@
 //
 // Created by caiiiycuk on 29.05.25.
 //
+#ifdef EMSCRIPTEN
+#include <emscripten.h>
+#endif
 
 #include <GL/gl.h>
 #include <SDL2/SDL.h>
@@ -8,10 +11,11 @@
 
 #include "hardware/voodoo_emu.h"
 #include "hardware/voodoo_opengl.h"
-#include "hardware/voodoo_def.h"
 #include "hardware/voodoo_data.h"
+#include "hardware/voodoo_def.h"
 #include "logging.h"
 
+#include <protocol.h>
 
 enum SCREEN_TYPES {
   SCREEN_SURFACE,
@@ -1183,6 +1187,9 @@ void voodoo_ogl_draw_triangle(poly_extra_data *extra) {
 		if ( td[t].enable ) {
 			UINT32 TEXMODE = v->tmu[t].reg[textureMode].u;
 			glActiveTexture(GL_TEXTURE0_ARB+t);
+#ifdef GL4ES
+		        glEnable(GL_TEXTURE_2D);
+#endif
 			glBindTexture (GL_TEXTURE_2D, td[t].texID);
 			if (!extra->info->shader_ready) {
 				glEnable (GL_TEXTURE_2D);
@@ -1290,6 +1297,11 @@ void voodoo_ogl_swap_buffer() {
 	VOGL_ClearBeginMode();
 
         glFlush();
+#ifdef EMSCRIPTEN
+        EM_ASM((
+          Module.swapbuffers();
+        ));
+#endif
         SDL_GL_SwapWindow(sdl.window);
 
 	cached_line_front_y=-1;
@@ -1685,11 +1697,11 @@ void voodoo_ogl_reset_videomode(void) {
 	SDL_GL_SetAttribute( SDL_GL_ACCELERATED_VISUAL, 1 );
 #endif
 
-    if (ogl_surface != NULL) {
-		SDL_FreeSurface(ogl_surface);
-		ogl_surface = NULL;
-	}
-
+ //    if (ogl_surface != NULL) {
+	// 	SDL_FreeSurface(ogl_surface);
+	// 	ogl_surface = NULL;
+	// }
+ //
     void GFX_LosingFocus(void), GFX_ReleaseMouse(void), GFX_ForceFullscreenExit(void);
 
     GFX_LosingFocus();
@@ -1705,31 +1717,35 @@ void voodoo_ogl_reset_videomode(void) {
 #endif
 		new_width = v->fbi.width;
 
-    sdl.window = SDL_CreateWindow("DOSBox",
-        SDL_WINDOWPOS_UNDEFINED,
-        SDL_WINDOWPOS_UNDEFINED,
-        new_width,
-        new_height,
-        SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
+    client_frame_set_size(new_width, new_height);
 
-    if (sdl.window == NULL) {
-		printf("ERROR: Could not create SDL2 window\n");
-		abort();
-    }
+    if (!ogl_surface) {
+      sdl.window = SDL_CreateWindow("DOSBox",
+          SDL_WINDOWPOS_UNDEFINED,
+          SDL_WINDOWPOS_UNDEFINED,
+          new_width,
+          new_height,
+          SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
 
-    SDL_GLContext glContext = SDL_GL_CreateContext(sdl.window);
-    if (glContext == NULL) {
+      if (sdl.window == NULL) {
+        printf("ERROR: Could not create SDL2 window\n");
+        abort();
+      }
+
+      SDL_GLContext glContext = SDL_GL_CreateContext(sdl.window);
+      if (glContext == NULL) {
         SDL_DestroyWindow(sdl.window);
-		printf("ERROR: Could not create OpenGL context\n");
-		abort();
-    }
+        printf("ERROR: Could not create OpenGL context\n");
+        abort();
+      }
 
-    ogl_surface = SDL_GetWindowSurface(sdl.window);
-    if (ogl_surface == NULL) {
+      ogl_surface = SDL_GetWindowSurface(sdl.window);
+      if (ogl_surface == NULL) {
         SDL_GL_DeleteContext(glContext);
         SDL_DestroyWindow(sdl.window);
-		printf("ERROR: Could not get window surface\n");
-		abort();
+        printf("ERROR: Could not get window surface\n");
+        abort();
+      }
     }
 
     ApplyPreventCap();
@@ -1906,7 +1922,7 @@ void voodoo_ogl_leave(bool leavemode) {
 	if (leavemode) {
 		LOG_MSG("VOODOO: OpenGL: quit");
 
-        ogl_surface = NULL;
+        // ogl_surface = NULL;
         transparency = 0;
     }
 }
