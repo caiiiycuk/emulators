@@ -1,5 +1,5 @@
-project(js-dos)
 cmake_minimum_required(VERSION 3.21)
+project(js-dos)
 
 set(X86 false)
 set(GL4ES true)
@@ -11,7 +11,47 @@ else ()
 endif ()
 
 if (GL4ES)
+	include(ExternalProject)
 	add_compile_definitions(-DGL4ES=1)
+	set(GL4ES_PREFIX_DIR "${CMAKE_BINARY_DIR}/gl4es")
+	set(GL4ES_INSTALL_DIR "${GL4ES_PREFIX_DIR}/build")
+	set(GL4ES_LIBRARY "${GL4ES_INSTALL_DIR}/lib/libGL.a")
+	set(GL4ES_INCLUDE "${GL4ES_INSTALL_DIR}/include")
+
+	if (EMSCRIPTEN)
+		set(GL4ES_CONFIGURE
+			"emcmake"
+			"${CMAKE_COMMAND}"
+			"-G${CMAKE_GENERATOR}"
+			"-DCMAKE_BUILD_TYPE=Release"
+			"-DNOX11=ON"
+			"-DNOEGL=ON"
+			"-DSTATICLIB=ON"
+			"${GL4ES_INSTALL_DIR}"
+		)
+	else()
+		set(GL4ES_CONFIGURE
+				"${CMAKE_COMMAND}"
+				"-G${CMAKE_GENERATOR}"
+				"-DCMAKE_BUILD_TYPE=Debug"
+				"-DNOX11=ON"
+				"-DNOEGL=ON"
+				"-DSTATICLIB=ON"
+				"${GL4ES_INSTALL_DIR}"
+		)
+	endif()
+
+	ExternalProject_Add(gl4es
+			GIT_REPOSITORY https://github.com/ptitSeb/gl4es.git
+			GIT_TAG a744af14d4afbda77bf472bc53f43b9ceba39cc0
+			UPDATE_DISCONNECTED 1
+			PREFIX "${CMAKE_BINARY_DIR}/gl4es"
+			SOURCE_DIR "${GL4ES_INSTALL_DIR}"
+			CONFIGURE_COMMAND ${GL4ES_CONFIGURE}
+			BUILD_COMMAND "${CMAKE_MAKE_PROGRAM}"
+			BUILD_BYPRODUCTS "${GL4ES_LIBRARY}"
+			INSTALL_COMMAND ""
+	)
 endif()
 
 set(BUILD_NATIVE_LIBZIP true)

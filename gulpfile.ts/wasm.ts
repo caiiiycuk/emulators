@@ -29,6 +29,10 @@ async function makeWDosbox() {
     return await make(".", "build/wasm", "wdosbox");
 }
 
+async function makeGL4ES() {
+    return await make(".", "build/wasm", "gl4es");
+}
+
 async function makeWDosboxX() {
     return await make(".", "build/wasm", "wdosbox-x");
 }
@@ -112,6 +116,7 @@ export const Build = {
 export function wasm(compress: boolean) {
     return series(clean,
         makeWLibZip,
+        makeGL4ES,
         makeWDosbox,
         makeWDosboxX,
         copyAssets,

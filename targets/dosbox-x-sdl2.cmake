@@ -692,9 +692,7 @@ target_include_directories(libdosbox-x-jsdos PUBLIC
         )
 
 if (GL4ES)
-    target_include_directories(libdosbox-x-jsdos PUBLIC
-            "${NATIVE_DIR}/gl4es/include"
-    )
+    target_include_directories(libdosbox-x-jsdos PUBLIC ${GL4ES_INCLUDE})
 endif()
 
 add_executable(dosbox-x-sdl2 ${SOURCES_X_SDL_MAIN})
@@ -719,9 +717,8 @@ if (${EMSCRIPTEN})
     target_compile_options(libdosbox-x-jsdos PUBLIC -fwasm-exceptions)
     add_executable(wdosbox-x "${SRC_DIR}/dos/dosbox/cpp/worker-protocol.cpp")
     set_target_properties(wdosbox-x PROPERTIES SUFFIX .js)
-    target_link_libraries(wdosbox-x libdosbox-x-jsdos libzip "${NATIVE_DIR}/gl4es/lib/libGL.a")
-#     target_link_libraries(wdosbox-x libdosbox-x-jsdos libzip)
-    # TODO: set sERROR_ON_UNDEFINED_SYMBOLS=1
+    target_link_libraries(wdosbox-x libdosbox-x-jsdos libzip "${GL4ES_LIBRARY}")
+
     target_link_options(wdosbox-x PUBLIC
             ${EM_LINK_OPTIONS}
             -fwasm-exceptions
@@ -739,6 +736,8 @@ if (${EMSCRIPTEN})
         #    "-sASYNCIFY_STACK_SIZE=16384"
             "-sEXPORT_NAME='WDOSBOXX'"
             "-sERROR_ON_UNDEFINED_SYMBOLS=1")
+
+    add_dependencies(wdosbox-x gl4es)
 elseif (APPLE)
     target_link_libraries(dosbox-x-sdl2
             ${SDL2_LIBRARIES}
