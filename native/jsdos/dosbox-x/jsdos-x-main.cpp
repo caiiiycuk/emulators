@@ -7945,6 +7945,10 @@ void CPU_OnReset(Section* sec);
 void DISP2_Init(uint8_t color), DISP2_Shut();
 //extern void UI_Init(void);
 void grGlideShutdown(void);
+
+#ifdef GL4ES
+extern bool glfx = false;
+#endif
 int jsdos_main(Config *config) SDL_MAIN_NOEXCEPT {
     bool saved_opt_test;
 
@@ -9026,7 +9030,7 @@ int jsdos_main(Config *config) SDL_MAIN_NOEXCEPT {
         auto voodoo = control->GetSection("voodoo");
         if (voodoo) {
           auto voodoo_card = voodoo->GetPropValue("voodoo_card");
-          if (voodoo_card == "auto" || voodoo_card == "opengl") {
+          if (voodoo_card == "opengl") {
 #ifdef EMSCRIPTEN
             auto webgl = EM_ASM_INT((
               return Module.gl ? 1 : 0;
@@ -9043,12 +9047,19 @@ int jsdos_main(Config *config) SDL_MAIN_NOEXCEPT {
             if (initFlags & SDL_INIT_VIDEO) {
 #ifdef GL4ES
               initialize_gl4es();
+              glfx = true;
+              printf("glfx enabled\n");
+#ifdef EMSCRIPTEN
+              EM_ASM((
+                Module.glfx = true;
+              ));
+#endif
 #endif
             }
           }
         }
 
-        if (SDL_Init(/*SDL_INIT_AUDIO|SDL_INIT_VIDEO|*/initFlags) >= 0)
+        if (SDL_Init(initFlags) >= 0)
             sdl.inited = true;
         else
             E_Exit("Can't init SDL %s",SDL_GetError());

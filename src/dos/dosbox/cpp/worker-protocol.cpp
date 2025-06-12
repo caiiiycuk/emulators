@@ -204,6 +204,7 @@ EM_JS(void, ws_init_runtime, (const char* sessionId), {
         } break;
         case "wc-asyncify-stats": {
           const stats = {
+            glfx: !!Module.glfx,
             offscreenCanvas: !!Module.canvas,
             messageSent: Module.messageSent,
             messageReceived: Module.messageReceived,
@@ -429,7 +430,7 @@ EM_JS(void, ws_init_runtime, (const char* sessionId), {
 
           Module.preinitializedWebGLContext = gl;
           Module.gl = gl;
-          Module.glfx = true;
+          Module.glfx = false;
 
           const vsSource = `
             attribute vec4 aVertexPosition;
@@ -581,11 +582,11 @@ EM_JS(void, ws_init_runtime, (const char* sessionId), {
             }
           }
 
-          if (Module.glfx) {
-            Module.unbindFbo = function() {};
-            Module.bindFbo = function(width, height) {
-              Module.unbindFbo();
+          Module.unbindGL = function() {};
+          Module.bind3Dfx = function(width, height) {
+            Module.unbindGL();
 
+            if (Module.glfx) {
               // screen viewport
               gl.viewport(0, 0, width, height);
 
@@ -626,7 +627,7 @@ EM_JS(void, ws_init_runtime, (const char* sessionId), {
 
               Module.fboTexture = fboTexture;
               Module.fbo = fbo;
-              Module.unbindFbo = function() {
+              Module.unbindGL = function() {
                 gl.bindFramebuffer(gl.FRAMEBUFFER, null);
                 gl.deleteTexture(fboTexture);
                 gl.deleteRenderbuffer(depthStencilBuffer);
@@ -641,12 +642,15 @@ EM_JS(void, ws_init_runtime, (const char* sessionId), {
                 }, true);
                 gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
               };
-            };
-          } else {
-            Module.swapbuffers = function() {
-              console.error("swapbuffers called but glfx is not enabled");
-            };
-          }
+            } else {
+              Module.swapbuffers = function() {
+                console.error("swapbuffers called but glfx is not enabled");
+              };
+              Module.unbindGL = function() {};
+            }
+
+            Module.gl.viewport(0, 0, width, height);
+          };
 
           let requestAnimationFrameId = null;
           Module.updateTexture = (frame, frameWidth, frameHeight) => {
@@ -685,11 +689,7 @@ EM_JS(void, emsc_ws_client_frame_set_size, (int width, int height), {
       Module.canvas.width = width;
       Module.canvas.height = height;
       
-      if (Module.glfx) {
-        Module.bindFbo(width, height);
-      }
-
-      Module.gl.viewport(0, 0, width, height);
+      Module.bind3Dfx(width, height);
     }
   
     Module.sendMessage("ws-frame-set-size", {width : width, height : height});

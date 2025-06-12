@@ -88,6 +88,7 @@ export interface DataChunk {
 }
 
 export interface AsyncifyStats {
+    glfx?: boolean,
     offscreenCanvas?: boolean,
     messageSent: number,
     messageReceived: number,
