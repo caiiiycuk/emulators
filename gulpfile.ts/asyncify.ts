@@ -32,7 +32,10 @@ async function doAsyncifyAdd(asyncifyFile: string) {
     for (const next of entries) {
         const fnSig = extractFnSignature(next);
         const simpleName = extractSimpleName(fnSig);
-        if (simpleName !== null && functionsSet[simpleName] === undefined) {
+        if (simpleName !== null && functionsSet[simpleName] === undefined &&
+            !simpleName.startsWith("Module.") && simpleName !== "doRewind" &&
+            simpleName !== "ret.<computed>" && simpleName.length > 0
+        ) {
             newEntries.push(simpleName);
             functionsSet[simpleName] = 1;
         }
