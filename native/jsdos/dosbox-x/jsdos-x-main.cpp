@@ -9079,6 +9079,9 @@ int jsdos_main(Config *config) SDL_MAIN_NOEXCEPT {
             sdl.inited = true;
         else
             E_Exit("Can't init SDL %s",SDL_GetError());
+
+        SDL_SetHint(SDL_HINT_EMSCRIPTEN_ASYNCIFY, "false");
+
 #if defined(C_SDL2)
         SDL_version sdl_version;
         SDL_GetVersion(&sdl_version);
