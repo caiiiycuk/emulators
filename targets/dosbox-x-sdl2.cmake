@@ -724,9 +724,16 @@ if (${EMSCRIPTEN})
             -fwasm-exceptions
             "-sUSE_ZLIB=1"
             "-sUSE_SDL=2"
-            "-sFULL_ES2=1"
+
             "-sGL_MAX_TEMP_BUFFER_SIZE=32Mb"
             "-sGL_PREINITIALIZED_CONTEXT=1"
+            "-sGL_TRACK_ERRORS=0"
+            "-sMAX_WEBGL_VERSION=1"
+            "-sMIN_WEBGL_VERSION=1"
+            "-sGL_POOL_TEMP_BUFFERS=1"
+            "-sFULL_ES2=1"
+        #     "-sGL_ASSERTIONS=1"
+
         #     "--profiling-funcs"
         #     "-sASSERTIONS=1"
         #     "-sSAFE_HEAP=2"
