@@ -449,7 +449,7 @@ EM_JS(void, ws_init_runtime, (const char* sessionId), {
 
 
             void main(void) {
-              highp vec4 color = texture2D(uSampler, ${Module.glfx ? "vec2(vTextureCoord.x, 1.0 - vTextureCoord.y)" : "vTextureCoord"});
+              highp vec4 color = texture2D(uSampler, vTextureCoord);
               gl_FragColor = vec4(color.r, color.g, color.b, 1.0);
             }
           `;
@@ -513,6 +513,18 @@ EM_JS(void, ws_init_runtime, (const char* sessionId), {
           gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(textureCoordinates),
               gl.STATIC_DRAW);
 
+          const textureCoordinatesFlippedBuffer = gl.createBuffer();
+          const textureCoordinatesFlipped = [
+              0.0, 0.0,
+              1.0, 0.0,
+              1.0, 1.0,
+              0.0, 0.0,
+              1.0, 1.0,
+              0.0, 1.0,
+          ];
+          gl.bindBuffer(gl.ARRAY_BUFFER, textureCoordinatesFlippedBuffer);
+          gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(textureCoordinatesFlipped), gl.STATIC_DRAW);
+
           const screenTexture = gl.createTexture();
           gl.bindTexture(gl.TEXTURE_2D, screenTexture);
           gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
@@ -525,7 +537,7 @@ EM_JS(void, ws_init_runtime, (const char* sessionId), {
               1, 1, 0, gl.RGB, gl.UNSIGNED_BYTE,
               pixel);
 
-          function withQuadProgram(fn) {
+          function withQuadProgram(fn, flipped) {
             let binded = false;
             function bindQuadProgram() {
                 if (binded) {
@@ -535,7 +547,7 @@ EM_JS(void, ws_init_runtime, (const char* sessionId), {
                 gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
                 gl.vertexAttribPointer(vertexPosition, 3, gl.FLOAT, false, 0, 0);
                 gl.enableVertexAttribArray(vertexPosition);
-                gl.bindBuffer(gl.ARRAY_BUFFER, textureCoordBuffer);
+                gl.bindBuffer(gl.ARRAY_BUFFER, flipped ? textureCoordinatesFlippedBuffer : textureCoordBuffer);
                 gl.vertexAttribPointer(textureCoord, 2, gl.FLOAT, false, 0, 0);
                 gl.enableVertexAttribArray(textureCoord);
                 gl.useProgram(quadProgram);
@@ -626,7 +638,7 @@ EM_JS(void, ws_init_runtime, (const char* sessionId), {
                 withQuadProgram(function() {
                   gl.bindTexture(gl.TEXTURE_2D, fboTexture);
                   gl.drawArrays(gl.TRIANGLES, 0, 6);
-                });
+                }, true);
                 gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
               };
             };
@@ -646,7 +658,7 @@ EM_JS(void, ws_init_runtime, (const char* sessionId), {
                     frameWidth, frameHeight, 0, gl.RGB, gl.UNSIGNED_BYTE,
                     Module.HEAPU8.slice(frame, frame + frameWidth * frameHeight * 3));
                   gl.drawArrays(gl.TRIANGLES, 0, 6);
-                });
+                }, false);
 
                 if (Module.glfx) {
                   Module.swapbuffers();
