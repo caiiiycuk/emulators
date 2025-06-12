@@ -727,13 +727,13 @@ if (${EMSCRIPTEN})
             "-sFULL_ES2=1"
             "-sGL_MAX_TEMP_BUFFER_SIZE=32Mb"
             "-sGL_PREINITIALIZED_CONTEXT=1"
-            "--profiling-funcs"
+        #     "--profiling-funcs"
         #     "-sASSERTIONS=1"
         #     "-sSAFE_HEAP=2"
             "-sASYNCIFY=1"
             "-sASYNCIFY_IMPORTS=['syncSleep']"
-        #    "-sASYNCIFY_WHITELIST=@${TARGETS_DIR}/dosbox-x-asyncify.txt"
-        #    "-sASYNCIFY_STACK_SIZE=16384"
+            "-sASYNCIFY_WHITELIST=@${TARGETS_DIR}/dosbox-x-asyncify.txt"
+        #     "-sASYNCIFY_STACK_SIZE=16384"
             "-sEXPORT_NAME='WDOSBOXX'"
             "-sERROR_ON_UNDEFINED_SYMBOLS=1")
 
