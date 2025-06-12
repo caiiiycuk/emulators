@@ -549,7 +549,7 @@ void ogl_printInfoLog(GLhandleARB obj)
     {
 		char *infoLog = (char *)malloc((size_t)infologLength);
 		db_glGetInfoLogARB(obj, infologLength, &charsWritten, infoLog);
-		LOG_MSG("%s\n",infoLog);
+		printf("%s\n",infoLog);
 		free(infoLog);
     } else {
 		printf("INFO: No info log for %p\n", obj);
@@ -1697,11 +1697,11 @@ void voodoo_ogl_reset_videomode(void) {
 	SDL_GL_SetAttribute( SDL_GL_ACCELERATED_VISUAL, 1 );
 #endif
 
- //    if (ogl_surface != NULL) {
-	// 	SDL_FreeSurface(ogl_surface);
-	// 	ogl_surface = NULL;
-	// }
- //
+    // if (ogl_surface != NULL) {
+    //   SDL_FreeSurface(ogl_surface);
+    //   ogl_surface = NULL;
+    // }
+
     void GFX_LosingFocus(void), GFX_ReleaseMouse(void), GFX_ForceFullscreenExit(void);
 
     GFX_LosingFocus();
@@ -1774,10 +1774,10 @@ void voodoo_ogl_reset_videomode(void) {
 	if (SDL_GL_GetAttribute(SDL_GL_BLUE_SIZE, &value) == 0) {
 		if (value < 8) few_colors = true;
 	}
-	if (few_colors) LOG_MSG("opengl: warning: graphics mode with insufficient color depth");
+	if (few_colors) printf("opengl: warning: graphics mode with insufficient color depth\n");
 
 	if (SDL_GL_GetAttribute(SDL_GL_DEPTH_SIZE, &value) == 0) {
-		if (value < 24) LOG_MSG("opengl: warning: depth buffer with insufficient resolution");
+		if (value < 24) printf("opengl: warning: depth buffer with insufficient resolution\n");
 	}
 
 	if (SDL_GL_GetAttribute(SDL_GL_STENCIL_SIZE, &value) == 0) {
@@ -1793,7 +1793,7 @@ void voodoo_ogl_reset_videomode(void) {
 	GLint depth_csize;
 	glGetIntegerv(GL_DEPTH_BITS, &depth_csize);
 	if (depth_csize < 16) {
-		LOG_MSG("VOODOO: OpenGL: invalid depth size %d",depth_csize);
+		printf("VOODOO: OpenGL: invalid depth size %d\n",depth_csize);
 	}
 
 #if defined(WIN32) && !defined(C_SDL2)
@@ -1807,7 +1807,7 @@ void voodoo_ogl_reset_videomode(void) {
 	/* Something in Windows keeps changing the shade model on us from the last glShadeModel() call. Change it back. */
 	glShadeModel(GL_SMOOTH);
 
-	LOG_MSG("VOODOO: OpenGL: mode set, resolution %d:%d", new_width, new_height);
+	printf("VOODOO: OpenGL: mode set, resolution %d:%d\n", new_width, new_height);
 }
 
 void voodoo_ogl_update_dimensions(void) {
@@ -1825,6 +1825,9 @@ void voodoo_ogl_update_dimensions(void) {
 	glMatrixMode( GL_PROJECTION );
 }
 
+#ifdef GL4ES
+extern bool glfx;
+#endif
 bool voodoo_ogl_init(voodoo_state *v) {
 	extern void CPU_Core_Dyn_X86_SetFPUMode(bool dh_fpu);
 //	CPU_Core_Dyn_X86_SetFPUMode(false);
@@ -1832,6 +1835,11 @@ bool voodoo_ogl_init(voodoo_state *v) {
 	extern void CPU_Core_Dyn_X86_Cache_Reset(void);
 //	CPU_Core_Dyn_X86_Cache_Reset();
 
+#ifdef GL4ES
+        if (!glfx) {
+          return false;
+        }
+#endif
 
 	voodoo_ogl_reset_videomode();
 
@@ -1920,7 +1928,7 @@ void voodoo_ogl_leave(bool leavemode) {
 	cached_line_back_y=-1;
 
 	if (leavemode) {
-		LOG_MSG("VOODOO: OpenGL: quit");
+		printf("VOODOO: OpenGL: quit\n");
 
         // ogl_surface = NULL;
         transparency = 0;
