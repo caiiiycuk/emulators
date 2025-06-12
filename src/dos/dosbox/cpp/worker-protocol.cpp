@@ -423,7 +423,15 @@ EM_JS(void, ws_init_runtime, (const char* sessionId), {
             };
           }
 
-          const gl = Module.canvas.getContext("webgl");
+          const gl = Module.canvas.getContext("webgl", {
+            alpha: false,
+            antialias: false,
+            depth: false,
+            stencil: false,
+            preserveDrawingBuffer: false,
+            desynchronized: false,
+            powerPreference: "high-performance",
+          });
           if (!gl) {
             throw new Error("Unable to get WebGL context");
           }

@@ -1659,6 +1659,7 @@ void voodoo_ogl_set_window(voodoo_state *v) {
 }
 
 void voodoo_ogl_reset_videomode(void) {
+	printf("voodoo_ogl_reset_videomode\n");
 	last_clear_color=0;
 
 	last_width=0;
