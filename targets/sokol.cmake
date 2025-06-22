@@ -31,7 +31,7 @@ else ()
     add_executable(dosbox-x-sokol
             ${SOURCES_SOKOL}
             ${SOURCES_SOKOL_CLIENT}
-            "${NATIVE_DIR}/jsdos/sockdrive/sockdrive-noop.cpp"
+            "${NATIVE_DIR}/jsdos/sockdrive/sockdrive-sokol.cpp"
     )
     target_link_libraries(dosbox-x-sokol libdosbox-x-jsdos)
 
@@ -90,5 +90,6 @@ else ()
         target_compile_definitions(dosbox-sokol PUBLIC -DX86)
     else ()
         set_target_properties(dosbox-sokol PROPERTIES COMPILE_FLAGS "-m32" LINK_FLAGS "-m32")
+        set_target_properties(dosbox-x-sokol PROPERTIES COMPILE_FLAGS "-m32" LINK_FLAGS "-m32")
     endif ()
 endif ()
