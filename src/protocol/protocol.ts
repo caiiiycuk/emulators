@@ -169,6 +169,7 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
     private network: { [id: number]: WebSocket } = {};
 
     private sockdrives: { [handle: number]: Drive } = {};
+    private sockdrivePreload: "all" | "default" | "none";
 
     public options: BackendOptions;
 
@@ -182,6 +183,7 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
         this.ready = ready;
         this.configPromise = new Promise<DosConfig>((resolve) => this.configResolve = resolve);
         this.transport.initMessageHandler(this.onServerMessage.bind(this));
+        this.sockdrivePreload = options.sockdrivePreload ?? "default";
     }
 
     private sendClientMessage(name: ClientMessage, props?: { [key: string]: any }, transfer?: [ArrayBuffer]) {
@@ -435,7 +437,7 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
                         range: range,
                         buffer,
                     });
-                }).then((drive) => {
+                }, this.sockdrivePreload).then((drive) => {
                     this.sockdrives[props.handle] = drive;
                     const emptyRanges = Array.from(drive.info.dropped_ranges);
                     this.sendClientMessage("wc-sockdrive-opened", {

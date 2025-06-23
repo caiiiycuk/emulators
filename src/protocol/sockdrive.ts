@@ -32,13 +32,21 @@ export interface Drive {
     persist(): Promise<Uint8Array | null>;
 }
 
-export async function sockdrive(url: string, _onNewRange: (range: number, buffer: Uint8Array) => void): Promise<Drive> {
+export async function sockdrive(url: string,
+                                _onNewRange: (range: number, buffer: Uint8Array) => void,
+                                preloadMode: "all" | "default" | "none"): Promise<Drive> {
     const store = await getStore(url);
     const response = await fetch(url + "/sockdrive.metaj");
     const info = await response.json() as DriveInfo;
+    try {
+        info.preload_ranges = await (await fetch(url + "/preload_ranges.metaj")).json();
+    } catch (e) {
+        // ignore
+    }
     info.url = url;
     info.readInBytes = 0;
     info.writeInBytes = 0;
+    const loadedRanges: Set<number> = new Set();
 
     if (info.small_ranges === undefined) {
         info.small_ranges = [];
@@ -80,14 +88,18 @@ export async function sockdrive(url: string, _onNewRange: (range: number, buffer
 
     const loadQueue: number[] = [];
     const preloaded = new Set<number>();
-    if (info.preload_ranges !== "_") {
+    if (preloadMode === "none") {
+        console.warn("Preload mode is disabled");
+    } else if (info.preload_ranges !== "_" && preloadMode !== "all") {
         for (const next of info.preload_ranges) {
-            loadQueue.push(next);
-            preloaded.add(next);
+            if (!loaded.has(next)) {
+                loadQueue.push(next);
+                preloaded.add(next);
+            }
         }
     } else {
         for (let i = 0; i < info.range_count; i++) {
-            if (!loaded.has(i) && !preloaded.has(i)) {
+            if (!loaded.has(i)) {
                 loadQueue.push(i);
             }
         }
@@ -286,6 +298,18 @@ export async function sockdrive(url: string, _onNewRange: (range: number, buffer
         return sectors;
     }
 
+    (window as any).loadedRanges = () => {
+        console.log("Loaded ranges (" + loadedRanges.size + "):",
+            JSON.stringify(Array.from(loadedRanges).sort((a, b) => a - b)));
+    };
+
+    (window as any).brotliRanges = () => {
+        console.log("Loaded ranges (" + loadedRanges.size + "):",
+            "echo '" +
+            JSON.stringify(Array.from(loadedRanges).sort((a, b) => a - b)) +
+            "' | brotli > /tmp/preload_ranges.metaj");
+    };
+
     (window as any).verifySectors = () => {
         if (storedSectors.size === 0) {
             return;
@@ -335,6 +359,7 @@ export async function sockdrive(url: string, _onNewRange: (range: number, buffer
         info,
         range,
         readRangeAsync: async (range: number) => {
+            loadedRanges.add(range);
             if (!loaded.has(range)) {
                 loaded.add(range);
                 loadRange(range);
