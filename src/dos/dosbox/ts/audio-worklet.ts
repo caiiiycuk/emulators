@@ -1,8 +1,15 @@
 
-export async function createAudioPort() {
+export async function createAudioPort(): Promise<MessagePort | undefined> {
     const blob = new Blob([code], { type: "application/javascript" });
     const url = URL.createObjectURL(blob);
-    const context = new AudioContext({ sampleRate: 44100 });
+    const context = new AudioContext({
+        sampleRate: 44100,
+        latencyHint: "interactive",
+    });
+    if (context.sampleRate !== 44100) {
+        console.error("sample rate is", context.sampleRate, "expected 44100, can't create worklet");
+        return undefined;
+    }
     await context.audioWorklet.addModule(url);
     const node = new AudioWorkletNode(context, "jsdos-audio", {
         numberOfInputs: 0,
