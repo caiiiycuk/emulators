@@ -30,6 +30,10 @@ if (worker) {
                 module.canvas = data.props.canvas;
             }
 
+            if (data.props.audioPort !== undefined) {
+                module.audioPort = data.props.audioPort;
+            }
+
             @MODULE_NAME@(module).catch(console.error);
             return;
         }

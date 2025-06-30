@@ -1,15 +1,18 @@
 import { WasmModule } from "../../../impl/modules";
 import { TransportLayer, MessageHandler, ClientMessage, ServerMessage } from "../../../protocol/protocol";
 import { MessagesQueue } from "../../../protocol/messages-queue";
+import { createAudioPort } from "./audio-worklet";
 
-export async function dosDirect(wasmModule: WasmModule, sessionId: string,
-                                canvas?: OffscreenCanvas): Promise<TransportLayer> {
+export async function dosDirect(wasmModule: WasmModule,
+                                sessionId: string,
+                                canvas?: OffscreenCanvas,
+                                audioWorklet?: boolean): Promise<TransportLayer> {
     const messagesQueue = new MessagesQueue();
     let handler: MessageHandler = messagesQueue.handler.bind(messagesQueue);
 
     const module: any = {};
 
-    module.postMessage = (name: ServerMessage, props: {[key: string]: any}) => {
+    module.postMessage = (name: ServerMessage, props: { [key: string]: any }) => {
         handler(name, props);
     };
 
@@ -22,7 +25,7 @@ export async function dosDirect(wasmModule: WasmModule, sessionId: string,
 
     const transportLayer: TransportLayer = {
         sessionId,
-        sendMessageToServer: (name: ClientMessage, props?: {[key: string]: any}) => {
+        sendMessageToServer: (name: ClientMessage, props?: { [key: string]: any }) => {
             module.messageHandler({ data: { name, props } });
         },
         initMessageHandler: (newHandler: MessageHandler) => {
@@ -43,6 +46,9 @@ export async function dosDirect(wasmModule: WasmModule, sessionId: string,
     }
 
     module.canvas = canvas;
+    if (audioWorklet) {
+        module.audioPort = await createAudioPort();
+    }
     await wasmModule.instantiate(module);
     module.callMain([sessionId]);
 
