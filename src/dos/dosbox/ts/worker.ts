@@ -54,7 +54,9 @@ export async function dosWorker(workerUrl: string,
 
     if (audioWorklet) {
         audioPort = await createAudioPort();
-        transfer.push(audioPort);
+        if (audioPort) {
+            transfer.push(audioPort);
+        }
     }
 
     try {
