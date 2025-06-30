@@ -71,7 +71,7 @@ export interface TransportLayer {
     sessionId: string;
     sendMessageToServer(name: ClientMessage,
         props: { [key: string]: any },
-        transfer?: (ArrayBuffer | OffscreenCanvas)[]): void;
+        transfer?: Transferable[]): void;
     initMessageHandler(handler: MessageHandler): void;
     exit?: () => void;
 }

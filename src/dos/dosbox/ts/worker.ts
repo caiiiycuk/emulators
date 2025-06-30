@@ -1,11 +1,13 @@
 import { WasmModule } from "../../../impl/modules";
 import { TransportLayer, MessageHandler, ClientMessage } from "../../../protocol/protocol";
 import { MessagesQueue } from "../../../protocol/messages-queue";
+import { createAudioPort } from "./audio-worklet";
 
 export async function dosWorker(workerUrl: string,
                                 wasmModule: WasmModule,
                                 sessionId: string,
-                                canvas?: OffscreenCanvas): Promise<TransportLayer> {
+                                canvas?: OffscreenCanvas,
+                                audioWorklet?: boolean): Promise<TransportLayer> {
     const messagesQueue = new MessagesQueue();
     let handler: MessageHandler = messagesQueue.handler.bind(messagesQueue);
 
@@ -47,18 +49,26 @@ export async function dosWorker(workerUrl: string,
         },
     };
 
-    const transfer = canvas ? [canvas] : [];
+    const transfer: Transferable[] = canvas ? [canvas] : [];
+    let audioPort;
+
+    if (audioWorklet) {
+        audioPort = await createAudioPort();
+        transfer.push(audioPort);
+    }
 
     try {
         transportLayer.sendMessageToServer("wc-install", {
             module: (wasmModule as any).wasmModule,
             sessionId,
             canvas,
+            audioPort,
         }, transfer);
     } catch (e) {
         transportLayer.sendMessageToServer("wc-install", {
             sessionId,
             canvas,
+            audioPort,
         }, transfer);
     }
 

@@ -736,7 +736,11 @@ EM_JS(void, emsc_end_frame_update, (uint8_t* frameRgb, uint32_t frameWidth, uint
   });
 
 EM_JS(void, emsc_ws_client_sound_init, (int freq), {
-    Module.sendMessage("ws-sound-init", { freq : freq });
+    if (Module.audioPort) {
+      Module.sendMessage("ws-sound-init", { freq : 0 });
+    } else {
+      Module.sendMessage("ws-sound-init", { freq : freq });
+    }
   });
 
 EM_JS(void, emsc_ws_client_sound_push, (const float *samples, int num_samples), {
@@ -746,9 +750,13 @@ EM_JS(void, emsc_ws_client_sound_push, (const float *samples, int num_samples), 
   
     ++Module.messageSound;
     const heapf32 = Module.HEAPF32.slice(samples / 4, samples / 4 + num_samples);
+    if (Module.audioPort) {
+      Module.audioPort.postMessage(heapf32, [heapf32.buffer]);
+    } else {
       Module.sendMessage("ws-sound-push", 
         { samples: heapf32 },
         [ heapf32.buffer ]);
+    }
   });
 
 EM_JS(void, emsc_ws_exit_runtime, (), {

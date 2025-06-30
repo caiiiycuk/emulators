@@ -20,6 +20,7 @@ export interface BackendOptions {
     token?: string | undefined;
     onExtractProgress?: (bundleIndex: number, file: string, extracted: number, total: number) => void;
     canvas?: OffscreenCanvas;
+    audioWorklet?: boolean;
     sockdrivePreload?: "all" | "default" | "none";
 }
 

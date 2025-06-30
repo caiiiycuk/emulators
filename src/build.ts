@@ -5,14 +5,14 @@
 // gulpfile.ts/wasm.ts --> generateBuildInfo
 
 export const Build = {
-    version: "8.3.9 (250492a3a8d8c1ab1263c2f8e92fb794)",
-    buildSeed: 1749728787361,
+    version: "8.3.9 (25fae27a9ed8a82352412abe0f62ff3e)",
+    buildSeed: 1751268957397,
     "wdosbox-x.wasm": {
-        "size": 8048929,
+        "size": 7906416,
         "gzSize": 0
     },
     "wdosbox-x.js": {
-        "size": 236717,
+        "size": 236386,
         "gzSize": 0
     },
     "wdosbox.wasm": {
@@ -20,7 +20,7 @@ export const Build = {
         "gzSize": 0
     },
     "wdosbox.js": {
-        "size": 109493,
+        "size": 109787,
         "gzSize": 0
     },
     "wlibzip.wasm": {
