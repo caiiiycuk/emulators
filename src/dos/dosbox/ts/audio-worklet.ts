@@ -1,32 +1,37 @@
 
 export async function createAudioPort(): Promise<MessagePort | undefined> {
-    const blob = new Blob([code], { type: "application/javascript" });
-    const url = URL.createObjectURL(blob);
-    const context = new AudioContext({
-        sampleRate: 44100,
-        latencyHint: "interactive",
-    });
-    if (context.sampleRate !== 44100) {
-        console.error("sample rate is", context.sampleRate, "expected 44100, can't create worklet");
+    try {
+        const blob = new Blob([code], { type: "application/javascript" });
+        const url = URL.createObjectURL(blob);
+        const context = new AudioContext({
+            sampleRate: 44100,
+            latencyHint: "interactive",
+        });
+        if (context.sampleRate !== 44100) {
+            console.error("sample rate is", context.sampleRate, "expected 44100, can't create worklet");
+            return undefined;
+        }
+        await context.audioWorklet.addModule(url);
+        const node = new AudioWorkletNode(context, "jsdos-audio", {
+            numberOfInputs: 0,
+            numberOfOutputs: 1,
+            outputChannelCount: [1],
+        });
+        node.connect(context.destination);
+
+        const resumeWebAudio = () => {
+            if (context !== null && context.state === "suspended") {
+                context.resume().catch(console.error);
+            }
+        };
+        document.addEventListener("pointerdown", resumeWebAudio, { once: true, capture: true });
+        document.addEventListener("keydown", resumeWebAudio, { once: true, capture: true });
+
+        return node.port;
+    } catch (e) {
+        console.error("error creating audio port", e);
         return undefined;
     }
-    await context.audioWorklet.addModule(url);
-    const node = new AudioWorkletNode(context, "jsdos-audio", {
-        numberOfInputs: 0,
-        numberOfOutputs: 1,
-        outputChannelCount: [1],
-    });
-    node.connect(context.destination);
-
-    const resumeWebAudio = () => {
-        if (context !== null && context.state === "suspended") {
-            context.resume().catch(console.error);
-        }
-    };
-    document.addEventListener("pointerdown", resumeWebAudio, { once: true, capture: true });
-    document.addEventListener("keydown", resumeWebAudio, { once: true, capture: true });
-
-    return node.port;
 }
 
 const code = ` 
