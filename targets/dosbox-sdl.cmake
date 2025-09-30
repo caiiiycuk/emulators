@@ -17,6 +17,7 @@ set_source_files_properties(${SOURCES_SDL_CXX03} PROPERTIES COMPILE_FLAGS "${COR
 set(SOURCES_SERVER_SDL ${SOURCES_SERVER_CORE} ${SOURCES_SDL_CXX03})
 
 add_executable(dosbox-sdl ${SOURCES_SERVER_SDL})
+target_compile_definitions(dosbox-sdl PUBLIC -DJSDOS_SDL)
 target_include_directories(dosbox-sdl PUBLIC "${SDL_INCLUDE_DIR}/..")
 target_link_libraries(dosbox-sdl libdosbox-core)
 

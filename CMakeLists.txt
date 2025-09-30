@@ -1,8 +1,14 @@
 cmake_minimum_required(VERSION 3.21)
 project(js-dos)
 
+set(USE_HUMBLENET false)
+if (USE_HUMBLENET)
+	add_definitions(-DUSE_HUMBLENET)
+	set(HUMBLENET_LIBRARY_PATH "$ENV{HOME}/js-dos/HumbleNet/cmake-build-debug-ssl/")
+endif()
+
 set(X86 false)
-set(GL4ES true)
+set(GL4ES false)
 if (${EMSCRIPTEN})
 	set(X86_64 false)
 	set(GL4ES true)
@@ -27,6 +33,7 @@ if (GL4ES)
 			"-DNOX11=ON"
 			"-DNOEGL=ON"
 			"-DSTATICLIB=ON"
+			"-DCMAKE_POLICY_VERSION_MINIMUM=3.5"
 			"${GL4ES_INSTALL_DIR}"
 		)
 	else()
@@ -37,6 +44,7 @@ if (GL4ES)
 				"-DNOX11=ON"
 				"-DNOEGL=ON"
 				"-DSTATICLIB=ON"
+				"-DCMAKE_POLICY_VERSION_MINIMUM=3.5"
 				"${GL4ES_INSTALL_DIR}"
 		)
 	endif()
@@ -118,6 +126,10 @@ include_directories(
 		"${SRC_DIR}/protocol"
 		"${NATIVE_DIR}/sockdrive/include"
 )
+
+if (USE_HUMBLENET)
+	include_directories("${NATIVE_DIR}/humblenet/src/humblenet/include")
+endif()
 
 # tier 1
 include("${TARGETS_DIR}/zip.cmake")

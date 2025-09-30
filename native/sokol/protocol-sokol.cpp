@@ -3,6 +3,7 @@
 //
 
 #include <jsdos-timer.h>
+#include <jsdos-net.h>
 #include <protocol.h>
 #include <timer.h>
 
@@ -20,7 +21,12 @@
 #include "../sokol-lib/sokol_gfx.h"
 #include "shaders.h"
 #endif
+#include <unistd.h>
+
 #include "../sokol-lib/sokol_log.h"
+#ifdef USE_HUMBLENET
+#include "humblenet_p2p.h"
+#endif
 
 #ifdef JSDOS_X
 #include <SDL.h>
@@ -171,7 +177,7 @@ void client_sound_push(const float *samples, int num_samples) {
 }
 
 void client_network_connected(NetworkType networkType, const char* address) {
-  printf("Network %d connected to %s:%d\n", networkType, address);
+  printf("Network %d connected to %s\n", networkType, address);
 }
 
 void client_network_disconnected(NetworkType networkType) {
@@ -239,27 +245,90 @@ void sokolKeyEvent(const sapp_event *event) {
   server_add_key(keyCode, pressed, GetMsPassedFromStart());
 }
 
-void client_tick() {
-}
-
 void runRuntime() {
   std::thread server(server_run);
   client_run();
   server.join();
 }
 
+#ifdef USE_HUMBLENET
+struct PeerData {
+  void* datap;
+  int len;
+};
+bool peerConnectionEstablished = false;
+#endif
+
 int main(int argc, char *argv[]) {
+#ifdef USE_HUMBLENET
+  humblenet_init();
+  if (!humblenet_p2p_init("localhost:8080", "sokol", "21e21red", "qweqw2")) {
+    printf("Can't init humblenet\n");
+    return 1;
+  }
+
+  while (humblenet_p2p_get_my_peer_id() == 0) {
+    humblenet_p2p_wait(4);
+  }
+
+  jsdos::myPeerId = humblenet_p2p_get_my_peer_id();
+#endif
   runRuntime();
   return 0;
 }
 
+void client_tick() {
+#ifdef USE_HUMBLENET
+  humblenet_p2p_wait(0);
+
+  static void* buffer = malloc(1024 * 1024);
+  PeerId fromPeer;
+  int len;
+  while ((len = humblenet_p2p_recvfrom(buffer, 1024 * 1024, &fromPeer, 0)) > 0) {
+    void* data = malloc(len);
+    memcpy(data, buffer, len);
+    client_net_recv(NETWORK_DOSBOX_IPX, data, len);
+  }
+#endif
+}
+
 int server_net_connect(const char* address) {
+#ifdef USE_HUMBLENET
+    peerConnectionEstablished = false;
+    return NETWORK_DOSBOX_IPX;
+#else
     return NETWORK_NA;
+#endif
 }
-int server_net_send(int networkId, const void *datap, int len) {
+int server_net_send(uint32_t peerId, const void *datap, int len) {
+#ifdef USE_HUMBLENET
+    int result = humblenet_p2p_sendto(datap, len, peerId, SendMode::SEND_RELIABLE, 0);
+    double startedAt = GetMsPassedFromStart();
+    while (!peerConnectionEstablished) {
+        if (result != 0) {
+          peerConnectionEstablished = true;
+          break;
+        }
+
+        if (GetMsPassedFromStart() - startedAt > 5000) {
+          return -1;
+        }
+
+        humblenet_p2p_wait(0);
+        sleep(1);
+        result = humblenet_p2p_sendto(datap, len, peerId, SendMode::SEND_RELIABLE, 0);
+    }
+    return result;
+#else
     return -1;
+#endif
 }
-void server_net_disconnect(int networkId) {
+void server_net_disconnect(uint32_t peerId) {
+#ifdef USE_HUMBLENET
+  if (peerId != 0) {
+    humblenet_p2p_disconnect(peerId);
+  }
+#endif
 }
 
 void server_unload() {
