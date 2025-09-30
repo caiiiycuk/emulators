@@ -649,9 +649,8 @@ set(SOURCES_X_JSDOS_MAIN
         "${NATIVE_DIR}/jsdos/dosbox-x/jsdos-x-mixer.cpp"
         "${NATIVE_DIR}/jsdos/dosbox-x/jsdos-x-main.cpp"
         "${NATIVE_DIR}/jsdos/jsdos-ipx.cpp"
-        "${NATIVE_DIR}/sdl2net/SDLnet.c"
-        "${NATIVE_DIR}/sdl2net/SDLnetTCP.c"
-        "${NATIVE_DIR}/sdl2net/SDLnetselect.c"
+        "${NATIVE_DIR}/jsdos/jsdos-ipxserver.cpp"
+        "${NATIVE_DIR}/jsdos/jsdos-net.cpp"
         )
 
 add_library(libdosbox-x-sdl2 OBJECT ${SOURCES_X_SDL} ${SOURCES_X_CORE} ${SOURCES_X_JSDOS_CORE})
@@ -696,6 +695,7 @@ if (GL4ES)
 endif()
 
 add_executable(dosbox-x-sdl2 ${SOURCES_X_SDL_MAIN})
+target_compile_definitions(dosbox-x-sdl2 PUBLIC -DJSDOS_SDL)
 target_link_libraries(dosbox-x-sdl2 libdosbox-x-sdl2)
 set_property(TARGET dosbox-x-sdl2 PROPERTY CXX_STANDARD 11)
 

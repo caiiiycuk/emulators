@@ -33,7 +33,13 @@ else ()
             ${SOURCES_SOKOL_CLIENT}
             "${NATIVE_DIR}/jsdos/sockdrive/sockdrive-sokol.cpp"
     )
+
     target_link_libraries(dosbox-x-sokol libdosbox-x-jsdos)
+
+if (USE_HUMBLENET)
+    target_link_libraries(dosbox-sokol "-L${HUMBLENET_LIBRARY_PATH}" humblenet ssl crypto)
+    target_link_libraries(dosbox-x-sokol "-L${HUMBLENET_LIBRARY_PATH}" humblenet ssl crypto)
+endif()
 
     if (APPLE)
         target_link_libraries(dosbox-sokol

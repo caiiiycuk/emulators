@@ -31,7 +31,8 @@ void client_error(const char* tag, const char* message);
 void client_network_connected(enum NetworkType networkType, const char* address);
 void client_network_disconnected(enum NetworkType networkType);
 
-void client_net_recv(int networkId, void *datap, int len);
+void client_net_inited(uint32_t peerId);
+void client_net_recv(uint32_t peerId, void *datap, int len);
 
 void client_tick();
 
@@ -57,9 +58,8 @@ extern void server_unload();
 extern void server_network_connect(enum NetworkType networkType, const char* address);
 extern void server_network_disconnect(enum NetworkType networkType);
 
-extern int  server_net_connect(const char* address);
-extern int  server_net_send(int networkId, const void *datap, int len);
-extern void server_net_disconnect(int networkId);
+extern int  server_net_send(uint32_t peerId, const void *datap, int len);
+extern void server_net_disconnect(uint32_t peerId);
 
 extern void server_sockdrive_open(uint32_t handle, const char* address);
 extern void server_sockdrive_ready(uint32_t handle);
