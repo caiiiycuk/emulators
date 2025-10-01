@@ -287,7 +287,7 @@ void client_tick() {
   while ((len = humblenet_p2p_recvfrom(buffer, 1024 * 1024, &fromPeer, 0)) > 0) {
     void* data = malloc(len);
     memcpy(data, buffer, len);
-    client_net_recv(NETWORK_DOSBOX_IPX, data, len);
+    client_net_recv(fromPeer, data, len);
   }
 #endif
 }
@@ -302,6 +302,8 @@ int server_net_connect(const char* address) {
 }
 int server_net_send(uint32_t peerId, const void *datap, int len) {
 #ifdef USE_HUMBLENET
+    assert(peerId != 0);
+    assert(peerId != jsdos::myPeerId);
     int result = humblenet_p2p_sendto(datap, len, peerId, SendMode::SEND_RELIABLE, 0);
     double startedAt = GetMsPassedFromStart();
     while (!peerConnectionEstablished) {

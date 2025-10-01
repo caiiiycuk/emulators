@@ -1,12 +1,13 @@
 import { WasmModule } from "../../../impl/modules";
-import { TransportLayer, MessageHandler, ClientMessage, ServerMessage } from "../../../protocol/protocol";
+import { TransportLayer, MessageHandler, ClientMessage, ServerMessage, Net } from "../../../protocol/protocol";
 import { MessagesQueue } from "../../../protocol/messages-queue";
 import { createAudioPort } from "./audio-worklet";
 
 export async function dosDirect(wasmModule: WasmModule,
                                 sessionId: string,
                                 canvas?: OffscreenCanvas,
-                                audioWorklet?: boolean): Promise<TransportLayer> {
+                                audioWorklet?: boolean,
+                                net?: Net): Promise<TransportLayer> {
     const messagesQueue = new MessagesQueue();
     let handler: MessageHandler = messagesQueue.handler.bind(messagesQueue);
 
@@ -23,6 +24,7 @@ export async function dosDirect(wasmModule: WasmModule,
         }
     };
 
+
     const transportLayer: TransportLayer = {
         sessionId,
         sendMessageToServer: (name: ClientMessage, props?: { [key: string]: any }) => {
@@ -37,6 +39,7 @@ export async function dosDirect(wasmModule: WasmModule,
                 window.removeEventListener("message", sleepHandler);
             }
         },
+        net: net ?? null,
     };
 
     (transportLayer as any).module = module;

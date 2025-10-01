@@ -1,7 +1,7 @@
 import DosBundle from "./dos/bundle/dos-bundle";
 import emulatorsImpl from "./impl/emulators-impl";
 
-import { AsyncifyStats, TransportLayer, FsNode } from "./protocol/protocol";
+import { AsyncifyStats, TransportLayer, FsNode, Net } from "./protocol/protocol";
 
 export interface DosConfig {
     dosboxConf: string,
@@ -22,6 +22,7 @@ export interface BackendOptions {
     canvas?: OffscreenCanvas;
     audioWorklet?: boolean;
     sockdrivePreload?: "all" | "default" | "none";
+    net?: Net;
 }
 
 export type InitBundleEntry = Uint8Array;

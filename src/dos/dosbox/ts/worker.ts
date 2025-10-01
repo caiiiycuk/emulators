@@ -1,5 +1,5 @@
 import { WasmModule } from "../../../impl/modules";
-import { TransportLayer, MessageHandler, ClientMessage } from "../../../protocol/protocol";
+import { TransportLayer, MessageHandler, ClientMessage, Net } from "../../../protocol/protocol";
 import { MessagesQueue } from "../../../protocol/messages-queue";
 import { createAudioPort } from "./audio-worklet";
 
@@ -7,7 +7,8 @@ export async function dosWorker(workerUrl: string,
                                 wasmModule: WasmModule,
                                 sessionId: string,
                                 canvas?: OffscreenCanvas,
-                                audioWorklet?: boolean): Promise<TransportLayer> {
+                                audioWorklet?: boolean,
+                                net?: Net): Promise<TransportLayer> {
     const messagesQueue = new MessagesQueue();
     let handler: MessageHandler = messagesQueue.handler.bind(messagesQueue);
 
@@ -47,6 +48,7 @@ export async function dosWorker(workerUrl: string,
             URL.revokeObjectURL(localUrl);
             worker.terminate();
         },
+        net: net ?? null,
     };
 
     const transfer: Transferable[] = canvas ? [canvas] : [];
