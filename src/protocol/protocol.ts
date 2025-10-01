@@ -5,6 +5,22 @@ import { Drive, sockdrive } from "./sockdrive";
 
 const maxDataChunkSize = 4 * 1024 * 1024;
 
+type Peer = {
+    peerId: number;
+}
+
+export type Net = {
+    peerId: number;
+    connected: Set<number>;
+    wait: (ms: number) => void;
+    registerAlias: (alias: string) => Promise<void>;
+    unregisterAlias: (alias: string) => void;
+    queryAliases: (query: string) => Promise<Peer[]>;
+    sendBinary: (data: Uint8Array, peerId: number) => number;
+    recvBinary: () => { data: Uint8Array, peerId: number } | null;
+    disconnect: (peerId: number) => void;
+}
+
 export type ClientMessage =
     "wc-install" |
     "wc-run" |
@@ -54,7 +70,6 @@ export type ServerMessage =
     "ws-asyncify-stats" |
     "ws-fs-tree" |
     "ws-send-data-chunk" |
-    "ws-net-connect" |
     "ws-net-disconnect" |
     "ws-net-send" |
     "ws-sockdrive-open" |
@@ -74,6 +89,7 @@ export interface TransportLayer {
         transfer?: Transferable[]): void;
     initMessageHandler(handler: MessageHandler): void;
     exit?: () => void;
+    net: Net | null;
 }
 
 export interface FrameLine {
@@ -165,11 +181,13 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
 
     private dataChunkPromise: { [name: string]: Promise<void> } = {};
     private dataChunkResolve: { [name: string]: () => void } = {};
-    private networkId = 0;
-    private network: { [id: number]: WebSocket } = {};
 
     private sockdrives: { [handle: number]: Drive } = {};
     private sockdrivePreload: "all" | "default" | "none";
+
+    private myPeerId: number = 0;
+    private netSent = 0;
+    private netRecv = 0;
 
     public options: BackendOptions;
 
@@ -184,6 +202,23 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
         this.configPromise = new Promise<DosConfig>((resolve) => this.configResolve = resolve);
         this.transport.initMessageHandler(this.onServerMessage.bind(this));
         this.sockdrivePreload = options.sockdrivePreload ?? "default";
+        this.transport.net = this.transport.net ?? null;
+        if (this.transport.net) {
+            this.myPeerId = this.transport.net.peerId;
+            setInterval(() => {
+                this.transport.net!.wait(0);
+                
+                let data = this.transport.net!.recvBinary();
+                while (data != null) {
+                    this.netRecv += data.data.length;
+                    this.sendClientMessage("wc-net-received", {
+                        peerId: data.peerId,
+                        data: data.data.buffer,
+                    }, [data.data.buffer]);
+                    data = this.transport.net!.recvBinary();
+                }
+            }, 16);
+        }
     }
 
     private sendClientMessage(name: ClientMessage, props?: { [key: string]: any }, transfer?: [ArrayBuffer]) {
@@ -252,7 +287,7 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
 
                 sendBundles()
                     .then(() => {
-                        this.sendClientMessage("wc-run", { token: this.options.token });
+                        this.sendClientMessage("wc-run", { token: this.options.token, myPeerId: this.myPeerId });
                     })
                     .catch((e) => {
                         this.onErr("panic", "Can't send bundles to backend: " + e.message);
@@ -351,6 +386,8 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
                         write: drive.info.writeInBytes,
                     });
                 }
+                props.netSent = this.netSent;
+                props.netRecv = this.netRecv;
                 this.asyncifyStatsResolve(props as AsyncifyStats);
                 this.asyncifyStatsResolve = () => {/**/};
                 this.asyncifyStatsPromise = null;
@@ -387,38 +424,20 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
                     console.log("Unknown chunk type:", chunk.type);
                 }
             } break;
-            case "ws-net-connect": {
-                this.networkId += 1;
-                const networkId = this.networkId;
-                const socket = new WebSocket(props.address);
-                socket.binaryType = "arraybuffer";
-                socket.addEventListener("error", (e) => {
-                    console.error("Can't connect to", props.address);
-                    this.sendClientMessage("wc-net-connected", { networkId: -1 });
-                });
-                socket.addEventListener("open", () => {
-                    this.network[networkId] = socket;
-                    this.sendClientMessage("wc-net-connected", { networkId });
-                });
-                socket.addEventListener("message", (message) => {
-                    this.sendClientMessage("wc-net-received", {
-                        networkId,
-                        data: message.data,
-                    }, [message.data]);
-                });
-            } break;
             case "ws-net-send": {
-                const socket = this.network[props.networkId];
-                if (socket) {
-                    socket.send(props.data);
+                this.netSent += props.data.length;
+                let response = this.transport.net?.sendBinary(new Uint8Array(props.data), props.peerId);
+                if (response === 0)  {
+                    const retryFn = () => {
+                        if (this.transport.net?.sendBinary(new Uint8Array(props.data), props.peerId) === 0) {
+                            setTimeout(retryFn, 100);
+                        }
+                    };
+                    setTimeout(retryFn, 100);
                 }
             } break;
             case "ws-net-disconnect": {
-                const socket = this.network[props.networkId];
-                delete this.network[props.networkId];
-                if (socket) {
-                    socket.close();
-                }
+                this.transport.net?.disconnect(props.peerId);
             } break;
             case "ws-sockdrive-open": {
                 const handle = props.handle;
@@ -684,10 +703,9 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
         });
 
         this.resume();
-        for (const next of Object.values(this.network)) {
-            next.close();
+        for (const next of this.transport.net?.connected ?? []) {
+            this.transport.net?.disconnect(next);
         }
-        this.network = {};
         this.sendClientMessage("wc-exit");
 
         return this.exitPromise;

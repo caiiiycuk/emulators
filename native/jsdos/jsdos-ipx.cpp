@@ -44,7 +44,7 @@
 
 #include "control.h"
 
-bool isIpxServer = false;
+extern bool isIpxServer = false;
 
 
 #define SOCKTABLESIZE	150 // DOS IPX driver was limited to 150 open sockets
@@ -59,7 +59,7 @@ struct ipxnetaddr {
 Bit32u udpPort;
 std::string ipxServConnIp;
 int ipxServConnPort;
-jsdos::PeerId ipxClientHandle;           // ConnectionBackend
+jsdos::Peer ipxServerPeer;           // ConnectionBackend
 Bit8u recvBuffer[IPXBUFFERSIZE];	// Incoming packet buffer
 
 static RealPt ipx_callback;
@@ -91,9 +91,11 @@ void PackIP(IPaddress ipAddr, PackedIP *ipPack) {
   ipPack->port = ipAddr.port;
 }
 
-IPXHeader* readNextIPXHeader(const jsdos::PeerId& serverPeerId) {
+IPXHeader* readNextIPXHeader() {
   static Uint8 buffer[IPXBUFFERSIZE];
-  jsdos::PeerId inPeer;
+  jsdos::Peer inPeer {
+    0, false
+  };
   int available = jsdos::wsRecv(&inPeer, buffer, IPXBUFFERSIZE); // read up to length
   if (available <= 0) {
     return nullptr;
@@ -546,7 +548,7 @@ static void pingAck(IPaddress retAddr) {
   regHeader.transControl = 0;
   regHeader.pType = 0x0;
 
-  result = jsdos::wsSend(ipxClientHandle, &regHeader, sizeof(regHeader));
+  result = jsdos::wsSend(ipxServerPeer, &regHeader, sizeof(regHeader));
 }
 
 static void pingSend(void) {
@@ -567,7 +569,7 @@ static void pingSend(void) {
   regHeader.transControl = 0;
   regHeader.pType = 0x0;
 
-  result = jsdos::wsSend(ipxClientHandle, &regHeader, sizeof(regHeader));
+  result = jsdos::wsSend(ipxServerPeer, &regHeader, sizeof(regHeader));
   if(!result) {
     LOG_ERR("IPX: SDLNet_UDP_Send\n");
   }
@@ -617,7 +619,7 @@ static void IPX_ClientLoop(void) {
   reentranceLock = true;
   IPXHeader* next;
   while (true) {
-    next = readNextIPXHeader(ipxClientHandle);
+    next = readNextIPXHeader();
     if (next == nullptr) {
       break;
     }
@@ -632,7 +634,7 @@ void DisconnectFromServer(bool unexpected) {
   if(incomingPacket.connected) {
     incomingPacket.connected = false;
     TIMER_DelTickHandler(&IPX_ClientLoop);
-    jsdos::wsClose(ipxClientHandle);
+    jsdos::wsClose(ipxServerPeer.id);
   }
   client_network_disconnected(NETWORK_DOSBOX_IPX);
 }
@@ -740,7 +742,7 @@ static void sendPacket(ECBClass* sendecb) {
   LOG_IPX("SEND crc:%2x",packetCRC(&outbuffer[0], packetsize));
   if(!isloopback) {
     // Since we're using a channel, we won't send the IP address again
-    result = jsdos::wsSend(ipxClientHandle, &outbuffer[0], packetsize);
+    result = jsdos::wsSend(ipxServerPeer, &outbuffer[0], packetsize);
 
     if(result == 0) {
       LOG_ERR("IPX: Could not send packet\n");
@@ -764,7 +766,7 @@ static void sendPacket(ECBClass* sendecb) {
 }
 
 static bool pingCheck(IPXHeader * outHeader) {
-  IPXHeader *regHeader = readNextIPXHeader(ipxClientHandle);
+  IPXHeader *regHeader = readNextIPXHeader();
   if (regHeader != nullptr) {
     assert(SDLNet_Read16(regHeader->length) == sizeof(IPXHeader));
     memcpy(outHeader, regHeader, sizeof(IPXHeader));
@@ -772,6 +774,8 @@ static bool pingCheck(IPXHeader * outHeader) {
   }
   return false;
 }
+
+extern void IPX_ServerLoop();
 
 bool _ConnectToServer(char const *strAddr) {
     ipxServConnIp = strAddr;
@@ -784,7 +788,11 @@ bool _ConnectToServer(char const *strAddr) {
     // octets and then using the actual IP address for the last 4 octets.
     // This idea is from the IPX over IP implementation as specified in RFC 1234:
     // http://www.faqs.org/rfcs/rfc1234.html
-    ipxClientHandle = std::stol(strAddr, nullptr, 10);
+    ipxServerPeer = {
+      static_cast<jsdos::PeerId>(std::stol(strAddr, nullptr, 10)),
+      true
+    };
+
     {
       // Bind UDP port to address to channel
       //UDPChannel = SDLNet_TCP_Bind(ipxClientHandle,-1,&ipxServConnIp);
@@ -806,24 +814,24 @@ bool _ConnectToServer(char const *strAddr) {
 
       // Send registration string to server.  If server doesn't get
       // this, client will not be registered
-      numsent = jsdos::wsSend(ipxClientHandle, &regHeader, sizeof(regHeader));
+      numsent = jsdos::wsSend(ipxServerPeer, &regHeader, sizeof(regHeader));
 
       if(!numsent) {
         LOG_ERR("IPX: Unable to connect to server\n");
-        jsdos::wsClose(ipxClientHandle);
+        jsdos::wsClose(ipxServerPeer.id);
         return false;
       } else {
         // Wait for return packet from server.
         // This will contain our IPX address and port num
-        Bits result;
+        int result;
         Bit32u ticks, elapsed;
         ticks = GetTicks();
 
         while(true) {
           elapsed = GetTicks() - ticks;
-          if(elapsed > 1500) {
+          if(elapsed > 15000) {
             LOG_ERR("Timeout connecting to server at %s", strAddr);
-            jsdos::wsClose(ipxClientHandle);
+            jsdos::wsClose(ipxServerPeer.id);
 
             return false;
           }
@@ -832,8 +840,11 @@ bool _ConnectToServer(char const *strAddr) {
 #ifndef EMSCRIPTEN
           client_tick();
 #endif
-
-          result = jsdos::wsRecv(&ipxClientHandle, &regHeader, sizeof(regHeader));
+          if (isIpxServer) {
+            IPX_ServerLoop();
+          }
+          jsdos::Peer peer { 0, false, };
+          result = jsdos::wsRecv(&peer, &regHeader, sizeof(regHeader));
           if (result != 0) {
             memcpy(localIpxAddr.netnode, regHeader.dest.addr.byNode.node, sizeof(localIpxAddr.netnode));
             memcpy(localIpxAddr.netnum, regHeader.dest.network, sizeof(localIpxAddr.netnum));
@@ -1043,18 +1054,30 @@ class IPXNET : public Program {
       if(strcasecmp("status", temp_line.c_str()) == 0) {
         WriteOut("IPX Tunneling Status:\n\n");
         WriteOut("Server status: ");
-        WriteOut("INACTIVE\n");
+	if(isIpxServer) WriteOut("ACTIVE\n"); else WriteOut("INACTIVE\n");
         WriteOut("Client status: ");
         if(incomingPacket.connected) {
           WriteOut("CONNECTED -- Server at %s port %d\n", ipxServConnIp.c_str(), ipxServConnPort);
         } else {
           WriteOut("DISCONNECTED\n");
         }
+        if(isIpxServer) {
+          WriteOut("List of active connections:\n\n");
+          int i;
+          IPaddress *ptrAddr;
+          for(i=0;i<SOCKETTABLESIZE;i++) {
+            if(IPX_isConnectedToServer(i,&ptrAddr)) {
+              WriteOut("     %d.%d.%d.%d from port %d\n", CONVIP(ptrAddr->host), SDLNet_Read16(&ptrAddr->port));
+            }
+          }
+          WriteOut("\n");
+        }
         return;
       }
 
       if(strcasecmp("ping", temp_line.c_str()) == 0) {
         constexpr int pingTimeoutMs = 1500;
+        constexpr int pingCountMax = 16;
         bool wasPing = false;
         int iteration = 0;
         Bit32u startTicks;
@@ -1089,7 +1112,7 @@ class IPXNET : public Program {
                                            SDLNet_Read16(&pingHead.src.addr.byIP.port),
                                            GetTicks() - ticks);
           }
-        } while((ticks - startTicks) < pingTimeoutMs);
+        } while((ticks - startTicks) < pingTimeoutMs && iteration < pingCountMax);
         TIMER_AddTickHandler(&IPX_ClientLoop);
         return;
       }
