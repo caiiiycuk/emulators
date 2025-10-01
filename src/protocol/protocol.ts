@@ -923,4 +923,8 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
         }
         return merged;
     }
+
+    public net(): Net | null {
+        return this.transport.net ?? null;
+    }
 }
