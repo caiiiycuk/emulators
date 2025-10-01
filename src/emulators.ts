@@ -145,6 +145,9 @@ export interface CommandInterface {
     // events
     events(): CommandInterfaceEvents;
 
+    // network
+    net(): Net | null;
+
     networkConnect(networkType: NetworkType, address: string): Promise<void>;
 
     networkDisconnect(networkType: NetworkType): Promise<void>;
