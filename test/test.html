@@ -25,6 +25,10 @@
 
 <body>
     <div id="mocha"></div>
+    <script type="module">
+        import HumbleNet from "./humblenet/jsapi.mjs";
+        window.HumbleNet = HumbleNet;
+    </script>
     <script src="mocha.js"></script>
     <script src="chai.js"></script>
     <script>
@@ -40,14 +44,10 @@
     <script src="test.js"></script>
     
     <div id="test-config" class="test-config">
-        <div class="test-config-row">
-            Server Address:&nbsp;
-            <input id="server-ip" type="text" value="wss://netherlands.dos.zone"></input>
-            &nbsp;&nbsp;
-            <button id="start-net">Start Net Tests</button>
-        </div>
-        <br/>
         <button id="start">Start Tests</button>
+        <br/>
+        <button id="start-net">Start Net Tests</button>
+        (Please be patient, these tests take a while to run.)
     </div>
 
     <script>
@@ -64,8 +64,6 @@
 
         startNet.addEventListener("click", () => {
             testConfig.style.display = "none";
-
-            window.ipxServerAddress = document.getElementById("server-ip").value.trim();
             window.createNetworkTests();
             mocha.run();
         });

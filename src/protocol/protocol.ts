@@ -207,7 +207,7 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
             this.myPeerId = this.transport.net.peerId;
             setInterval(() => {
                 this.transport.net!.wait(0);
-                
+
                 let data = this.transport.net!.recvBinary();
                 while (data != null) {
                     this.netRecv += data.data.length;
@@ -426,8 +426,8 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
             } break;
             case "ws-net-send": {
                 this.netSent += props.data.length;
-                let response = this.transport.net?.sendBinary(new Uint8Array(props.data), props.peerId);
-                if (response === 0)  {
+                const response = this.transport.net?.sendBinary(new Uint8Array(props.data), props.peerId);
+                if (response === 0) {
                     const retryFn = () => {
                         if (this.transport.net?.sendBinary(new Uint8Array(props.data), props.peerId) === 0) {
                             setTimeout(retryFn, 100);
@@ -735,10 +735,6 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
         }
 
         this.connectPromise = new Promise<void>((resolve, reject) => {
-            if (!address.startsWith("wss://") && !address.startsWith("ws://")) {
-                address = (window.location.protocol === "http:" ? "ws://" : "wss://") + address;
-            }
-
             this.connectResolve = resolve;
             this.connectReject = reject;
             this.sendClientMessage("wc-connect", {

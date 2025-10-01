@@ -17,7 +17,7 @@ export function createTests() {
 }
 
 export function createNetworkTests() {
-    testNet();
+    return testNet();
 }
 
 (window as any).createTests = createTests;

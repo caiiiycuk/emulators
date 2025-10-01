@@ -22,6 +22,11 @@ function copyTestAssets() {
         .pipe(dest("dist/test"));
 }
 
+function copyTestHumblenet() {
+    return src(["test/humblenet/*"])
+        .pipe(dest("dist/test/humblenet"));
+}
+
 function copyTestAssetsDosbox() {
     return src(["test/dosbox/*"])
         .pipe(dest("dist/test/dosbox"));
@@ -63,4 +68,4 @@ function testJs() {
 }
 
 export const test = series(clean, parallel(copyTestAssets, copyTestAssetsDosbox,
-    copyTestAssetsDosboxX, testJs));
+    copyTestAssetsDosboxX, copyTestHumblenet, testJs));
