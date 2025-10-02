@@ -1,20 +1,20 @@
 cmake_minimum_required(VERSION 3.21)
 project(js-dos)
 
-set(USE_HUMBLENET false)
-if (USE_HUMBLENET)
-	add_definitions(-DUSE_HUMBLENET)
-	set(HUMBLENET_LIBRARY_PATH "$ENV{HOME}/js-dos/HumbleNet/cmake-build-debug-ssl/")
-endif()
-
 set(X86 false)
 set(GL4ES false)
 if (${EMSCRIPTEN})
 	set(X86_64 false)
 	set(GL4ES true)
 else ()
+	set(USE_HUMBLENET false)
 	set(X86_64 true)
 endif ()
+
+if (USE_HUMBLENET)
+	add_definitions(-DUSE_HUMBLENET)
+	set(HUMBLENET_LIBRARY_PATH "$ENV{HOME}/js-dos/HumbleNet/cmake-build-debug-ssl/")
+endif()
 
 if (GL4ES)
 	include(ExternalProject)
@@ -77,8 +77,8 @@ if ((CMAKE_BUILD_TYPE STREQUAL "Debug") OR (CMAKE_BUILD_TYPE STREQUAL ""))
 	message(STATUS "DEBUG BUILD")
 
 	# asan
-	# add_compile_options(-fsanitize=address -fno-omit-frame-pointer)
-	# add_link_options(-fsanitize=address)
+	 add_compile_options(-fsanitize=address -fno-omit-frame-pointer)
+	 add_link_options(-fsanitize=address)
 else ()
 	message(STATUS "RELEASE BUILD")
 	add_compile_options(-Oz)

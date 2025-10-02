@@ -53,7 +53,7 @@ extern int SDLnet_useCallbackIdle;
 struct ipxnetaddr {
   Uint8 netnum[4];  // Both are big endian
   Uint8 netnode[6];
-} localIpxAddr;
+};
 
 Bit32u udpPort;
 std::string ipxServConnIp;
@@ -74,6 +74,15 @@ long int now() {
   gettimeofday(&tp, NULL);
   return tp.tv_sec * 1000 + tp.tv_usec / 1000;
 }
+
+ ipxnetaddr getLocalIpxAddress() {
+  static uint16_t port = 213;
+  ipxnetaddr address { 0 };
+  memcpy(address.netnode, &jsdos::myPeerId, 4);
+  memcpy((uint8_t*) address.netnode + 4, &port, 2);
+  return address;
+}
+
 }  // namespace
 
 static Bit16u swapByte(Bit16u sockNum) { return (((sockNum >> 8)) | (sockNum << 8)); }
@@ -457,6 +466,7 @@ static void handleIpxRequest(void) {
       LOG_IPX("IPX: Get internetwork address %2x:%2x:%2x:%2x:%2x:%2x", localIpxAddr.netnode[5], localIpxAddr.netnode[4],
               localIpxAddr.netnode[3], localIpxAddr.netnode[2], localIpxAddr.netnode[1], localIpxAddr.netnode[0]);
 
+      ipxnetaddr localIpxAddr = getLocalIpxAddress();
       Bit8u *addrptr = (Bit8u *)&localIpxAddr;
       for (Bit16u i = 0; i < 10; i++) real_writeb(SegValue(es), reg_si + i, addrptr[i]);
       break;
@@ -512,7 +522,7 @@ static void pingAck(IPaddress retAddr) {
   SDLNet_Write16(0x2, regHeader.dest.socket);
 
   SDLNet_Write32(0, regHeader.src.network);
-  memcpy(regHeader.src.addr.byNode.node, localIpxAddr.netnode, sizeof(regHeader.src.addr.byNode.node));
+  memcpy(regHeader.src.addr.byNode.node, getLocalIpxAddress().netnode, sizeof(regHeader.src.addr.byNode.node));
   SDLNet_Write16(0x2, regHeader.src.socket);
   regHeader.transControl = 0;
   regHeader.pType = 0x0;
@@ -533,7 +543,7 @@ static void pingSend(void) {
   SDLNet_Write16(0x2, regHeader.dest.socket);
 
   SDLNet_Write32(0, regHeader.src.network);
-  memcpy(regHeader.src.addr.byNode.node, localIpxAddr.netnode, sizeof(regHeader.src.addr.byNode.node));
+  memcpy(regHeader.src.addr.byNode.node, getLocalIpxAddress().netnode, sizeof(regHeader.src.addr.byNode.node));
   SDLNet_Write16(0x2, regHeader.src.socket);
   regHeader.transControl = 0;
   regHeader.pType = 0x0;
@@ -637,6 +647,7 @@ static void sendPacket(ECBClass *sendecb) {
   sendecb->setInUseFlag(USEFLAG_AVAILABLE);
   packetsize = 0;
   fragCount = sendecb->getFragCount();
+  ipxnetaddr localIpxAddr = getLocalIpxAddress();
   for (i = 0; i < fragCount; i++) {
     sendecb->getFragDesc(i, &tmpFrag);
     if (i == 0) {
@@ -811,16 +822,40 @@ bool _ConnectToServer(char const *strAddr) {
         };
         result = jsdos::wsRecv(&peer, &regHeader, sizeof(regHeader));
         if (result != 0) {
-          memcpy(localIpxAddr.netnode, regHeader.dest.addr.byNode.node, sizeof(localIpxAddr.netnode));
-          memcpy(localIpxAddr.netnum, regHeader.dest.network, sizeof(localIpxAddr.netnum));
+          ipxnetaddr localAddress = getLocalIpxAddress();
+          ipxnetaddr incomingAddress;
+          memcpy(incomingAddress.netnode, regHeader.dest.addr.byNode.node, sizeof(incomingAddress.netnode));
+          memcpy(incomingAddress.netnum, regHeader.dest.network, sizeof(incomingAddress.netnum));
+
+          if (localAddress.netnode[0] != incomingAddress.netnode[0] ||
+            localAddress.netnode[1] != incomingAddress.netnode[1] ||
+            localAddress.netnode[2] != incomingAddress.netnode[2] ||
+            localAddress.netnode[3] != incomingAddress.netnode[3] ||
+            localAddress.netnode[4] != incomingAddress.netnode[4] ||
+            localAddress.netnode[5] != incomingAddress.netnode[5]) {
+            printf("ERR! localIpxAddr.netnode mistmatch\n");
+            abort();
+          }
+
+          if (localAddress.netnum[0] != incomingAddress.netnum[0] ||
+            localAddress.netnum[1] != incomingAddress.netnum[1] ||
+            localAddress.netnum[2] != incomingAddress.netnum[2] ||
+            localAddress.netnum[3] != incomingAddress.netnum[3]) {
+            printf("ERR! localIpxAddr.netnum mistmatch\n");
+            abort();
+          }
           break;
         }
       }
 
+      ipxnetaddr localIpxAddr = getLocalIpxAddress();
       getLogger(LOG_NET, LOG_NORMAL)(
           "IPX: Connected to server.  IPX address is %d:%d:%d:%d:%d:%d, real address %d.%d.%d.%d:%d",
           CONVIPX(localIpxAddr.netnode), CONVIP(regHeader.dest.addr.byIP.host),
           SDLNet_Read16(&regHeader.dest.addr.byIP.port));
+      printf("IPX: Connected to server.  IPX address is %d:%d:%d:%d:%d:%d, real address %d.%d.%d.%d:%d (peer: %d:%d:%d:%d/%ul)\n",
+        CONVIPX(localIpxAddr.netnode), CONVIP(regHeader.dest.addr.byIP.host),
+        SDLNet_Read16(&regHeader.dest.addr.byIP.port), CONVIP(jsdos::myPeerId),jsdos::myPeerId);
 
       incomingPacket.connected = true;
       TIMER_AddTickHandler(&IPX_ClientLoop);
@@ -841,17 +876,6 @@ bool ConnectToServer(char const *strAddr) {
 }
 
 void IPX_NetworkInit() {
-  localIpxAddr.netnum[0] = 0x0;
-  localIpxAddr.netnum[1] = 0x0;
-  localIpxAddr.netnum[2] = 0x0;
-  localIpxAddr.netnum[3] = 0x1;
-  localIpxAddr.netnode[0] = 0x00;
-  localIpxAddr.netnode[1] = 0x00;
-  localIpxAddr.netnode[2] = 0x00;
-  localIpxAddr.netnode[3] = 0x00;
-  localIpxAddr.netnode[4] = 0x00;
-  localIpxAddr.netnode[5] = 0x00;
-
   socketCount = 0;
   return;
 }
