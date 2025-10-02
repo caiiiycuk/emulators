@@ -137,6 +137,11 @@ export interface CommandInterface {
     sendMouseSync: () => void;
 
     // * `sendBackendEvent` - send event for current backend, event will be stringified to json
+    // dosbox-x:
+    //  - 'hand_savestate' - save state of emulators
+    //  - 'hand_loadstate' - restore state of emulators
+    // dosbox/dosbox-x:
+    //  - 'hand_ipx_startserver' - start IPX server
     sendBackendEvent: (event: any) => void;
 
     // dump FS as Uint8Array <zip archive>

@@ -33,7 +33,7 @@ export function testNet() {
     testServer((bundle, net: Net) => emulatorsImpl.dosboxXWorker(bundle, { net }), "dosboxXWorker", "dosbox-x");
 }
 
-async function testServer(factory: CIFactory, name: string, backend: "dosbox" | "dosbox-x") {
+function testServer(factory: CIFactory, name: string, backend: "dosbox" | "dosbox-x") {
     async function CI(bundle: DosBundle | Promise<DosBundle>) {
         const net = await createNet();
         bundle = await Promise.resolve(bundle);
@@ -48,17 +48,25 @@ async function testServer(factory: CIFactory, name: string, backend: "dosbox" | 
         };
     }
 
-    async function createServer() {
-        return CI((await emulatorsImpl.bundle()).autoexec("ipxnet startserver"));
+    async function createServer(ipxnet: boolean = true) {
+        if (ipxnet) {
+            return CI((await emulatorsImpl.bundle()).autoexec("ipxnet startserver"));
+        }
+
+        const { ci, shutdown, address } = await CI(await emulatorsImpl.bundle());
+        ci.sendBackendEvent({
+            type: "wc-trigger-event",
+            event: "hand_ipx_startserver",
+        });
+        return { ci, shutdown, address };
     }
 
     suite(name + ".ipx");
 
-    test("can create server and connect to self", async () => {
+    async function serverTest({ ci, shutdown }: { ci: CommandInterface, shutdown: () => Promise<void> }) {
         let connected = false;
         let notifiedDisconnected = false;
         const messages: string[] = [];
-        const { ci, shutdown } = await createServer();
         assert.ok(ci);
         ci.events().onMessage((mType, message: string) => {
             messages.push(message);
@@ -73,6 +81,14 @@ async function testServer(factory: CIFactory, name: string, backend: "dosbox" | 
         // assert.ok(notifiedConnected, "Connected is not notified");
         assert.ok(connected, JSON.stringify(messages, null, 2));
         assert.ok(notifiedDisconnected, "Disconnected is not notified");
+    };
+
+    test("can create server and connect to self (jsapi)", async () => {
+        return serverTest(await createServer(false));
+    });
+
+    test("can create server and connect to self (ipxnet)", async () => {
+        return serverTest(await createServer());
     });
 
     test(name + " should not freeze when connecting to wrong address (jsapi)", async () => {

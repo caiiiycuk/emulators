@@ -10305,27 +10305,6 @@ void server_exit() {
   jsdos::requestExit();
 }
 
-#ifdef EMSCRIPTEN
-// clang-format off
-EM_JS(void, emsc_init_backend, (), {
-    Module.onBackendEvent = function (json) {
-        console.log("backend event", json);
-        const message = JSON.parse(json);
-        switch (message.type) {
-            case "wc-trigger-event": {
-                // defined with MAPPER_AddHandler
-                Module.withString(message.event, function(name) {
-                    Module._TriggerEventByName(name);
-                });
-            } break;
-            default:
-                Module.err("Unknown event: " + json);
-        } 
-    };
-});
-// clang-format on
-#endif
-
 #ifndef EMSCRIPTEN
 std::mutex triggerMutex;
 #endif
@@ -10338,6 +10317,7 @@ extern "C" void EMSCRIPTEN_KEEPALIVE TriggerEventByName(const char* name) {
   triggerEvents.push_back(name);
 }
 
+extern void IpxNetStartServer();
 void GFX_Events() {
   jsdos::DoKeyEvents();
   jsdos::DoMouseEvents();
@@ -10347,16 +10327,16 @@ void GFX_Events() {
 #endif
 
   for (auto& next: triggerEvents) {
-    MAPPER_TriggerEventByName(next);
+    if (next == "hand_ipx_startserver") {
+      IpxNetStartServer();
+    } else {
+      MAPPER_TriggerEventByName(next);
+    }
   }
   triggerEvents.clear();
 }
 
 int server_run() {
-#ifdef EMSCRIPTEN
-  emsc_init_backend();
-#endif
-
   jsdos::init();
   jsdos::initTimer();
   jsdos::initAsyncify();

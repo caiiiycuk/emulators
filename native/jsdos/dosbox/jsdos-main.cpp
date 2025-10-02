@@ -24,6 +24,10 @@
 #include <emscripten/html5.h>
 #endif
 
+#ifndef EMSCRIPTEN
+#include <mutex>
+#endif
+
 struct KBDHash {
   template <typename T>
   std::size_t operator()(T t) const {
@@ -337,11 +341,34 @@ int jsdos_main(Config *config) {
     return 0;
 }
 
+#ifndef EMSCRIPTEN
+std::mutex triggerMutex;
+#endif
+std::vector<std::string> triggerEvents;
+extern "C" void EMSCRIPTEN_KEEPALIVE TriggerEventByName(const char* name) {
+#ifndef EMSCRIPTEN
+  std::lock_guard<std::mutex> g(triggerMutex);
+#endif
+  triggerEvents.push_back(name);
+}
 
-
+extern void IpxNetStartServer();
 void GFX_Events() {
   jsdos::DoKeyEvents();
   jsdos::DoMouseEvents();
+
+#ifndef EMSCRIPTEN
+  std::lock_guard<std::mutex> g(triggerMutex);
+#endif
+
+  for (auto& next: triggerEvents) {
+    if (next == "hand_ipx_startserver") {
+      IpxNetStartServer();
+    } else {
+      printf("ERR! Event '%s' is not supported by dosbox backend\n", next.c_str());
+    }
+  }
+  triggerEvents.clear();
 }
 
 void server_mouse_moved(float x, float y, bool relative, uint64_t movedMs) {

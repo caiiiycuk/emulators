@@ -109,6 +109,25 @@ EM_JS(void, ws_init_runtime, (const char* sessionId), {
         Module.sendMessage("ws-exit");
       }
     };
+    Module.onBackendEvent = function (json) {
+        console.log("backend event", json);
+        const message = JSON.parse(json);
+        switch (message.type) {
+            case "wc-trigger-event": {
+              if (Module._TriggerEventByName) {
+                // defined with MAPPER_AddHandler
+                Module.withString(message.event, function(name) {
+                    Module._TriggerEventByName(name);
+                });
+              } else {
+                debugger;
+                Module.err("Backend does not support custom events");
+              }
+            } break;
+            default:
+                Module.err("Unknown event: " + json);
+        } 
+    };
 
     function messageHandler(e) {
       var data = e.data;
@@ -186,11 +205,7 @@ EM_JS(void, ws_init_runtime, (const char* sessionId), {
           // ignore
         } break;
         case "wc-backend-event": {
-          if (Module.onBackendEvent) {
-            Module.onBackendEvent(data.props.json);
-          } else {
-            Module.err("Backend does not support custom events");
-          }
+          Module.onBackendEvent(data.props.json);
         } break;
         case "wc-connect": {
           const buffer = Module.mallocString(data.props.address);
