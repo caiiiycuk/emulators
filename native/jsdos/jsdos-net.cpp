@@ -3,6 +3,8 @@
 //
 #include "jsdos-net.h"
 
+#include <unistd.h>
+
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -19,12 +21,22 @@ namespace {
   std::list<WsBuffer> wsServerBuffers;
 }
 
-PeerId jsdos::myPeerId = 0;
 
 #ifdef EMSCRIPTEN
+PeerId jsdos::myPeerId = 0;
 extern "C" void EMSCRIPTEN_KEEPALIVE setMyPeerId(uint32_t peerId) {
   jsdos::myPeerId = peerId;
 }
+#else
+PeerId generateNewPeerId() {
+  PeerId peerId = 0;
+  while (!peerId) {
+    getentropy(&peerId, sizeof(peerId));
+    peerId = peerId & 0x7FFFFFFF;  // make sure it's positive
+  }
+  return peerId;
+}
+PeerId jsdos::myPeerId = generateNewPeerId();
 #endif
 
 int jsdos::wsSend(Peer peer, const void *datap, int len) {
