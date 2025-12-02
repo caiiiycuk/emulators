@@ -733,10 +733,10 @@ if (${EMSCRIPTEN})
             "-sGL_POOL_TEMP_BUFFERS=1"
             "-sFULL_ES2=1"
         #     "-sGL_ASSERTIONS=1"
-
         #     "--profiling-funcs"
         #     "-sASSERTIONS=1"
         #     "-sSAFE_HEAP=2"
+            "-sEXPORTED_RUNTIME_METHODS=['HEAPU8', 'HEAPU32', 'HEAPF32', 'callMain', 'FS', 'lengthBytesUTF8', 'stringToUTF8', 'err', 'UTF8ToString']"
             "-sASYNCIFY=1"
             "-sASYNCIFY_IMPORTS=['syncSleep']"
             "-sASYNCIFY_WHITELIST=@${TARGETS_DIR}/dosbox-x-asyncify.txt"
