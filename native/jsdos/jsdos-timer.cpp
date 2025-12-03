@@ -5,6 +5,7 @@
 #include <timer.h>
 #include <sys/time.h>
 #include <unistd.h>
+#include <time.h>
 
 #ifdef EMSCRIPTEN
 #include <emscripten.h>
@@ -16,24 +17,13 @@
 #include <jsdos-asyncify.h>
 
 void jsdos::initTimer() {
-#ifdef EMSCRIPTEN
-  EM_ASM(({
-    Module.performance = Module.performance || (typeof performance === "object" ? performance : Date);
-  }));
-#endif
 }
 
-#ifdef EMSCRIPTEN
-EM_JS(double, now, (void), {
-    return Module.performance.now();
-});
-#else
 double now() {
     struct timespec ts;
     clock_gettime(CLOCK_MONOTONIC, &ts);
     return ts.tv_sec * 1000. + ts.tv_nsec / 1000000.;
 }
-#endif
 
 double GetMsPassedFromStart() {
     static double startedAt = now();

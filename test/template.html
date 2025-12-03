@@ -20,7 +20,6 @@
     <script src="../emulators.js"></script>
     <script src="audio-node.js"></script>
     <script src="webgl.js"></script>
-    <script src="stats.min.js"></script>
 </head>
 
 <body>
@@ -41,15 +40,8 @@
     <script>
         emulators.pathPrefix = "../";
 
-        const stats = new Stats();
-        stats.showPanel(0);
-        stats.dom.style.left = "initial";
-        stats.dom.style.right = "0px";
-        document.body.appendChild(stats.dom);
-
-        let runId = 0;
         async function runBundle(bundle, options) {
-            const id = runId++;
+            const id = 0;
             const stdout = document.getElementById("stdout");
             const canvas = document.getElementById("canvas");
             const gl = canvas.getContext("webgl");
@@ -86,7 +78,7 @@
             webGl({ 
                 canvas,
                 addOnResize: () => {},
-            }, ci, stats);
+            }, ci);
             audioNode(ci);
 
             ci.events().onStdout((message) => {
@@ -139,7 +131,7 @@
 
         function downloadBundleAndRun(options) {
             document.getElementById("controls").style.display = "none";
-            const bundleUrl = "temp.jsdos?timestamp=" + Date.now();
+            const bundleUrl = "https://v8.js-dos.com/bundles/digger.jsdos?timestamp=" + Date.now();
 
             // we need to download bundle, emulators accept only Uint8Array
             const xhr = new XMLHttpRequest();

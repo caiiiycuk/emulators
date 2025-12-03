@@ -3,7 +3,7 @@ exports.__esModule = true;
 exports.webGl = void 0;
 var vsSource = "\nattribute vec4 aVertexPosition;\nattribute vec2 aTextureCoord;\n\nvarying highp vec2 vTextureCoord;\n\nvoid main(void) {\n  gl_Position = aVertexPosition;\n  vTextureCoord = aTextureCoord;\n}\n";
 var fsSource = "\nvarying highp vec2 vTextureCoord;\nuniform sampler2D uSampler;\n\n\nvoid main(void) {\n  highp vec4 color = texture2D(uSampler, vTextureCoord);\n  gl_FragColor = vec4(color.r, color.g, color.b, 1.0);\n}\n";
-function webGl(layers, ci, stats) {
+function webGl(layers, ci) {
     var canvas = layers.canvas;
     var gl = canvas.getContext("webgl");
     if (gl === null) {
@@ -62,10 +62,7 @@ function webGl(layers, ci, stats) {
     var requestAnimationFrameId = null;
     var frame = null;
     var frameFormat = 0;
-    stats.begin();
     ci.events().onFrame(function (rgb, rgba) {
-        stats.end();
-        stats.begin();
         frame = rgb != null ? rgb : rgba;
         frameFormat = rgb != null ? gl.RGB : gl.RGBA;
         if (requestAnimationFrameId === null) {

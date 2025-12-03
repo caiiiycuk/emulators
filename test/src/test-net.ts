@@ -31,9 +31,11 @@ export function testNet() {
     testServer((bundle, net: Net) => emulatorsImpl.dosboxWorker(bundle, { net }), "dosboxWorker", "dosbox");
     testServer((bundle, net: Net) => emulatorsImpl.dosboxXDirect(bundle, { net }), "dosboxXDirect", "dosbox-x");
     testServer((bundle, net: Net) => emulatorsImpl.dosboxXWorker(bundle, { net }), "dosboxXWorker", "dosbox-x");
+    testServer((bundle, net: Net) => emulatorsImpl.dosboxXJspiWorker(bundle, { net }),
+        "dosboxXJspiWorker", "dosbox-x-jspi");
 }
 
-function testServer(factory: CIFactory, name: string, backend: "dosbox" | "dosbox-x") {
+function testServer(factory: CIFactory, name: string, backend: "dosbox" | "dosbox-x" | "dosbox-x-jspi") {
     async function CI(bundle: DosBundle | Promise<DosBundle>) {
         const net = await createNet();
         bundle = await Promise.resolve(bundle);

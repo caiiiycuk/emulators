@@ -62,5 +62,12 @@ function dosboxxJs() {
         .pipe(dest("dist"));
 }
 
+function dosboxxJsJspi() {
+    return src("dist/wdosbox-x-jspi.js")
+        .pipe(footer(fs.readFileSync("src/dos/dosbox/ts/worker-server.js")))
+        .pipe(replace("@MODULE_NAME@", "WDOSBOXXJSPI"))
+        .pipe(dest("dist"));
+}
+
 export const compileJs = series(clean, js);
-export const emulators = parallel(dosboxJs, dosboxxJs);
+export const emulators = parallel(dosboxJs, dosboxxJs, dosboxxJsJspi);

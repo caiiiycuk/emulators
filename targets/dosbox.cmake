@@ -190,7 +190,6 @@ if (${EMSCRIPTEN})
             "-sWASM=1"
             # "--profiling-funcs"
             # "-sASSERTIONS=2"
-            "-sEXPORTED_RUNTIME_METHODS=['HEAPU8', 'HEAPU32', 'HEAPF32', 'callMain', 'FS', 'lengthBytesUTF8', 'stringToUTF8', 'err', 'UTF8ToString']"
             "-sASYNCIFY=1"
             "-sASYNCIFY_IMPORTS=['syncSleep']"
             "-sASYNCIFY_WHITELIST=@${TARGETS_DIR}/dosbox-asyncify.txt"

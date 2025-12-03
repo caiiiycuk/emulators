@@ -634,7 +634,6 @@ set(SOURCES_X_SDL_MAIN
 set(SOURCES_X_JSDOS_CORE
         "${NATIVE_DIR}/jsdos/dosbox-x/jsdos-x-render.cpp"
         "${NATIVE_DIR}/jsdos/dosbox-x/jsdos-x-tinyfd.cpp"
-        "${NATIVE_DIR}/jsdos/jsdos-asyncify.cpp"
         "${NATIVE_DIR}/jsdos/jsdos-timer.cpp"
         "${NATIVE_DIR}/jsdos/jsdos-support.cpp"
         "${NATIVE_DIR}/jsdos/jsdos-events.cpp"
@@ -694,7 +693,8 @@ if (GL4ES)
     target_include_directories(libdosbox-x-jsdos PUBLIC ${GL4ES_INCLUDE})
 endif()
 
-add_executable(dosbox-x-sdl2 ${SOURCES_X_SDL_MAIN})
+add_executable(dosbox-x-sdl2 ${SOURCES_X_SDL_MAIN}
+        "${NATIVE_DIR}/jsdos/jsdos-asyncify.cpp")
 target_compile_definitions(dosbox-x-sdl2 PUBLIC -DJSDOS_SDL)
 target_link_libraries(dosbox-x-sdl2 libdosbox-x-sdl2)
 set_property(TARGET dosbox-x-sdl2 PROPERTY CXX_STANDARD 11)
@@ -715,34 +715,53 @@ if (${EMSCRIPTEN})
             )
 
     target_compile_options(libdosbox-x-jsdos PUBLIC -fwasm-exceptions)
-    add_executable(wdosbox-x "${SRC_DIR}/dos/dosbox/cpp/worker-protocol.cpp")
+
+    add_executable(wdosbox-x "${SRC_DIR}/dos/dosbox/cpp/worker-protocol.cpp"
+        "${NATIVE_DIR}/jsdos/jsdos-asyncify.cpp")
+    add_executable(wdosbox-x-jspi "${SRC_DIR}/dos/dosbox/cpp/worker-protocol.cpp"
+        "${NATIVE_DIR}/jsdos/jsdos-asyncify.cpp")
+    target_compile_definitions(wdosbox-x-jspi PRIVATE JSPI)
+
     set_target_properties(wdosbox-x PROPERTIES SUFFIX .js)
+    set_target_properties(wdosbox-x-jspi PROPERTIES SUFFIX .js)
+
     target_link_libraries(wdosbox-x libdosbox-x-jsdos libzip "${GL4ES_LIBRARY}")
+    target_link_libraries(wdosbox-x-jspi libdosbox-x-jsdos libzip "${GL4ES_LIBRARY}")
+
+    set(WDOSBOXX_LINK_OPTIONS
+        ${EM_LINK_OPTIONS}
+        -fwasm-exceptions 
+        "-sUSE_ZLIB=1"
+        "-sUSE_SDL=2"
+
+        "-sGL_MAX_TEMP_BUFFER_SIZE=32Mb"
+        "-sGL_PREINITIALIZED_CONTEXT=1"
+        "-sGL_TRACK_ERRORS=0"
+        "-sMAX_WEBGL_VERSION=1"
+        "-sMIN_WEBGL_VERSION=1"
+        "-sGL_POOL_TEMP_BUFFERS=1"
+        "-sFULL_ES2=1"
+#       "-sGL_ASSERTIONS=1"
+#       "--profiling-funcs"
+#       "-sASSERTIONS=2"
+#       "-sSAFE_HEAP=2"
+        "-sERROR_ON_UNDEFINED_SYMBOLS=1"
+    )
 
     target_link_options(wdosbox-x PUBLIC
-            ${EM_LINK_OPTIONS}
-            -fwasm-exceptions
-            "-sUSE_ZLIB=1"
-            "-sUSE_SDL=2"
+        ${WDOSBOXX_LINK_OPTIONS}
+        "-sASYNCIFY=1"
+        "-sASYNCIFY_IMPORTS=['syncSleep']"
+        "-sASYNCIFY_WHITELIST=@${TARGETS_DIR}/dosbox-x-asyncify.txt"
+#       "-sASYNCIFY_STACK_SIZE=16384"
+        "-sEXPORT_NAME='WDOSBOXX'"
+    )
 
-            "-sGL_MAX_TEMP_BUFFER_SIZE=32Mb"
-            "-sGL_PREINITIALIZED_CONTEXT=1"
-            "-sGL_TRACK_ERRORS=0"
-            "-sMAX_WEBGL_VERSION=1"
-            "-sMIN_WEBGL_VERSION=1"
-            "-sGL_POOL_TEMP_BUFFERS=1"
-            "-sFULL_ES2=1"
-        #     "-sGL_ASSERTIONS=1"
-        #     "--profiling-funcs"
-        #     "-sASSERTIONS=1"
-        #     "-sSAFE_HEAP=2"
-            "-sEXPORTED_RUNTIME_METHODS=['HEAPU8', 'HEAPU32', 'HEAPF32', 'callMain', 'FS', 'lengthBytesUTF8', 'stringToUTF8', 'err', 'UTF8ToString']"
-            "-sASYNCIFY=1"
-            "-sASYNCIFY_IMPORTS=['syncSleep']"
-            "-sASYNCIFY_WHITELIST=@${TARGETS_DIR}/dosbox-x-asyncify.txt"
-        #     "-sASYNCIFY_STACK_SIZE=16384"
-            "-sEXPORT_NAME='WDOSBOXX'"
-            "-sERROR_ON_UNDEFINED_SYMBOLS=1")
+    target_link_options(wdosbox-x-jspi PUBLIC
+        ${WDOSBOXX_LINK_OPTIONS}
+        -sJSPI=1 "-sJSPI_EXPORTS=['runRuntime']" "-sJSPI_IMPORTS=['syncSleep']"
+        "-sEXPORT_NAME='WDOSBOXXJSPI'"
+    )
 
     add_dependencies(wdosbox-x gl4es)
 elseif (APPLE)

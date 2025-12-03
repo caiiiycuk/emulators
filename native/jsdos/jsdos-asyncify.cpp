@@ -1,13 +1,43 @@
 //
 // Created by caiiiycuk on 13.11.2019.
 //
-#include <jsdos-asyncify.h>
+#include "./include/jsdos-asyncify.h"
 #include <atomic>
 
 #ifdef EMSCRIPTEN
 // clang-format off
 #include <emscripten.h>
 
+#if JSPI
+EM_ASYNC_JS(void, syncSleep, (unsigned int ms, bool nonSkippable), {
+    if (!Module.sync_sleep) {
+      throw new Error("Async environment does not exists");
+      return;
+    }
+
+    const now = Date.now();
+    if (!nonSkippable && (now - Module.last_wakeup) < 24 /* 30 FPS */) {
+      return;
+    }
+
+    if (nonSkippable) {
+      Module.wakeUpAt = Date.now() + ms;
+      ++Module.nonskippable_sleep_count;
+    }
+
+    ++Module.sleep_count;
+    Module.cycles += Module._getAndResetCycles();
+    Module.sleep_started_at = now;
+
+    return new Promise((resolve) => {
+      Module.sync_sleep(() => {
+        Module.sleep_time += now - Module.sleep_started_at;
+        Module.last_wakeup = now;
+        resolve();
+      });
+    });
+});
+#else
 EM_JS(void, syncSleep, (unsigned int ms, bool nonSkippable), {
     if (!Module.sync_sleep) {
       throw new Error("Async environment does not exists");
@@ -40,6 +70,7 @@ EM_JS(void, syncSleep, (unsigned int ms, bool nonSkippable), {
 
     Asyncify.handleSleep(Module.sync_sleep);
   });
+#endif
 
 EM_JS(bool, initTimeoutSyncSleep, (), {
     Module.alive = true;
