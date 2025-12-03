@@ -157,7 +157,6 @@ if (${EMSCRIPTEN})
             "-sWASM=1"
             # "--profiling-funcs"
             # "-sASSERTIONS=2"
-            "-sEXPORTED_RUNTIME_METHODS=['HEAPU8', 'HEAPU32', 'callMain', 'FS', 'lengthBytesUTF8', 'stringToUTF8']"
             "-sEXPORT_NAME='WLIBZIP'")
 
 elseif (${BUILD_NATIVE_LIBZIP})

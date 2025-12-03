@@ -16,6 +16,7 @@ class EmulatorsImpl implements Emulators {
     version = Build.version;
     wdosboxJs = "wdosbox.js";
     wdosboxxJs = "wdosbox-x.js";
+    wdosboxxJsJspi = "wdosbox-x-jspi.js";
 
     private wasmModulesPromise?: Promise<IWasmModules>;
 
@@ -121,6 +122,14 @@ class EmulatorsImpl implements Emulators {
         return this.backend(init, transportLayer, options);
     }
 
+    async dosboxXJspiWorker(init: InitFs, options?: BackendOptions): Promise<CommandInterface> {
+        const modules = await this.wasmModules();
+        const dosboxxWasm = await modules.dosboxxJspi();
+        const transportLayer = await dosWorker(this.pathPrefix + this.wdosboxxJsJspi + this.pathSuffix,
+            dosboxxWasm, "session-" + Date.now(), options?.canvas, options?.audioWorklet, options?.net);
+        return this.backend(init, transportLayer, options);
+    }
+
     async backend(init: InitFs, transportLayer: TransportLayer,
         options?: BackendOptions): Promise<CommandInterface> {
         return new Promise<CommandInterface>((resolve, reject) => {
@@ -146,7 +155,8 @@ class EmulatorsImpl implements Emulators {
         }
 
         const make = async () => {
-            return new WasmModulesImpl(this.pathPrefix, this.pathSuffix, this.wdosboxJs, this.wdosboxxJs);
+            return new WasmModulesImpl(this.pathPrefix, this.pathSuffix, this.wdosboxJs,
+                this.wdosboxxJs, this.wdosboxxJsJspi);
         };
 
         this.wasmModulesPromise = make();

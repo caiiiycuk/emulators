@@ -28,6 +28,5 @@ if (${EMSCRIPTEN})
             "-sASYNCIFY=1"
             "-sASYNCIFY_IMPORTS=['syncSleep']"
             "-sASYNCIFY_WHITELIST=@${TARGETS_DIR}/dosbox-asyncify.txt"
-            "-sEXPORTED_RUNTIME_METHODS=['HEAPU8', 'HEAPU32', 'HEAPF32', 'callMain', 'FS', 'lengthBytesUTF8', 'stringToUTF8', 'err', 'UTF8ToString']"
             "-sEXPORT_NAME='WDHRY2'")
 endif ()

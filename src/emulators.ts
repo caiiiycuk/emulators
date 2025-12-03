@@ -81,6 +81,9 @@ export interface Emulators {
     // * dosboxWorker - create dosbox-x worker emulator backend
     dosboxXWorker: (init: InitFs, options?: BackendOptions) => Promise<CommandInterface>;
 
+    // * dosboxWorker - create dosbox-x worker emulator backend (using jspi)
+    dosboxXJspiWorker: (init: InitFs, options?: BackendOptions) => Promise<CommandInterface>;
+
     // * backend - create abstract emulation backend by given TransportLayer
     backend: (init: InitFs, transportLayer: TransportLayer,
         options?: BackendOptions) => Promise<CommandInterface>;

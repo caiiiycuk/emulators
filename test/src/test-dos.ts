@@ -21,6 +21,7 @@ export function testDos() {
     testServer((bundle, options) => emulatorsImpl.dosboxWorker(bundle, options), "dosboxWorker", "dosbox");
     testServer((bundle, options) => emulatorsImpl.dosboxXDirect(bundle, options), "dosboxXDirect", "dosbox-x");
     testServer((bundle, options) => emulatorsImpl.dosboxXWorker(bundle, options), "dosboxXWorker", "dosbox-x");
+    testServer((bundle, options) => emulatorsImpl.dosboxXJspiWorker(bundle, options), "dosboxXJspiWorker", "dosbox-x");
 }
 
 function testServer(factory: CIFactory, name: string, assets: string) {
