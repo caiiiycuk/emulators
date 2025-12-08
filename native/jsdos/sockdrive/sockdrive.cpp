@@ -91,6 +91,7 @@ uint32_t sockdrive_open(const char* url) {
   return openedInstance.first;
 }
 
+extern bool wasSockdriveRead = false;
 uint8_t sockdrive_read(uint32_t handle, uint32_t sector, uint8_t* buffer) {
   auto it = drives.find(handle);
   if (it != drives.end()) {
@@ -106,6 +107,7 @@ uint8_t sockdrive_read(uint32_t handle, uint32_t sector, uint8_t* buffer) {
         if (!sectorPtr) {
           server_sockdrive_load_range(handle, range);
           while (!sectorPtr) {
+            wasSockdriveRead = true;
             asyncify_sleep(0, true);
             sectorPtr = cache->read(sector);
           }

@@ -103,6 +103,22 @@ export interface DataChunk {
     data: ArrayBuffer | null;
 }
 
+export interface CPUMetrics {
+    cpuMax: number;
+    emulatorSpeed: number;
+    cpuUsed: number;
+    frameSkip: number;
+    fastForward: boolean;
+    cpuSockdrive: boolean;
+    cpuAuto: boolean;
+    cpuSkip: boolean;
+    sleepPattern: string;
+    ratio: number[];
+    newCmax: number[];
+    ticksDone: number[];
+    ticksScheduled: number[];
+}
+
 export interface AsyncifyStats {
     glfx?: boolean,
     offscreenCanvas?: boolean,
@@ -113,7 +129,7 @@ export interface AsyncifyStats {
     nonSkippableSleepCount: number,
     sleepCount: number,
     sleepTime: number,
-    cycles: number,
+    cpuMetrics: CPUMetrics | null,
     netSent: number,
     netRecv: number,
     driveIo: {
@@ -388,6 +404,40 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
                 }
                 props.netSent = this.netSent;
                 props.netRecv = this.netRecv;
+                if (props.cpuMetrics && props.cpuMetrics.length > 0) {
+                    const partial = props.cpuMetrics.split(" ");
+                    const cpu = partial[0].split("|");
+                    const metrics: CPUMetrics = {
+                        cpuMax: parseInt(cpu[0]),
+                        emulatorSpeed: parseInt(cpu[1]) / 100,
+                        cpuUsed: parseInt(cpu[2]) / 100,
+                        frameSkip: parseInt(cpu[3]),
+                        fastForward: cpu[4][0] === "1",
+                        cpuSockdrive: cpu[4][1] === "1",
+                        cpuAuto: cpu[4][2] === "1",
+                        cpuSkip: cpu[4][3] === "1",
+                        sleepPattern: "",
+                        ratio: [],
+                        newCmax: [],
+                        ticksDone: [],
+                        ticksScheduled: [],
+                    };
+
+                    for (let i = 1; i < partial.length; i++) {
+                        if (partial[i][0] === "r") {
+                            const parts = partial[i].split("|");
+                            metrics.ratio.push(parseInt(parts[0].substring(1)) / 1024);
+                            metrics.newCmax.push(parseInt(parts[1]));
+                            metrics.ticksDone.push(parseInt(parts[2]));
+                            metrics.ticksScheduled.push(parseInt(parts[3]));
+                        } else {
+                            metrics.sleepPattern += partial[i] + " ";
+                        }
+                    }
+                    props.cpuMetrics = metrics;
+                } else {
+                    props.cpuMetrics = null;
+                }
                 this.asyncifyStatsResolve(props as AsyncifyStats);
                 this.asyncifyStatsResolve = () => {/**/};
                 this.asyncifyStatsPromise = null;
