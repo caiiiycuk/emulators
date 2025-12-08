@@ -12,8 +12,7 @@ namespace jsdos {
   void asyncifyLock();
   void asyncifyUnlock();
   void destroyAsyncify();
-  void incCycles(int32_t count);
-  uint32_t getAndResetCycles();
+  void increaseticks();
 }
 
 extern "C" void asyncify_sleep(unsigned int ms, bool nonSkippable = 0);

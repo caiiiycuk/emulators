@@ -28,10 +28,11 @@ else ()
     add_executable(dosbox-sokol ${SOURCES_SOKOL} ${SOURCES_SOKOL_CLIENT})
     target_link_libraries(dosbox-sokol libdosbox libdosbox-core)
 
-    add_executable(dosbox-x-sokol
+add_executable(dosbox-x-sokol
             ${SOURCES_SOKOL}
             ${SOURCES_SOKOL_CLIENT}
             "${NATIVE_DIR}/jsdos/sockdrive/sockdrive-sokol.cpp"
+            "${NATIVE_DIR}/jsdos/jsdos-asyncify.cpp"
     )
 
     target_link_libraries(dosbox-x-sokol libdosbox-x-jsdos)

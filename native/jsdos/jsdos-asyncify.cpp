@@ -2,7 +2,12 @@
 // Created by caiiiycuk on 13.11.2019.
 //
 #include "./include/jsdos-asyncify.h"
-#include <atomic>
+
+#include <cmath>
+#include <string>
+
+#include "cpu.h"
+#include "render.h"
 
 #ifdef EMSCRIPTEN
 // clang-format off
@@ -26,7 +31,6 @@ EM_ASYNC_JS(void, syncSleep, (unsigned int ms, bool nonSkippable), {
     }
 
     ++Module.sleep_count;
-    Module.cycles += Module._getAndResetCycles();
     Module.sleep_started_at = now;
 
     return new Promise((resolve) => {
@@ -57,7 +61,6 @@ EM_JS(void, syncSleep, (unsigned int ms, bool nonSkippable), {
 
       ++Module.sleep_count;
       
-      Module.cycles += Module._getAndResetCycles();
       Module.sleep_started_at = now;
     } else if (Asyncify.state === 2) { // REWIND
       Module.sleep_time += now - Module.sleep_started_at;
@@ -77,7 +80,6 @@ EM_JS(bool, initTimeoutSyncSleep, (), {
     Module.nonskippable_sleep_count = 0;
     Module.sleep_count = 0;
     Module.sleep_time = 0;
-    Module.cycles = 0;
     Module.last_wakeup = Date.now();
     Module.sync_sleep = function(wakeUp) {
       setTimeout(function() {
@@ -116,7 +118,6 @@ EM_JS(bool, initMessageSyncSleep, (bool worker), {
     Module.nonskippable_sleep_count = 0;
     Module.sleep_count = 0;
     Module.sleep_time = 0;
-    Module.cycles = 0;
     Module.last_wakeup = Date.now();
     
     function postWakeUpMessage() {
@@ -272,22 +273,78 @@ extern "C" void asyncify_sleep(unsigned int ms, bool nonSkippable) {
 #endif
 }
 
-namespace {
-  std::atomic_uint32_t cycles(0);
+
+std::string cpuMetrics = "";
+double cpuMax = 0;
+double increaseTicksCount = 0;
+bool fastForward = false;
+double emulatorSpeed = 0;
+double cpuPercUsed = 0;
+bool cpuSockdrive = false;
+bool cpuAuto = false;
+bool cpuSkip = false;
+double frameskip = 0;
+
+extern bool ticksLocked;
+extern uint32_t emulator_speed;
+extern bool wasSockdriveRead;
+
+void clearTicks() {
+  cpuMax = 0;
+  increaseTicksCount = 0;
+  fastForward = false;
+  emulatorSpeed = 0;
+  cpuPercUsed = 0;
+  cpuSockdrive = false;
+  cpuAuto = false;
+  cpuSkip = false;
+  frameskip = 0;
 }
 
-void jsdos::incCycles(int32_t count) {
-    if (count > 0) {
-        ::cycles += count;
-    }
+void jsdos::increaseticks() {
+  cpuMax += CPU_CycleMax;
+#ifdef JSDOS_X
+  emulatorSpeed += emulator_speed;
+#endif
+  cpuPercUsed += CPU_CyclePercUsed;
+
+  increaseTicksCount++;
+
+  if (ticksLocked) {
+    fastForward = true;
+  }
+
+#ifdef JSDOS_X
+  if (wasSockdriveRead) {
+    cpuSockdrive = true;
+  }
+#endif
+
+  if (CPU_CycleAutoAdjust) {
+    cpuAuto = true;
+  }
+
+  if (CPU_SkipCycleAutoAdjust) {
+    cpuSkip = true;
+  }
+
+  frameskip =+ render.frameskip.max;
 }
 
-uint32_t jsdos::getAndResetCycles() {
-    uint32_t tmp = ::cycles;
-    ::cycles = 0;
-    return tmp;
-}
-
-extern "C" uint32_t EMSCRIPTEN_KEEPALIVE getAndResetCycles() {
-    return jsdos::getAndResetCycles();
+extern "C" const char* EMSCRIPTEN_KEEPALIVE getCPUMetrics() {
+  static std::string copy;
+  if (increaseTicksCount > 0) {
+    copy =
+      std::to_string((int32_t) std::round(cpuMax / increaseTicksCount)) + "|" +
+      std::to_string((int32_t) std::round(emulatorSpeed / increaseTicksCount)) + "|" +
+      std::to_string((int32_t) std::round(cpuPercUsed / increaseTicksCount)) + "|" +
+      std::to_string((int32_t) std::round(frameskip / increaseTicksCount)) + "|" +
+      (fastForward ? "1" : "0") + (cpuSockdrive ? "1" : "0") + (cpuAuto ? "1" : "0") + (cpuSkip ? "1" : "0") + " " +
+      cpuMetrics;
+    cpuMetrics = "";
+    clearTicks();
+    return copy.c_str();
+  } else {
+    return "";
+  }
 }

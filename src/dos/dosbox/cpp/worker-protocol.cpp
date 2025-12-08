@@ -226,7 +226,7 @@ EM_JS(void, ws_init_runtime, (const char* sessionId), {
             nonSkippableSleepCount: Module.nonskippable_sleep_count,
             sleepCount: Module.sleep_count,
             sleepTime: Module.sleep_time,
-            cycles: Module.cycles,
+            cpuMetrics: Module.UTF8ToString(Module._getCPUMetrics()),
             netSent: Module.netSent || 0,
             netRecv: Module.netRecv || 0,
           };
