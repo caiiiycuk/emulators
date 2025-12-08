@@ -13,6 +13,8 @@ namespace jsdos {
     void Mouse_CursorMoved(float xrel,float yrel,float x,float y,bool emulate);
     void Mouse_ButtonPressed(uint8_t button);
     void Mouse_ButtonReleased(uint8_t button);
+
+    void handleTriggeredEvents();
 }
 
 #endif  // JS_DOS_JSDOS_EVENTS_H

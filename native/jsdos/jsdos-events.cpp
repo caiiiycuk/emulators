@@ -1,14 +1,23 @@
 //
 // Created by Alexander Guryanov on 15/11/22.
 //
-#include <list>
-#include <protocol.h>
-
+#include <config.h>
 #include <jsdos-events.h>
 #include <jsdos-timer.h>
-#include <cstdlib>
+#include <protocol.h>
+#include <render.h>
+#include <stdlib.h>
 
-#ifndef EMSCRIPTEN
+#include <cstdlib>
+#include <list>
+#include <string>
+#include <vector>
+
+#include "../dosbox/include/cpu.h"
+
+#ifdef EMSCRIPTEN
+#include <emscripten.h>
+#else
 #include <mutex>
 
 std::mutex keyMutex;
@@ -113,4 +122,61 @@ void server_add_key(KBD_KEYS key, bool pressed, uint64_t pressedMs) {
   if (keyEvents.size() == 1 && pressed) {
     executeNextKeyEventAt = GetMsPassedFromStart();
   }
+}
+
+#ifndef EMSCRIPTEN
+std::mutex triggerMutex;
+#endif
+std::vector<std::string> triggerEvents;
+extern void IpxNetStartServer();
+extern "C" void EMSCRIPTEN_KEEPALIVE TriggerEventByName(const char* name) {
+#ifndef EMSCRIPTEN
+  std::lock_guard<std::mutex> g(triggerMutex);
+#endif
+  triggerEvents.push_back(name);
+}
+
+#ifdef JSDOS_X
+void MAPPER_TriggerEventByName(const std::string& name);
+extern void RDTSC_rebase();
+extern uint32_t emulator_speed;
+#endif
+
+extern bool ticksLocked;
+
+void jsdos::handleTriggeredEvents() {
+#ifndef EMSCRIPTEN
+  std::lock_guard<std::mutex> g(triggerMutex);
+#endif
+
+  for (auto& next: triggerEvents) {
+    if (next == "hand_ipx_startserver") {
+      IpxNetStartServer();
+    } else if (next.find("fast_forward:") == 0) {
+      ticksLocked = next.back() == '1';
+    } else if (next.find("frame_skip:") == 0) {
+      render.frameskip.max = atoi(&next.back());
+    } else if (next.find("auto_adjust:") == 0) {
+      CPU_CycleAutoAdjust = next.back() == '1';
+    } else if (next.find("cycles:") == 0) {
+      CPU_CycleMax = atoi(next.substr(7).c_str());
+#ifdef JSDOS_X
+      RDTSC_rebase();
+#endif
+    } else if (next.find("speed:") == 0) {
+#ifdef JSDOS_X
+      emulator_speed = atoi(next.substr(6).c_str());
+#endif
+    }
+#if JSDOS_X
+    else {
+      MAPPER_TriggerEventByName(next);
+    }
+#else
+    else {
+      printf("ERR! Event '%s' is not supported by dosbox backend\n", next.c_str());
+    }
+#endif
+  }
+  triggerEvents.clear();
 }

@@ -287,7 +287,9 @@ double frameskip = 0;
 
 extern bool ticksLocked;
 extern uint32_t emulator_speed;
+#ifdef JSDOS_X
 extern bool wasSockdriveRead;
+#endif
 
 void clearTicks() {
   cpuMax = 0;
@@ -299,6 +301,9 @@ void clearTicks() {
   cpuAuto = false;
   cpuSkip = false;
   frameskip = 0;
+#ifdef JSDOS_X
+  wasSockdriveRead = false;
+#endif
 }
 
 void jsdos::increaseticks() {
@@ -328,14 +333,14 @@ void jsdos::increaseticks() {
     cpuSkip = true;
   }
 
-  frameskip =+ render.frameskip.max;
+  frameskip += render.frameskip.max;
 }
 
 extern "C" const char* EMSCRIPTEN_KEEPALIVE getCPUMetrics() {
   static std::string copy;
   if (increaseTicksCount > 0) {
     copy =
-      std::to_string((int32_t) std::round(cpuMax / increaseTicksCount)) + "|" +
+      std::to_string((int32_t) std::round(cpuAuto ? cpuMax / increaseTicksCount : CPU_CycleMax)) + "|" +
       std::to_string((int32_t) std::round(emulatorSpeed / increaseTicksCount)) + "|" +
       std::to_string((int32_t) std::round(cpuPercUsed / increaseTicksCount)) + "|" +
       std::to_string((int32_t) std::round(frameskip / increaseTicksCount)) + "|" +

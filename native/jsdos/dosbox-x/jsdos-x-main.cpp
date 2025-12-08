@@ -10237,35 +10237,11 @@ void server_exit() {
   jsdos::requestExit();
 }
 
-#ifndef EMSCRIPTEN
-std::mutex triggerMutex;
-#endif
-std::vector<std::string> triggerEvents;
-extern void MAPPER_TriggerEventByName(const std::string& name);
-extern "C" void EMSCRIPTEN_KEEPALIVE TriggerEventByName(const char* name) {
-#ifndef EMSCRIPTEN
-  std::lock_guard<std::mutex> g(triggerMutex);
-#endif
-  triggerEvents.push_back(name);
-}
-
 extern void IpxNetStartServer();
 void GFX_Events() {
   jsdos::DoKeyEvents();
   jsdos::DoMouseEvents();
-
-#ifndef EMSCRIPTEN
-  std::lock_guard<std::mutex> g(triggerMutex);
-#endif
-
-  for (auto& next: triggerEvents) {
-    if (next == "hand_ipx_startserver") {
-      IpxNetStartServer();
-    } else {
-      MAPPER_TriggerEventByName(next);
-    }
-  }
-  triggerEvents.clear();
+  jsdos::handleTriggeredEvents();
 }
 
 int server_run() {
