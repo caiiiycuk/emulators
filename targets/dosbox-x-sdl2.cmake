@@ -734,7 +734,7 @@ if (${EMSCRIPTEN})
         "-sUSE_ZLIB=1"
         "-sUSE_SDL=2"
 
-        "-sGL_MAX_TEMP_BUFFER_SIZE=32Mb"
+        "-sGL_MAX_TEMP_BUFFER_SIZE=64Mb"
         "-sGL_PREINITIALIZED_CONTEXT=1"
         "-sGL_TRACK_ERRORS=0"
         "-sMAX_WEBGL_VERSION=1"
