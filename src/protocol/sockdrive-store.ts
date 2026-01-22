@@ -15,19 +15,19 @@ export class NoStore implements Store {
     public close() {
     }
 
-    public put(key: number, data: Uint8Array, store: string): Promise<void> {
+    public put(): Promise<void> {
         return Promise.resolve();
     }
 
-    public get(range: number, store: string): Promise<Uint8Array | null> {
+    public get(): Promise<Uint8Array | null> {
         return Promise.resolve(null);
     }
 
-    public keys(store: string): Promise<number[]> {
+    public keys(): Promise<number[]> {
         return Promise.resolve([]);
     }
 
-    public each(keys: number[], store: string, callback: (key: number, data: Uint8Array) => void) {
+    public each() {
         return Promise.resolve();
     }
 }
@@ -65,10 +65,12 @@ class DbStore implements Store {
                         onerror("Can't upgrade cache database");
                     };
 
-                    this.db.createObjectStore(RAW_STORE)
-                        .createIndex("range", "", { multiEntry: false });
-                    this.db.createObjectStore(WRITE_STORE)
-                        .createIndex("sector", "", { multiEntry: false });
+                    if (!this.db.objectStoreNames.contains(RAW_STORE)) {
+                        this.db.createObjectStore(RAW_STORE);
+                    }
+                    if (!this.db.objectStoreNames.contains(WRITE_STORE)) {
+                        this.db.createObjectStore(WRITE_STORE);
+                    }
                 } catch (e) {
                     onerror("Can't upgrade cache database");
                 }

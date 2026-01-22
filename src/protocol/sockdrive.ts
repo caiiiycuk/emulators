@@ -171,7 +171,7 @@ export async function sockdrive(url: string,
                 throw new Error("Can't read range " + range + ", network response code is " + response.status);
             }
             const buffer = new Uint8Array(await response.arrayBuffer());
-            await store.put(range, buffer, RAW_STORE);
+            store.put(range, buffer, RAW_STORE).catch(console.error);
             onNewRange(range, buffer);
         } catch (e) {
             console.error("Can't read range", range, e);
