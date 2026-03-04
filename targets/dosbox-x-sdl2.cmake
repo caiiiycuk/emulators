@@ -700,7 +700,7 @@ target_link_libraries(dosbox-x-sdl2 libdosbox-x-sdl2)
 set_property(TARGET dosbox-x-sdl2 PROPERTY CXX_STANDARD 11)
 
 if (${EMSCRIPTEN})
-    target_compile_options(libdosbox-x-sdl2 PUBLIC -fwasm-exceptions)
+    target_compile_options(libdosbox-x-sdl2 PUBLIC -fwasm-exceptions -sWASM_LEGACY_EXCEPTIONS=1)
     target_include_directories(libdosbox-x-sdl2 PUBLIC "${NATIVE_DIR}/sdl2net")
     set_target_properties(dosbox-x-sdl2 PROPERTIES SUFFIX .html)
     target_link_options(dosbox-x-sdl2 PUBLIC
@@ -714,7 +714,7 @@ if (${EMSCRIPTEN})
             "-sASYNCIFY_IMPORTS=['syncSleep']"
             )
 
-    target_compile_options(libdosbox-x-jsdos PUBLIC -fwasm-exceptions)
+    target_compile_options(libdosbox-x-jsdos PUBLIC -fwasm-exceptions -sWASM_LEGACY_EXCEPTIONS=1)
 
     add_executable(wdosbox-x "${SRC_DIR}/dos/dosbox/cpp/worker-protocol.cpp"
         "${NATIVE_DIR}/jsdos/jsdos-asyncify.cpp")
@@ -730,7 +730,7 @@ if (${EMSCRIPTEN})
 
     set(WDOSBOXX_LINK_OPTIONS
         ${EM_LINK_OPTIONS}
-        -fwasm-exceptions 
+        -fwasm-exceptions -sWASM_LEGACY_EXCEPTIONS=1
         "-sUSE_ZLIB=1"
         "-sUSE_SDL=2"
 
