@@ -1,6 +1,7 @@
 {
     "files": ["gulpfile.ts/index.ts",
-              "src/emulators.ts"],
+              "src/emulators.ts",
+              "src/sockdrive/sockdrive.ts"],
     "compilerOptions": {
         "target": "esnext",
         "outDir": "build",
