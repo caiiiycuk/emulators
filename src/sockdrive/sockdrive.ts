@@ -34,8 +34,8 @@ export interface Drive {
 }
 
 export async function sockdrive(url: string,
-                                _onNewRange: (range: number, buffer: Uint8Array) => void,
-                                preloadMode: "all" | "default" | "none"): Promise<Drive> {
+    _onNewRange: (range: number, buffer: Uint8Array) => void,
+    preloadMode: "all" | "default" | "none"): Promise<Drive> {
     const store = await getStore(url);
     const response = await fetch(url + "/sockdrive.metaj");
     const info = await response.json() as DriveInfo;
@@ -167,13 +167,24 @@ export async function sockdrive(url: string,
                 }
             }
 
-            const response = await fetch(url + "/" + range + ".raw");
-            if (!response.ok) {
-                throw new Error("Can't read range " + range + ", network response code is " + response.status);
+            let retries = 2;
+            while (retries > 0) {
+                const response = await fetch(url + "/" + range + ".raw");
+                if (!response.ok) {
+                    if (retries > 0) {
+                        console.warn("Can't read range " + range + ", network response code is " + response.status + ", retrying...");
+                        retries--;
+                        continue;
+                    } else {
+                        throw new Error("Can't read range " + range + ", network response code is " + response.status);
+                    }
+                }
+
+                const buffer = new Uint8Array(await response.arrayBuffer());
+                store.put(range, buffer, RAW_STORE).catch(console.error);
+                onNewRange(range, buffer);
+                break;
             }
-            const buffer = new Uint8Array(await response.arrayBuffer());
-            store.put(range, buffer, RAW_STORE).catch(console.error);
-            onNewRange(range, buffer);
         } catch (e) {
             console.error("Can't read range", range, e);
         } finally {
