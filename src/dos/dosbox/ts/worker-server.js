@@ -1,3 +1,5 @@
+@SOCKDRIVE@
+
 var worker = typeof importScripts === "function";
 
 if (worker) {
@@ -33,8 +35,10 @@ if (worker) {
             if (data.props.audioPort !== undefined) {
                 module.audioPort = data.props.audioPort;
             }
-
+        
+            self.Module = module;
             @MODULE_NAME@(module).catch(console.error);
+            
             return;
         }
     };

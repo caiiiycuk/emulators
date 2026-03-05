@@ -1,3 +1,5 @@
+const context: any = typeof window !== "undefined" ? window : typeof self !== "undefined" ? self : global;
+
 export const RAW_STORE = "raw";
 export const WRITE_STORE = "write";
 
@@ -10,25 +12,33 @@ export interface Store {
 }
 
 export class NoStore implements Store {
+    store: { [key: string]: Map<number, Uint8Array> } = {
+        [RAW_STORE]: new Map<number, Uint8Array>(),
+        [WRITE_STORE]: new Map<number, Uint8Array>(),
+    };
     public owner = "";
-
-    public close() {
-    }
-
-    public put(): Promise<void> {
+    put(key: number, data: Uint8Array, store: string): Promise<void> {
+        this.store[store].set(key, data);
         return Promise.resolve();
     }
-
-    public get(): Promise<Uint8Array | null> {
-        return Promise.resolve(null);
+    get(key: number, store: string): Promise<Uint8Array | null> {
+        return Promise.resolve(this.store[store].get(key) ?? null);
     }
-
-    public keys(): Promise<number[]> {
-        return Promise.resolve([]);
+    keys(store: string): Promise<number[]> {
+        return Promise.resolve(Array.from(this.store[store].keys()));
     }
-
-    public each() {
+    each(keys: number[], store: string, callback: (key: number, data: Uint8Array) => void): Promise<void> {
+        for (const key of keys) {
+            const data = this.store[store].get(key);
+            if (data) {
+                callback(key, data);
+            }
+        }
         return Promise.resolve();
+    }
+    close(): void {
+        this.store[RAW_STORE].clear();
+        this.store[WRITE_STORE].clear();
     }
 }
 
@@ -40,9 +50,7 @@ class DbStore implements Store {
         url: string,
         onready: (cache: Store) => void,
         onerror: (msg: string) => void) {
-        this.indexedDB = (typeof window === "undefined" ? undefined : window.indexedDB ||
-            (window as any).mozIndexedDB ||
-            (window as any).webkitIndexedDB || (window as any).msIndexedDB) as any;
+        this.indexedDB = context.indexedDB ?? context.mozIndexedDB ?? context.webkitIndexedDB ?? context.msIndexedDB;
 
         if (!this.indexedDB) {
             onerror("IndexedDB is not supported on this host");

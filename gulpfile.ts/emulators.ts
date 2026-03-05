@@ -21,10 +21,10 @@ function clean() {
         "build/wworker-footer*"], { force: true });
 }
 
-function js() {
+function browserifyTs(src: string, dst: string) {
     return browserify({
         debug: true,
-        entries: ["src/emulators.ts"],
+        entries: [src],
         cache: {},
         packageCache: {},
     })
@@ -39,7 +39,7 @@ function js() {
             extensions: [".ts"],
         })
         .bundle()
-        .pipe(source("emulators.js"))
+        .pipe(source(dst))
         .pipe(buffer())
         .pipe(sourcemaps.init({ loadMaps: true }))
         .pipe(terser())
@@ -48,10 +48,19 @@ function js() {
         .pipe(dest("dist"));
 }
 
+function emulatorsJs() {
+    return browserifyTs("src/emulators.ts", "emulators.js");
+}
+
+function sockdriveJs() {
+    return browserifyTs("src/sockdrive/sockdrive.ts", "sockdrive.js");
+}
+
 function dosboxJs() {
     return src("dist/wdosbox.js")
         .pipe(footer(fs.readFileSync("src/dos/dosbox/ts/worker-server.js")))
         .pipe(replace("@MODULE_NAME@", "WDOSBOX"))
+        .pipe(replace("@SOCKDRIVE@", ""))
         .pipe(dest("dist"));
 }
 
@@ -59,6 +68,7 @@ function dosboxxJs() {
     return src("dist/wdosbox-x.js")
         .pipe(footer(fs.readFileSync("src/dos/dosbox/ts/worker-server.js")))
         .pipe(replace("@MODULE_NAME@", "WDOSBOXX"))
+        .pipe(replace("@SOCKDRIVE@", fs.readFileSync("dist/sockdrive.js", "utf8")))
         .pipe(dest("dist"));
 }
 
@@ -66,8 +76,13 @@ function dosboxxJsJspi() {
     return src("dist/wdosbox-x-jspi.js")
         .pipe(footer(fs.readFileSync("src/dos/dosbox/ts/worker-server.js")))
         .pipe(replace("@MODULE_NAME@", "WDOSBOXXJSPI"))
+        .pipe(replace("@SOCKDRIVE@", fs.readFileSync("dist/sockdrive.js", "utf8")))
         .pipe(dest("dist"));
 }
 
-export const compileJs = series(clean, js);
-export const emulators = parallel(dosboxJs, dosboxxJs, dosboxxJsJspi);
+function cleanupJs() {
+    return del("dist/sockdrive.js");
+}
+
+export const compileJs = series(clean, parallel(emulatorsJs, sockdriveJs));
+export const emulators = series(parallel(dosboxJs, dosboxxJs, dosboxxJsJspi), cleanupJs);

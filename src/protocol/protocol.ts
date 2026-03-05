@@ -1,7 +1,6 @@
 import { CommandInterface, NetworkType, BackendOptions, DosConfig,
     InitFsEntry, InitFileEntry, PersistedSockdrives } from "../emulators";
 import { CommandInterfaceEventsImpl } from "../impl/ci-impl";
-import { Drive, sockdrive } from "./sockdrive";
 
 const maxDataChunkSize = 4 * 1024 * 1024;
 
@@ -44,10 +43,9 @@ export type ClientMessage =
     "wc-send-data-chunk" |
     "wc-net-connected" |
     "wc-net-received" |
-    "wc-sockdrive-opened" |
-    "wc-sockdrive-new-range" |
     "wc-unload" |
-    "wc-fs-delete-file";
+    "wc-fs-delete-file" |
+    "wc-persist-sockdrives";
 
 export type ServerMessage =
     "ws-extract-progress" |
@@ -72,13 +70,9 @@ export type ServerMessage =
     "ws-send-data-chunk" |
     "ws-net-disconnect" |
     "ws-net-send" |
-    "ws-sockdrive-open" |
-    "ws-sockdrive-ready" |
-    "ws-sockdrive-close" |
-    "ws-sockdrive-load-range" |
-    "ws-sockdrive-write-sector" |
     "ws-unload" |
-    "ws-fs-delete-file";
+    "ws-fs-delete-file" |
+    "ws-persist-sockdrives";
 
 export type MessageHandler = (name: ServerMessage, props: { [key: string]: any }) => void;
 
@@ -198,8 +192,8 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
     private dataChunkPromise: { [name: string]: Promise<void> } = {};
     private dataChunkResolve: { [name: string]: () => void } = {};
 
-    private sockdrives: { [handle: number]: Drive } = {};
-    private sockdrivePreload: "all" | "default" | "none";
+    private persistSockdrivesPromise: Promise<PersistedSockdrives | null> | null = null;
+    private persistSockdrivesResolve: (sockdrives: PersistedSockdrives) => void = () => {/**/};
 
     private myPeerId: number = 0;
     private netSent = 0;
@@ -217,7 +211,6 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
         this.ready = ready;
         this.configPromise = new Promise<DosConfig>((resolve) => this.configResolve = resolve);
         this.transport.initMessageHandler(this.onServerMessage.bind(this));
-        this.sockdrivePreload = options.sockdrivePreload ?? "default";
         this.transport.net = this.transport.net ?? null;
         if (this.transport.net) {
             this.myPeerId = this.transport.net.peerId;
@@ -303,7 +296,11 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
 
                 sendBundles()
                     .then(() => {
-                        this.sendClientMessage("wc-run", { token: this.options.token, myPeerId: this.myPeerId });
+                        this.sendClientMessage("wc-run", {
+                            token: this.options.token,
+                            myPeerId: this.myPeerId,
+                            sockdrivePreload: this.options.sockdrivePreload,
+                        });
                     })
                     .catch((e) => {
                         this.onErr("panic", "Can't send bundles to backend: " + e.message);
@@ -392,16 +389,6 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
                 }
             } break;
             case "ws-asyncify-stats": {
-                props.driveIo = [];
-                for (const drive of Object.values(this.sockdrives)) {
-                    props.driveIo.push({
-                        url: drive.info.url,
-                        preload: drive.info.preloadSizeInBytes,
-                        total: drive.info.sizeInBytes,
-                        read: drive.info.readInBytes,
-                        write: drive.info.writeInBytes,
-                    });
-                }
                 props.netSent = this.netSent;
                 props.netRecv = this.netRecv;
                 if (props.cpuMetrics && props.cpuMetrics.length > 0) {
@@ -489,70 +476,19 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
             case "ws-net-disconnect": {
                 this.transport.net?.disconnect(props.peerId);
             } break;
-            case "ws-sockdrive-open": {
-                const handle = props.handle;
-                let url =
-                    props.url
-                        .replace("wss://sockdrive.js-dos.com:8001/dos.zone/",
-                            "https://br.cdn.dos.zone/sockdrive-qcow2/dos.zone-")
-                        .replace("wss://sockdrive.js-dos.com:8001/system/",
-                            "https://br.cdn.dos.zone/sockdrive-qcow2/system-");
-                if (url.endsWith("/")) {
-                    url = url.slice(0, -1);
-                }
-                sockdrive(url, (range, buffer) => {
-                    this.sendClientMessage("wc-sockdrive-new-range", {
-                        handle: handle,
-                        range: range,
-                        buffer,
-                    });
-                }, this.sockdrivePreload).then((drive) => {
-                    this.sockdrives[props.handle] = drive;
-                    const emptyRanges = Array.from(drive.info.dropped_ranges);
-                    this.sendClientMessage("wc-sockdrive-opened", {
-                        handle: handle,
-                        size: drive.info.size,
-                        heads: drive.info.heads,
-                        cylinders: drive.info.cylinders,
-                        sectors: drive.info.sectors,
-                        sectorSize: drive.info.sector_size,
-                        aheadRange: drive.info.ahead_read,
-                        emptyRangesCount: drive.info.dropped_ranges.length,
-                        emptyRanges,
-                    });
-                }).catch((e: Error) => {
-                    this.onErr("panic", "Can't open sockdrive(" + url + "): " + e.message);
-                    console.error(e);
-
-                    this.sendClientMessage("wc-sockdrive-opened", {
-                        handle: handle,
-                        size: 0,
-                        heads: 0,
-                        cylinders: 0,
-                        sectors: 0,
-                        sectorSize: 0,
-                        aheadRange: 0,
-                        emptyRangesCount: 0,
-                        emptyRanges: [],
-                    });
-                });
-            } break;
-            case "ws-sockdrive-ready": {
-                this.sockdrives[props.handle].ready();
-            } break;
-            case "ws-sockdrive-load-range": {
-                this.sockdrives[props.handle].readRangeAsync(props.range);
-            } break;
-            case "ws-sockdrive-write-sector": {
-                this.sockdrives[props.handle].write(props.sector, props.data);
-            } break;
-            case "ws-sockdrive-close": {
-                delete this.sockdrives[props.handle];
-            } break;
             case "ws-unload": {
                 this.eventsImpl.fireUnload().finally(() => {
                     this.sendClientMessage("wc-unload");
                 });
+            } break;
+            case "ws-persist-sockdrives": {
+                if (props.drives === null) {
+                    this.persistSockdrivesResolve(null);
+                } else {
+                    this.persistSockdrivesResolve({ drives: props.drives });
+                }
+                this.persistSockdrivesResolve = () => {/**/};
+                this.persistSockdrivesPromise = null;
             } break;
             default: {
                 // eslint-disable-next-line
@@ -900,25 +836,14 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
         return promise;
     }
 
-    async persistSockdrives(): Promise<PersistedSockdrives> {
-        if (Object.keys(this.sockdrives).length === 0) {
-            return null;
+    async persistSockdrives(): Promise<PersistedSockdrives | null> {
+        if (this.persistSockdrivesPromise === null) {
+            this.persistSockdrivesPromise = new Promise<PersistedSockdrives | null>((resolve) => {
+                this.persistSockdrivesResolve = resolve;
+            });
+            this.sendClientMessage("wc-persist-sockdrives");
         }
-
-        const drives = [];
-        // eslint-disable-next-line no-unused-vars
-        for (const [_, drive] of Object.entries(this.sockdrives)) {
-            const persist = await drive.persist();
-            if (persist !== null) {
-                drives.push({
-                    url: drive.info.url,
-                    persist,
-                });
-            }
-        }
-        return {
-            drives,
-        };
+        return this.persistSockdrivesPromise;
     }
 
     private async sendDataChunk(chunk: DataChunk): Promise<void> {
