@@ -4,7 +4,7 @@ import { assert } from "chai";
 import { renderComparsionOf, waitImage } from "./compare";
 
 import DosBundle from "../../src/dos/bundle/dos-bundle";
-import { BackendOptions, CommandInterface, InitFs, PersistedSockdrives } from "../../src/emulators";
+import { BackendOptions, CommandInterface, InitFs } from "../../src/emulators";
 import emulatorsImpl from "../../src/impl/emulators-impl";
 
 import { httpRequest } from "../../src/http";
@@ -175,7 +175,7 @@ function testServer(factory: CIFactory, name: string, assets: string) {
     });
 
     test(name + " should track new files [existent db]", async () => {
-        let changes: Uint8Array | PersistedSockdrives | null = null;
+        let changes: Uint8Array | null = null;
 
         {
             const bundle = await (await emulatorsImpl.bundle()).toUint8Array();

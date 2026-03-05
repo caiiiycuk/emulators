@@ -1,5 +1,7 @@
-import { CommandInterface, NetworkType, BackendOptions, DosConfig,
-    InitFsEntry, InitFileEntry, PersistedSockdrives } from "../emulators";
+import {
+    CommandInterface, NetworkType, BackendOptions, DosConfig,
+    InitFsEntry, InitFileEntry,
+} from "../emulators";
 import { CommandInterfaceEventsImpl } from "../impl/ci-impl";
 
 const maxDataChunkSize = 4 * 1024 * 1024;
@@ -155,8 +157,8 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
     private transport: TransportLayer;
     private ready: (err: Error | null) => void;
 
-    private persistPromise?: Promise<Uint8Array | PersistedSockdrives | null>;
-    private persistResolve?: (bundle: Uint8Array | PersistedSockdrives | null) => void;
+    private persistPromise?: Promise<Uint8Array | null>;
+    private persistResolve?: (bundle: Uint8Array | null) => void;
 
     private exitPromise?: Promise<void>;
     private exitResolve?: () => void;
@@ -192,8 +194,8 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
     private dataChunkPromise: { [name: string]: Promise<void> } = {};
     private dataChunkResolve: { [name: string]: () => void } = {};
 
-    private persistSockdrivesPromise: Promise<PersistedSockdrives | null> | null = null;
-    private persistSockdrivesResolve: (sockdrives: PersistedSockdrives) => void = () => {/**/};
+    private persistSockdrivesPromise: Promise<Uint8Array | null> | null = null;
+    private persistSockdrivesResolve: (changes: Uint8Array | null) => void = () => {/**/};
 
     private myPeerId: number = 0;
     private netSent = 0;
@@ -485,7 +487,7 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
                 if (props.drives === null) {
                     this.persistSockdrivesResolve(null);
                 } else {
-                    this.persistSockdrivesResolve({ drives: props.drives });
+                    this.persistSockdrivesResolve(encodeSockdriveChanges(props.drives));
                 }
                 this.persistSockdrivesResolve = () => {/**/};
                 this.persistSockdrivesPromise = null;
@@ -630,7 +632,7 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
     }
 
 
-    public async persist(optOnlyChanges?: boolean): Promise<Uint8Array | PersistedSockdrives | null> {
+    public async persist(optOnlyChanges?: boolean): Promise<Uint8Array | null> {
         const onlyChanges = optOnlyChanges ?? true;
         if (this.persistPromise !== undefined) {
             return this.persistPromise;
@@ -641,7 +643,7 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
             return Promise.resolve(sockdrives);
         }
 
-        const persistPromise = new Promise<Uint8Array | PersistedSockdrives | null>((resolve) => {
+        const persistPromise = new Promise<Uint8Array | null>((resolve) => {
             this.persistResolve = resolve;
         });
         this.persistPromise = persistPromise;
@@ -652,7 +654,7 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
         return persistPromise;
     }
 
-    private onPersist(bundle: Uint8Array | PersistedSockdrives | null) {
+    private onPersist(bundle: Uint8Array | null) {
         if (this.persistResolve) {
             this.persistResolve(bundle);
             delete this.persistPromise;
@@ -836,9 +838,9 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
         return promise;
     }
 
-    async persistSockdrives(): Promise<PersistedSockdrives | null> {
+    async persistSockdrives(): Promise<Uint8Array | null> {
         if (this.persistSockdrivesPromise === null) {
-            this.persistSockdrivesPromise = new Promise<PersistedSockdrives | null>((resolve) => {
+            this.persistSockdrivesPromise = new Promise<Uint8Array | null>((resolve) => {
                 this.persistSockdrivesResolve = resolve;
             });
             this.sendClientMessage("wc-persist-sockdrives");
@@ -902,4 +904,43 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
     public net(): Net | null {
         return this.transport.net ?? null;
     }
+}
+
+function encodeSockdriveChanges(changes: {
+    url: string,
+    persist: Uint8Array,
+}[]) {
+    function writeUint32(container: Uint8Array, value: number, offset: number) {
+        container[offset] = value & 0xFF;
+        container[offset + 1] = (value & 0x0000FF00) >> 8;
+        container[offset + 2] = (value & 0x00FF0000) >> 16;
+        container[offset + 3] = (value & 0xFF000000) >> 24;
+        return offset + 4;
+    }
+
+    const encoder = new TextEncoder();
+
+    const urls = [];
+    let totalSize = 0;
+    for (const { url, persist } of changes) {
+        urls.push(encoder.encode(url));
+        totalSize += persist.length + urls[urls.length - 1].length + 8;
+    }
+
+    const result = new Uint8Array(totalSize);
+    let offset = 0;
+    for (let i = 0; i < changes.length; i++) {
+        const url = urls[i];
+        const persist = changes[i].persist;
+
+        offset = writeUint32(result, url.length, offset);
+        result.set(url, offset);
+        offset += url.length;
+
+        offset = writeUint32(result, persist.length, offset);
+        result.set(persist, offset);
+        offset += persist.length;
+    }
+
+    return result;
 }

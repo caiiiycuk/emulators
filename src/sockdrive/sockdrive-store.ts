@@ -1,204 +1,255 @@
-const context: any = typeof window !== "undefined" ? window : typeof self !== "undefined" ? self : global;
-
-export const RAW_STORE = "raw";
-export const WRITE_STORE = "write";
+const OPFS_META_ENTRY_SIZE = 8; // index + offset
 
 export interface Store {
-    put: (key: number, data: Uint8Array, store: string) => Promise<void>;
-    get: (key: number, store: string) => Promise<Uint8Array | null>;
-    keys: (store: string) => Promise<number[]>;
-    each: (key: number[], store: string, callback: (key: number, data: Uint8Array) => void) => Promise<void>;
-    close: () => void;
+    keys: () => Promise<number[]>;
+    put: (key: number, data: Uint8Array) => Promise<void>;
+    getSync: (key: number) => Uint8Array | null;
+    getAsync: (key: number) => Promise<Uint8Array | null>;
 }
 
 export class NoStore implements Store {
-    store: { [key: string]: Map<number, Uint8Array> } = {
-        [RAW_STORE]: new Map<number, Uint8Array>(),
-        [WRITE_STORE]: new Map<number, Uint8Array>(),
-    };
-    public owner = "";
-    put(key: number, data: Uint8Array, store: string): Promise<void> {
-        this.store[store].set(key, data);
+    store: Map<number, Uint8Array> = new Map();
+    put(key: number, data: Uint8Array): Promise<void> {
+        this.store.set(key, data);
         return Promise.resolve();
     }
-    get(key: number, store: string): Promise<Uint8Array | null> {
-        return Promise.resolve(this.store[store].get(key) ?? null);
+    getSync(key: number): Uint8Array | null {
+        return this.store.get(key) ?? null;
     }
-    keys(store: string): Promise<number[]> {
-        return Promise.resolve(Array.from(this.store[store].keys()));
+    getAsync(_: number): Promise<Uint8Array | null> {
+        return Promise.resolve(null);
     }
-    each(keys: number[], store: string, callback: (key: number, data: Uint8Array) => void): Promise<void> {
-        for (const key of keys) {
-            const data = this.store[store].get(key);
-            if (data) {
-                callback(key, data);
-            }
-        }
-        return Promise.resolve();
-    }
-    close(): void {
-        this.store[RAW_STORE].clear();
-        this.store[WRITE_STORE].clear();
+    keys(): Promise<number[]> {
+        return Promise.resolve(Array.from(this.store.keys()));
     }
 }
 
-class DbStore implements Store {
-    private indexedDB: IDBFactory;
-    private db: IDBDatabase | null = null;
+function urlToDirectory(owner: string): string {
+    return owner
+        .replace(/^https?:\/\//, "")
+        .replace(/[^a-zA-Z0-9._-]/g, "_")
+        .substring(0, 200);
+}
 
-    constructor(
-        url: string,
-        onready: (cache: Store) => void,
-        onerror: (msg: string) => void) {
-        this.indexedDB = context.indexedDB ?? context.mozIndexedDB ?? context.webkitIndexedDB ?? context.msIndexedDB;
+interface SyncAccessHandle {
+    read(buffer: Uint8Array, opts: { at: number }): number;
+    write(data: Uint8Array, opts: { at: number }): number;
+    truncate(size: number): void;
+    flush(): void;
+    getSize(): number;
+    close(): void;
+}
 
-        if (!this.indexedDB) {
-            onerror("IndexedDB is not supported on this host");
-            return;
-        }
+interface AsyncFileHandle {
+    getFile(): Promise<File>;
+    createWritable(opts?: { keepExistingData?: boolean }): Promise<{
+        seek(offset: number): Promise<void>;
+        write(data: Uint8Array): Promise<void>;
+        close(): Promise<void>;
+    }>;
+}
 
+type Handle = SyncAccessHandle | AsyncFileHandle;
+
+export class OpfsStore implements Store {
+    private dir: FileSystemDirectoryHandle;
+    private index: Map<number, number> = new Map();
+    private syncMode: boolean = false;
+    private blockHandle: Handle | null = null;
+    private metaHandle: Handle | null = null;
+    private blockSize: number = 0;
+    private metaSize: number = 0;
+    private blockLength: number;
+    private metaEntry = new Uint8Array(OPFS_META_ENTRY_SIZE);
+
+    private constructor(dir: FileSystemDirectoryHandle, blockLength: number) {
+        this.dir = dir;
+        this.blockLength = blockLength;
+    }
+
+    static async create(url: string, blockLength: number): Promise<OpfsStore> {
+        const root = await navigator.storage.getDirectory();
+        const dir = await root.getDirectoryHandle(urlToDirectory(url), { create: true });
+        const store = new OpfsStore(dir, blockLength);
+        await store.init();
+        return store;
+    }
+
+    private async init(): Promise<void> {
+        let metaData: Uint8Array | null = null;
         try {
-            const openRequest = this.indexedDB.open("sockdrive (" + url + ")", 1);
-            openRequest.onerror = () => {
-                onerror("Can't open cache database: " + openRequest.error?.message);
-            };
-            openRequest.onsuccess = () => {
-                this.db = openRequest.result;
-                onready(this);
-            };
-            openRequest.onupgradeneeded = () => {
-                try {
-                    this.db = openRequest.result;
-                    this.db.onerror = () => {
-                        onerror("Can't upgrade cache database");
-                    };
+            const file = await (await this.dir.getFileHandle("_meta")).getFile();
+            if (file.size >= OPFS_META_ENTRY_SIZE) {
+                metaData = new Uint8Array(await file.arrayBuffer());
+            }
+        } catch {/* meta doesn't exist yet */}
 
-                    if (!this.db.objectStoreNames.contains(RAW_STORE)) {
-                        this.db.createObjectStore(RAW_STORE);
-                    }
-                    if (!this.db.objectStoreNames.contains(WRITE_STORE)) {
-                        this.db.createObjectStore(WRITE_STORE);
-                    }
-                } catch (e) {
-                    onerror("Can't upgrade cache database");
-                }
-            };
-        } catch (e: any) {
-            onerror("Can't open cache database: " + e.message);
+        if (metaData && this.loadIndex(metaData)) {
+            this.metaSize = metaData.byteLength;
+        } else {
+            this.index.clear();
+            this.metaSize = 0;
+            try {
+                await this.dir.removeEntry("_block");
+            } catch { }
+            try {
+                await this.dir.removeEntry("_meta");
+            } catch { }
+        }
+
+        const blockFH = await this.dir.getFileHandle("_block", { create: true });
+        const metaFH = await this.dir.getFileHandle("_meta", { create: true });
+
+        // Default: sync mode via createSyncAccessHandle (workers)
+        try {
+            const blockSH = await (blockFH as unknown as {
+                createSyncAccessHandle(): Promise<SyncAccessHandle>;
+            }).createSyncAccessHandle();
+            this.blockHandle = blockSH;
+            const metaSH = await (metaFH as unknown as {
+                createSyncAccessHandle(): Promise<SyncAccessHandle>;
+            }).createSyncAccessHandle();
+            this.metaHandle = metaSH;
+            this.blockSize = blockSH.getSize();
+            this.metaSize = metaSH.getSize();
+            this.syncMode = true;
+        } catch {
+            try {
+                (this.blockHandle as SyncAccessHandle)?.close();
+            } catch { }
+            try {
+                (this.metaHandle as SyncAccessHandle)?.close();
+            } catch { }
+            this.blockHandle = null;
+            this.metaHandle = null;
+
+            // Fallback: async mode (main thread where sync access is unavailable)
+            console.warn("OPFS sync mode unavailable, using async fallback");
+            this.blockHandle = blockFH as unknown as AsyncFileHandle;
+            this.metaHandle = metaFH as unknown as AsyncFileHandle;
+            const file = await (this.blockHandle as AsyncFileHandle).getFile();
+            this.blockSize = file.size;
+        }
+
+        // Validate: block file size must match the number of meta entries
+        const expectedBlockSize = (this.metaSize / OPFS_META_ENTRY_SIZE) * this.blockLength;
+        if (this.blockSize !== expectedBlockSize) {
+            console.warn("OPFS block/meta size mismatch: block", this.blockSize,
+                "expected", expectedBlockSize, "- resetting");
+            this.index.clear();
+            this.blockSize = 0;
+            this.metaSize = 0;
+            if (this.syncMode) {
+                (this.blockHandle as SyncAccessHandle).truncate(0);
+                (this.metaHandle as SyncAccessHandle).truncate(0);
+            } else {
+                const bw = await (this.blockHandle as AsyncFileHandle).createWritable();
+                await bw.close();
+                const mw = await (this.metaHandle as AsyncFileHandle).createWritable();
+                await mw.close();
+            }
         }
     }
 
-    public close() {
-        if (this.db !== null) {
-            this.db.close();
-            this.db = null;
+    private loadIndex(data: Uint8Array): boolean {
+        let pos = 0;
+        while (pos + OPFS_META_ENTRY_SIZE <= data.byteLength) {
+            const key = readUint32(data, pos);
+            const offset = readUint32(data, pos + 4);
+            this.index.set(key, offset);
+            pos += OPFS_META_ENTRY_SIZE;
         }
+        if (pos !== data.byteLength) {
+            console.warn("OPFS meta file corrupted: expected", pos, "bytes, got", data.byteLength);
+            return false;
+        }
+        return true;
     }
 
-    public put(key: number, data: Uint8Array, store: string): Promise<void> {
-        return new Promise<void>((resolve) => {
-            const transaction = this.db!.transaction(store, "readwrite");
-            const request = transaction.objectStore(store).put(new Blob([data.buffer]), key);
-            request.onerror = (e) => {
-                console.error(e);
-                resolve();
-            };
-            request.onsuccess = () => {
-                resolve();
-            };
-        });
+    async keys(): Promise<number[]> {
+        return Array.from(this.index.keys());
     }
 
-    public get(key: number, store: string): Promise<Uint8Array | null> {
-        return new Promise<Uint8Array | null>((resolve) => {
-            const transaction = this.db!.transaction(store, "readonly");
-            const request = transaction.objectStore(store).get(key) as IDBRequest<ArrayBuffer | Blob>;
-            request.onerror = (e) => {
-                console.error(e);
-                resolve(null);
-            };
-            request.onsuccess = () => {
-                if (request.result) {
-                    (request.result as Blob).arrayBuffer().then((buffer) => {
-                        resolve(new Uint8Array(buffer));
-                    }).catch((e) => {
-                        console.error(e);
-                        resolve(null);
-                    });
-                } else {
-                    resolve(null);
-                }
-            };
-        });
+    async put(key: number, data: Uint8Array): Promise<void> {
+        const offset = this.blockSize;
+        writeUint32(this.metaEntry, key, 0);
+        writeUint32(this.metaEntry, offset, 4);
+
+        if (this.syncMode) {
+            const block = this.blockHandle as SyncAccessHandle;
+            const meta = this.metaHandle as SyncAccessHandle;
+            block.write(data, { at: offset });
+            meta.write(this.metaEntry, { at: this.metaSize });
+            block.flush();
+            meta.flush();
+        } else {
+            const blockW = await (this.blockHandle as AsyncFileHandle).createWritable({ keepExistingData: true });
+            await blockW.seek(offset);
+            await blockW.write(data);
+            await blockW.close();
+            const metaW = await (this.metaHandle as AsyncFileHandle).createWritable({ keepExistingData: true });
+            await metaW.seek(this.metaSize);
+            await metaW.write(this.metaEntry);
+            await metaW.close();
+        }
+
+        this.blockSize += this.blockLength;
+        this.metaSize += OPFS_META_ENTRY_SIZE;
+        this.index.set(key, offset);
     }
 
-    public keys(store: string): Promise<number[]> {
-        return new Promise<number[]>((resolve) => {
-            if (this.db === null) {
-                resolve([]);
-                return;
-            }
+    getSync(key: number): Uint8Array | null {
+        if (!this.syncMode) {
+            return null;
+        }
+        const offset = this.index.get(key);
+        if (offset === undefined) {
+            return null;
+        }
 
-            const transaction = this.db.transaction(store, "readonly");
-            const request = transaction.objectStore(store).getAllKeys();
-            request.onerror = (e) => {
-                console.error(e);
-                resolve([]);
-            };
-            request.onsuccess = (event) => {
-                if (request.result) {
-                    resolve(request.result as number[]);
-                } else {
-                    resolve([]);
-                }
-            };
-        });
+        const buffer = new Uint8Array(this.blockLength);
+        (this.blockHandle as SyncAccessHandle).read(buffer, { at: offset });
+        return buffer;
     }
 
-    public each(keys: number[], storeName: string, callback: (key: number, data: Uint8Array) => void) {
-        return new Promise<void>((resolve) => {
-            if (this.db === null) {
-                resolve();
-                return;
-            }
+    async getAsync(key: number): Promise<Uint8Array | null> {
+        if (this.syncMode) {
+            return null;
+        }
 
-            const transaction = this.db.transaction(storeName, "readonly");
-            const store = transaction.objectStore(storeName);
+        const offset = this.index.get(key);
+        if (offset === undefined) {
+            return null;
+        }
 
-            const readOne = async (key: number) => {
-                return new Promise<Uint8Array>((resolve, reject) => {
-                    const request = store.get(key);
-                    request.onerror = (e) => {
-                        reject(e);
-                    };
-                    request.onsuccess = (event) => {
-                        (request.result as Blob).arrayBuffer()
-                            .then((buffer) => {
-                                resolve(new Uint8Array(buffer));
-                            }).catch(reject);
-                    };
-                });
-            };
-
-            (async () => {
-                for (const key of keys) {
-                    const data = await readOne(key);
-                    callback(key, data);
-                }
-                resolve();
-            })().catch((e) => {
-                console.error(e);
-                resolve();
-            });
-        });
+        const file = await (this.blockHandle as AsyncFileHandle).getFile();
+        return new Uint8Array(await file.slice(offset, offset + this.blockLength).arrayBuffer());
     }
 }
 
-export function getStore(owner: string): Promise<Store> {
-    return new Promise((resolve) => {
-        new DbStore(owner, resolve, (msg: string) => {
-            console.error("Can't open IndexedDB cache", msg);
-            resolve(new NoStore());
-        });
-    });
+export async function getStore(url: string, blockLength: number): Promise<Store> {
+    try {
+        if (typeof navigator !== "undefined" && navigator.storage &&
+            typeof navigator.storage.getDirectory === "function") {
+            return await OpfsStore.create(url, blockLength);
+        }
+    } catch (e) {
+        console.warn("OPFS not available, falling back to in-memory store", e);
+    }
+    return new NoStore();
+}
+
+export function readUint32(container: Uint8Array, offset: number) {
+    return ((container[offset] & 0x000000FF) |
+        ((container[offset + 1] << 8) & 0x0000FF00) |
+        ((container[offset + 2] << 16) & 0x00FF0000) |
+        ((container[offset + 3] << 24) & 0xFF000000)) >>> 0;
+}
+
+export function writeUint32(container: Uint8Array, value: number, offset: number) {
+    container[offset] = value & 0xFF;
+    container[offset + 1] = (value & 0x0000FF00) >> 8;
+    container[offset + 2] = (value & 0x00FF0000) >> 16;
+    container[offset + 3] = (value & 0xFF000000) >> 24;
+    return offset + 4;
 }

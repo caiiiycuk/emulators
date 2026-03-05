@@ -1,4 +1,4 @@
-import { getStore, RAW_STORE, WRITE_STORE } from "./sockdrive-store";
+import { getStore, readUint32 } from "./sockdrive-store";
 import { compress, compressBound, uncompress } from "../protocol/mini-lz4";
 
 const BATCH_SIZE = 4;
@@ -33,12 +33,15 @@ export interface Drive {
     persist(): Promise<Uint8Array | null>;
 }
 
-export async function sockdrive(url: string,
+export async function sockdrive(
+    url: string,
+    persistedSectors: Uint8Array | null,
+    preloadMode: "all" | "default" | "none",
     _onNewRange: (range: number, buffer: Uint8Array) => void,
-    preloadMode: "all" | "default" | "none"): Promise<Drive> {
-    const store = await getStore(url);
+): Promise<Drive> {
     const response = await fetch(url + "/sockdrive.metaj");
     const info = await response.json() as DriveInfo;
+    const store = await getStore(url, info.ahead_read);
     try {
         info.preload_ranges = await (await fetch(url + "/preload_ranges.metaj")).json();
     } catch (e) {
@@ -54,14 +57,13 @@ export async function sockdrive(url: string,
     }
 
     let storedSectors = new Map<number, Map<number, Uint8Array>>();
-    const serializedSectors = await store.get(0, WRITE_STORE);
-    if (serializedSectors) {
-        info.writeInBytes = serializedSectors.length;
-        storedSectors = deserializeSectors(serializedSectors);
+    if (persistedSectors) {
+        info.writeInBytes = persistedSectors.length;
+        storedSectors = deserializeSectors(persistedSectors);
     }
 
     const storeKeys = new Set<number>();
-    for (const key of await store.keys(RAW_STORE)) {
+    for (const key of await store.keys()) {
         storeKeys.add(key);
     }
 
@@ -71,7 +73,7 @@ export async function sockdrive(url: string,
         for (let i = 0; i < info.small_ranges.length; i++) {
             const range = info.small_ranges[i];
             storeKeys.add(range);
-            await store.put(range, preload.slice(i * info.ahead_read, (i + 1) * info.ahead_read), RAW_STORE);
+            await store.put(range, preload.slice(i * info.ahead_read, (i + 1) * info.ahead_read));
         };
     }
 
@@ -160,7 +162,10 @@ export async function sockdrive(url: string,
             }
 
             if (storeKeys.has(range)) {
-                const buffer = await store.get(range, RAW_STORE);
+                let buffer = store.getSync(range);
+                if (buffer === null) {
+                    buffer = await store.getAsync(range);
+                }
                 if (buffer) {
                     onNewRange(range, buffer);
                     return;
@@ -169,19 +174,27 @@ export async function sockdrive(url: string,
 
             let retries = 2;
             while (retries > 0) {
-                const response = await fetch(url + "/" + range + ".raw");
-                if (!response.ok) {
+                let response;
+                try {
+                    response = await fetch(url + "/" + range + ".raw");
+                } catch (e) {
+                    // ignore
+                }
+
+                if (!response || !response.ok) {
                     if (retries > 0) {
-                        console.warn("Can't read range " + range + ", network response code is " + response.status + ", retrying...");
+                        console.warn("Can't read range " + range + ", network response code is " +
+                            response?.status + ", retrying...");
                         retries--;
                         continue;
                     } else {
-                        throw new Error("Can't read range " + range + ", network response code is " + response.status);
+                        throw new Error("Can't read range " + range + ", network response code is " +
+                            response?.status);
                     }
                 }
 
                 const buffer = new Uint8Array(await response.arrayBuffer());
-                store.put(range, buffer, RAW_STORE).catch(console.error);
+                store.put(range, buffer).catch(console.error);
                 onNewRange(range, buffer);
                 break;
             }
@@ -399,4 +412,36 @@ export async function sockdrive(url: string,
     };
 }
 
+export function traverseSockdriveChanges(encoded: Uint8Array,
+                                         callback: (url: string, changes: Uint8Array) => void) {
+    const decoder = new TextDecoder();
+    let offset = 0;
+    while (offset < encoded.length) {
+        const urlLength = readUint32(encoded, offset);
+        offset += 4;
+
+        if (urlLength > 4096) {
+            return false;
+        }
+
+        const url = decoder.decode(encoded.slice(offset, offset + urlLength));
+
+        if (!(url.startsWith("http://") || url.startsWith("https://"))) {
+            return false;
+        }
+
+        offset += urlLength;
+
+        const persistLength = readUint32(encoded, offset);
+        offset += 4;
+
+        const changes = encoded.slice(offset, offset + persistLength);
+        offset += persistLength;
+        callback(url, changes);
+    }
+
+    return true;
+}
+
 context.sockdrive = sockdrive;
+context.traverseSockdriveChanges = traverseSockdriveChanges;

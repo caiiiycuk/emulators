@@ -22,6 +22,7 @@ uint8_t *frameRgb = nullptr;
 EM_JS(void, ws_init_runtime, (const char* sessionId), {
     var worker = typeof importScripts === "function";
     Module.sockdrives = {};
+    Module.sockdriveChanges = {};
     Module.worker = worker;
     Module.messageSent = 0;
     Module.messageReceived = 0;
@@ -854,6 +855,14 @@ EM_JS(void, emsc_extract_bundle_to_fs, (), {
     let dosboxConf = null;
     for (index = 0; index < Module.bundles.length; ++index) {
       const bytes = Module.bundles[index];
+
+      if (!(bytes[0] === 0x50 && bytes[1] === 0x4b)) {
+        traverseSockdriveChanges(bytes, (url, changes) => {
+          Module.sockdriveChanges[url] = changes;
+        });
+        continue;
+      }
+
       const buffer = Module._malloc(bytes.length);
       Module.HEAPU8.set(bytes, buffer);
       const retcode = Module._zip_to_fs(buffer, bytes.length, 0);
@@ -1160,10 +1169,11 @@ EM_JS(void, em_server_sockdrive_open, (uint32_t handle, const char* url), {
       url = url.slice(0, -1);
   }
 
-  sockdrive(url, (range, buffer) => {
+  sockdrive(url, Module.sockdriveChanges[url], Module.sockdrivePreload, (range, buffer) => {
       Module.onSockdriveNewRange(handle, range, buffer);
-  }, Module.sockdrivePreload).then((drive) => {
+  }).then((drive) => {
       Module.sockdrives[handle] = drive;
+      delete Module.sockdriveChanges[url];
       const emptyRanges = Array.from(drive.info.dropped_ranges);
       Module.onSockdriveOpened(
           handle,
