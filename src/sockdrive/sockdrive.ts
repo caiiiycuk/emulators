@@ -1,7 +1,8 @@
 import { getStore, RAW_STORE, WRITE_STORE } from "./sockdrive-store";
-import { compress, compressBound, uncompress } from "./mini-lz4";
+import { compress, compressBound, uncompress } from "../protocol/mini-lz4";
 
 const BATCH_SIZE = 4;
+const context: any = typeof window !== "undefined" ? window : typeof self !== "undefined" ? self : global;
 
 interface DriveInfo {
     ahead_read: number;
@@ -298,19 +299,19 @@ export async function sockdrive(url: string,
         return sectors;
     }
 
-    (window as any).loadedRanges = () => {
+    context.loadedRanges = () => {
         console.log("Loaded ranges (" + loadedRanges.size + "):",
             JSON.stringify(Array.from(loadedRanges).sort((a, b) => a - b)));
     };
 
-    (window as any).brotliRanges = () => {
+    context.brotliRanges = () => {
         console.log("Loaded ranges (" + loadedRanges.size + "):",
             "echo '" +
             JSON.stringify(Array.from(loadedRanges).sort((a, b) => a - b)) +
             "' | brotli > /tmp/preload_ranges.metaj");
     };
 
-    (window as any).verifySectors = () => {
+    context.verifySectors = () => {
         if (storedSectors.size === 0) {
             return;
         }
@@ -386,3 +387,5 @@ export async function sockdrive(url: string,
         },
     };
 }
+
+context.sockdrive = sockdrive;

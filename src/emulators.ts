@@ -191,6 +191,7 @@ export interface CommandInterfaceEvents {
 
 if (typeof window !== "undefined") {
     (window as any).emulators = emulatorsImpl;
-} if (typeof global !== "undefined") {
+}
+if (typeof global !== "undefined") {
     (global as any).emulators = emulatorsImpl;
 }

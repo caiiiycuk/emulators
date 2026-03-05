@@ -21,6 +21,7 @@ uint8_t *frameRgb = nullptr;
 #include <filesystem>
 EM_JS(void, ws_init_runtime, (const char* sessionId), {
     var worker = typeof importScripts === "function";
+    Module.sockdrives = {};
     Module.worker = worker;
     Module.messageSent = 0;
     Module.messageReceived = 0;
@@ -155,6 +156,7 @@ EM_JS(void, ws_init_runtime, (const char* sessionId), {
             Module._setMyPeerId(data.props.myPeerId);
           }
           Module.token = data.props.token || "";
+          Module.sockdrivePreload = data.props.sockdrivePreload || "default";
           Module._extractBundleToFs();
           Module._runRuntime();
           sendMessage("ws-server-ready");
@@ -216,6 +218,16 @@ EM_JS(void, ws_init_runtime, (const char* sessionId), {
           Module._networkDisconnect(data.props.networkType);
         } break;
         case "wc-asyncify-stats": {
+          const driveIo = [];
+          for (const drive of Object.values(Module.sockdrives)) {
+              driveIo.push({
+                  url: drive.info.url,
+                  preload: drive.info.preloadSizeInBytes,
+                  total: drive.info.sizeInBytes,
+                  read: drive.info.readInBytes,
+                  write: drive.info.writeInBytes,
+              });
+          }
           const stats = {
             glfx: !!Module.glfx,
             offscreenCanvas: !!Module.canvas,
@@ -229,6 +241,7 @@ EM_JS(void, ws_init_runtime, (const char* sessionId), {
             cpuMetrics: Module.UTF8ToString(Module._getCPUMetrics()),
             netSent: Module.netSent || 0,
             netRecv: Module.netRecv || 0,
+            driveIo,
           };
 
           sendMessage("ws-asyncify-stats", stats);
@@ -366,28 +379,6 @@ EM_JS(void, ws_init_runtime, (const char* sessionId), {
           Module.HEAPU8.set(buffer, ptr);
           Module._ws_client_net_recv(data.props.peerId, ptr, buffer.length);
         } break;
-        case "wc-sockdrive-opened": {
-          Module.sockdriveSectorSize = data.props.sectorSize;
-          const ptr = Module["_malloc"](data.props.emptyRangesCount * 4);
-          for (let i = 0; i < data.props.emptyRangesCount; ++i) {
-            const value = data.props.emptyRanges[i];
-            const offset = ptr + i * 4;
-            Module.HEAPU8[offset] = value & 0xFF;
-            Module.HEAPU8[offset + 1] = (value & 0x0000FF00) >> 8;
-            Module.HEAPU8[offset + 2] = (value & 0x00FF0000) >> 16;
-            Module.HEAPU8[offset + 3] = (value & 0xFF000000) >> 24;
-          }
-          Module["_em_client_sockdrive_opened"](data.props.handle, data.props.size, data.props.heads, 
-            data.props.cylinders, data.props.sectors, data.props.sectorSize, data.props.aheadRange, 
-            data.props.emptyRangesCount, ptr);
-          Module["_free"](ptr);
-        } break;
-        case "wc-sockdrive-new-range": {
-          const ptr = Module["_malloc"](data.props.buffer.length);
-          Module.HEAPU8.set(data.props.buffer, ptr);
-          Module["_em_client_sockdrive_new_range"](data.props.handle, data.props.range, ptr);
-          Module["_free"](ptr);
-        } break;
         case "wc-unload": {
           if (Module.wsUnloadResolve) {
             Module.wsUnloadResolve();
@@ -395,10 +386,53 @@ EM_JS(void, ws_init_runtime, (const char* sessionId), {
             console.error("wc-unload recived but no awaiting promises");
           }
         } break;
+        case "wc-persist-sockdrives": {
+          if (Object.keys(Module.sockdrives).length === 0) {
+            sendMessage("ws-persist-sockdrives", { drives: null });
+            return;
+          }
+
+          (async () => {
+            const drives = [];
+            // eslint-disable-next-line no-unused-vars
+            for (const [_, drive] of Object.entries(Module.sockdrives)) {
+                const persist = await drive.persist();
+                if (persist !== null) {
+                    drives.push({
+                        url: drive.info.url,
+                        persist,
+                    });
+                }
+            }
+            sendMessage("ws-persist-sockdrives", { drives });
+          })().catch((e) => Module.err("Can't persist sockdrives: " + e.message));
+        } break;
         default: {
           console.log("Unknown client message (wc): " + JSON.stringify(data));
         } break;
       }
+    };
+
+    Module.onSockdriveNewRange = (handle, range, buffer) => {
+          const ptr = Module["_malloc"](buffer.length);
+          Module.HEAPU8.set(buffer, ptr);
+          Module["_em_client_sockdrive_new_range"](handle, range, ptr);
+          Module["_free"](ptr);
+    };
+
+    Module.onSockdriveOpened = (handle, size, heads, cylinders, sectors, sectorSize, aheadRange, emptyRangesCount, emptyRanges) => {
+      Module.sockdriveSectorSize = sectorSize;
+      const ptr = Module["_malloc"](emptyRangesCount * 4);
+      for (let i = 0; i < emptyRangesCount; ++i) {
+        const value = emptyRanges[i];
+        const offset = ptr + i * 4;
+        Module.HEAPU8[offset] = value & 0xFF;
+        Module.HEAPU8[offset + 1] = (value & 0x0000FF00) >> 8;
+        Module.HEAPU8[offset + 2] = (value & 0x00FF0000) >> 16;
+        Module.HEAPU8[offset + 3] = (value & 0xFF000000) >> 24;
+      }
+      Module["_em_client_sockdrive_opened"](handle, size, heads, cylinders, sectors, sectorSize, aheadRange, emptyRangesCount, ptr);
+      Module["_free"](ptr);
     };
 
     if (Module.postMessage) {
@@ -1116,24 +1150,65 @@ extern "C" void EMSCRIPTEN_KEEPALIVE em_client_sockdrive_new_range(
 }
 
 EM_JS(void, em_server_sockdrive_open, (uint32_t handle, const char* url), {
-  Module.sendMessage("ws-sockdrive-open", { handle, url: UTF8ToString(url) });
+  url = UTF8ToString(url)
+    .replace("wss://sockdrive.js-dos.com:8001/dos.zone/",
+        "https://br.cdn.dos.zone/sockdrive-qcow2/dos.zone-")
+    .replace("wss://sockdrive.js-dos.com:8001/system/",
+        "https://br.cdn.dos.zone/sockdrive-qcow2/system-");
+
+  if (url.endsWith("/")) {
+      url = url.slice(0, -1);
+  }
+
+  sockdrive(url, (range, buffer) => {
+      Module.onSockdriveNewRange(handle, range, buffer);
+  }, Module.sockdrivePreload).then((drive) => {
+      Module.sockdrives[handle] = drive;
+      const emptyRanges = Array.from(drive.info.dropped_ranges);
+      Module.onSockdriveOpened(
+          handle,
+          drive.info.size,
+          drive.info.heads,
+          drive.info.cylinders,
+          drive.info.sectors,
+          drive.info.sector_size,
+          drive.info.ahead_read,
+          drive.info.dropped_ranges.length,
+          emptyRanges,
+      );
+  }).catch((e) => {
+      Module.err("Can't open sockdrive(" + url + "): " + e.message);
+      console.error(e);
+
+      Module.onSockdriveOpened(
+          handle,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          [],
+      );
+  });
 });
 
 EM_JS(void, em_server_sockdrive_ready, (uint32_t handle), {
-  Module.sendMessage("ws-sockdrive-ready", { handle });
+  Module.sockdrives[handle].ready();
 });
 
 EM_JS(void, em_server_sockdrive_close, (uint32_t handle), {
-  Module.sendMessage("ws-sockdrive-close", { handle });
+  delete this.sockdrives[handle];
 });
 
 EM_JS(void, em_server_sockdrive_load_range, (uint32_t handle, uint32_t range), {
-  Module.sendMessage("ws-sockdrive-load-range", { handle, range });
+  Module.sockdrives[handle].readRangeAsync(range);
 });
 
 EM_JS(void, em_server_sockdrive_write_sector, (uint32_t handle, uint32_t sector, uint8_t* buffer), {
   const data = HEAPU8.slice(buffer, buffer + Module.sockdriveSectorSize);
-  Module.sendMessage("ws-sockdrive-write-sector", { handle, sector, data }, [ data.buffer ]);
+  Module.sockdrives[handle].write(sector, data);
 });
 
 void server_sockdrive_open(uint32_t handle, const char* address) {
