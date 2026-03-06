@@ -69,7 +69,10 @@ export class OpfsStore implements Store {
 
     static async create(url: string, blockLength: number): Promise<OpfsStore> {
         const root = await navigator.storage.getDirectory();
-        const dir = await root.getDirectoryHandle(urlToDirectory(url), { create: true });
+        const jsdosRoot = await root.getDirectoryHandle("jsdos", { create: true });
+        const cachesRoot = await jsdosRoot.getDirectoryHandle("caches", { create: true });
+        const sockdriveRoot = await cachesRoot.getDirectoryHandle("sockdrive", { create: true });
+        const dir = await sockdriveRoot.getDirectoryHandle(urlToDirectory(url), { create: true });
         const store = new OpfsStore(dir, blockLength);
         await store.init();
         return store;

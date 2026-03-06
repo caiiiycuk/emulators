@@ -5,8 +5,8 @@
 // gulpfile.ts/wasm.ts --> generateBuildInfo
 
 export const Build = {
-    version: "8.3.9 (c36515d12511dd52320d1a3016dcdbf5)",
-    buildSeed: 1772741382820,
+    version: "8.3.9 (7bd287f8a78d11c5536f43b5a3109ccd)",
+    buildSeed: 1772785983710,
     "wdosbox-x-jspi.wasm": {
         "size": 7716110,
         "gzSize": 0
