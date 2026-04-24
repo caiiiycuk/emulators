@@ -177,9 +177,17 @@ mickey getRelMickey(float prevCol, float prevRow,
     if (!mouse.in_UIR) {
       mickeyRelSyncTries--;
     }
+    // Return a *zero* mickey delta and the current absolute col/row.
+    // Previously this returned -(max - min) as a sentinel which games
+    // using INT 33h fn 0x0B (e.g. Ultima Underworld) accumulate into
+    // their own cursor position tracker — one big negative delta per
+    // poll rapidly walked UW's cursor off-screen even though mouse.col
+    // / mouse.row were correct for fn 0x03. Zero delta keeps fn 0x0B
+    // consumers in sync while still clearing the internal mickey
+    // accumulator that the sync is there to reset.
     return {
-        .mickey_x = -(mouse.max_x - mouse.min_x),
-        .mickey_y = -(mouse.max_y - mouse.min_y),
+        .mickey_x = 0,
+        .mickey_y = 0,
         .col = mouse.col,
         .row = mouse.row,
     };
