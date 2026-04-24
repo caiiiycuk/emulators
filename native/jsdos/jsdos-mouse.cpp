@@ -162,8 +162,16 @@ mickey getRelMickey(float prevCol, float prevRow,
   }
 
   while (mickeyRelSyncTries) {
-    mouse.col = 0;
-    mouse.row = 0;
+    // The sync pass exists to clear accumulated RELATIVE mickey drift when
+    // the host cursor regains focus — it must not touch the ABSOLUTE cursor
+    // position (mouse.col / mouse.row), which is what INT 33h fn 0x03
+    // returns to DOS games as POS_X / POS_Y. Previously this loop zeroed
+    // mouse.col / mouse.row, which combined with the fact that every
+    // wc-mouse-sync message re-arms mickeyRelSyncTries meant that bridges
+    // which sync on every event (e.g. abedegno/dos-mcp) kept the cursor
+    // pinned at (0, 0) permanently — fn 0x03 reported POS_X=POS_Y=0 even
+    // while absolute updates through Mouse_CursorMoved were landing
+    // correctly in mouse.col / mouse.row.
     mouse.mickeyCol = 0;
     mouse.mickeyRow = 0;
     if (!mouse.in_UIR) {
@@ -172,8 +180,8 @@ mickey getRelMickey(float prevCol, float prevRow,
     return {
         .mickey_x = -(mouse.max_x - mouse.min_x),
         .mickey_y = -(mouse.max_y - mouse.min_y),
-        .col = 0,
-        .row = 0,
+        .col = mouse.col,
+        .row = mouse.row,
     };
   }
 
