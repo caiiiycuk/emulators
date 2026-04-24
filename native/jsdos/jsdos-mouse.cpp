@@ -180,11 +180,32 @@ mickey getRelMickey(float prevCol, float prevRow,
   auto dCol = col - prevCol;
   auto dRow = row - prevRow;
 
-  auto pxPerCol = surfaceWidth / (float) (mouse.max_x - mouse.min_x);
-  auto pxPerRow = surfaceHeight / (float) (mouse.max_y - mouse.min_y);
-
-  int mickey_x = (int) round(dCol * pxPerCol * mouse.mickeysPerPixel_x);
-  int mickey_y = (int) round(dRow * pxPerRow * mouse.mickeysPerPixel_y / 2); // why div 2?
+  // Match the original DOSBox mickey formula: mickey = delta *
+  // mickeysPerPixel, applied directly to the absolute col/row delta.
+  //
+  // The previous version multiplied by `pxPerCol = surfaceWidth / max_x`
+  // (≈ 0.5 for VGA mode 13h, since INT 33h uses a doubled-X range 0..639
+  // over a 320-pixel screen) and also divided the Y mickey by 2 (the
+  // `// why div 2?` comment). Together these halve the mickey rate that
+  // DOS games see via INT 33h fn 0x0B / INT 74 callbacks.
+  //
+  // Games that read cursor position only through the mickey stream (e.g.
+  // Ultima Underworld 1/2, whose UW.EXE reads `mov ax,0Bh;int 33h` then
+  // `imul bx=100; idiv [200]` to convert mickeys to game pixels) get
+  // cursor motion at ½ the expected rate. Restoring the original DOSBox
+  // formula fixes UW1/UW2 cursor tracking.
+  //
+  // Also carry a per-axis fractional residual so sub-mickey motions
+  // (e.g. dCol=0.5 in cumulative pass-through) don't vanish to int
+  // rounding. Without this, slow drags stutter or stall.
+  static float mickey_x_residual = 0.0f;
+  static float mickey_y_residual = 0.0f;
+  float mickey_x_f = dCol * mouse.mickeysPerPixel_x + mickey_x_residual;
+  float mickey_y_f = dRow * mouse.mickeysPerPixel_y + mickey_y_residual;
+  int mickey_x = (int) round(mickey_x_f);
+  int mickey_y = (int) round(mickey_y_f);
+  mickey_x_residual = mickey_x_f - (float) mickey_x;
+  mickey_y_residual = mickey_y_f - (float) mickey_y;
 
   if (mickey_x >= 32768.0)  {
     mickey_x -= 65536.0;
@@ -201,8 +222,9 @@ mickey getRelMickey(float prevCol, float prevRow,
   return {
     .mickey_x = mickey_x,
     .mickey_y = mickey_y,
-    .col = prevCol + ((float) mickey_x / pxPerCol / mouse.mickeysPerPixel_x),
-    .row = prevRow + ((float) mickey_y / pxPerRow / mouse.mickeysPerPixel_y * 2)
+    // Invert the mickey formula: dCol = mickey / mickeysPerPixel_x.
+    .col = prevCol + ((float) mickey_x / mouse.mickeysPerPixel_x),
+    .row = prevRow + ((float) mickey_y / mouse.mickeysPerPixel_y),
   };
 }
 
