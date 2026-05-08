@@ -4,7 +4,7 @@
 //  Created by Chris Rudd on 3/9/16.
 //
 
-// This is a very janky wraper around native sockets that redirects the first UDP socket created to humblenet.
+// This is a very janky wraper around native sockets that redirects the first UDP socket created to WebRTC-NET.
 // Tested initially on Quake III with Emscripten. Will likely need modification to work in other programs.
 
 #ifndef HUMBLENET_SOCKET_H
@@ -49,7 +49,7 @@ int g_humblenet_socket = INVALID_SOCKET;
 
 int hs_socket( int af, int type, int protocol ) {
 	int r = socket( af, type, protocol );
-	// Attach humblenet to the first UDP socket created
+	// Attach WebRTC-NET to the first UDP socket created
 	if( g_humblenet_socket == INVALID_SOCKET && af == PF_INET && type == SOCK_DGRAM )
 		g_humblenet_socket = r;
 	return r;
@@ -93,10 +93,31 @@ int hs_sendto( int sock, const void* buffer, int length, int flags, struct socka
 
 int hs_select( int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, struct timeval *timeout) {
 #ifdef EMSCRIPTEN
-	// TODO: fix this somehow to handle the case where there are humblenet and regular sockets in the same select
-	return humblenet_p2p_wait(0) ? 1 : 0;
+	// NET_GetPacket() only reads sockets marked in readfds. On Emscripten,
+	// signal WebRTC-NET readiness by flagging the wrapped UDP socket readable.
+	if( humblenet_p2p_wait(0) ) {
+		if( readfds && g_humblenet_socket != INVALID_SOCKET ) {
+			FD_SET( g_humblenet_socket, readfds );
+		}
+		return 1;
+	}
+	return 0;
 #else
-	return humblenet_p2p_select( nfds, readfds, writefds, exceptfds, timeout );
+	int ret = humblenet_p2p_select( nfds, readfds, writefds, exceptfds, timeout );
+	if( ret > 0 ) {
+		return ret;
+	}
+
+	// WebRTC-NET may already have queued payload without a live OS fd event.
+	// Surface that as readability for the wrapped UDP socket so NET_GetPacket()
+	// actually calls recvfrom().
+	if( humblenet_p2p_wait(0) ) {
+		if( readfds && g_humblenet_socket != INVALID_SOCKET ) {
+			FD_SET( g_humblenet_socket, readfds );
+		}
+		return 1;
+	}
+	return 0;
 #endif
 }
 

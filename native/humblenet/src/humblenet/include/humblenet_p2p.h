@@ -87,7 +87,7 @@ HUMBLENET_API ha_bool HUMBLENET_CALL humblenet_p2p_wait(int ms);
 
 #ifndef EMSCRIPTEN
 /*
-* POSIX compatible select use to wait on IO from either humblenet or use supplied fds
+* POSIX compatible select use to wait on IO from either WebRTC-NET or supplied fds
 */
 #if defined(WIN32)
 	typedef struct fd_set fd_set;
