@@ -38,7 +38,7 @@ export interface Emulators {
     // you should specify path prefix if you want to load them from different place
     pathPrefix: string;
 
-    // * pathSuffix - suffix fill be added to end of the each path
+    // * pathSuffix - suffix will be added to the end of each path
     pathSuffix: string;
 
     // * version - version of emulators build
@@ -53,7 +53,7 @@ export interface Emulators {
     // * dosConfig - read bundle config
     bundleConfig: (bundle: InitBundleEntry) => Promise<DosConfig | null>;
 
-    // * updateDosConfig - update bunle config
+    // * updateDosConfig - update bundle config
     bundleUpdateConfig: (bundle: InitBundleEntry, config: DosConfig) => Promise<Uint8Array>;
 
     // * dosboxNode - create dosbox node emulator backend
@@ -95,7 +95,7 @@ export interface CommandInterface {
     // * sound frequency
     soundFrequency: () => number;
 
-    // * `screenshot()` - get screnshot of canvas as ImageData
+    // * `screenshot()` - get screenshot of canvas as ImageData
     screenshot: () => Promise<ImageData>;
 
     // * `pause()` - pause emulation (also mute all sounds)
