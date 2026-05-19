@@ -47,7 +47,8 @@ export type ClientMessage =
     "wc-net-received" |
     "wc-unload" |
     "wc-fs-delete-file" |
-    "wc-persist-sockdrives";
+    "wc-persist-sockdrives" |
+    "wc-get-running-program";
 
 export type ServerMessage =
     "ws-extract-progress" |
@@ -74,7 +75,8 @@ export type ServerMessage =
     "ws-net-send" |
     "ws-unload" |
     "ws-fs-delete-file" |
-    "ws-persist-sockdrives";
+    "ws-persist-sockdrives" |
+    "ws-get-running-program";
 
 export type MessageHandler = (name: ServerMessage, props: { [key: string]: any }) => void;
 
@@ -190,6 +192,9 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
 
     private fsDeleteFilePromise: Promise<boolean> | null = null;
     private fsDeleteFileResolve: (deleted: boolean) => void = () => {/**/};
+
+    private getRunningProgramPromise: Promise<string> | null = null;
+    private getRunningProgramResolve: (program: string) => void = () => {/**/};
 
     private dataChunkPromise: { [name: string]: Promise<void> } = {};
     private dataChunkResolve: { [name: string]: () => void } = {};
@@ -491,6 +496,13 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
                 }
                 this.persistSockdrivesResolve = () => {/**/};
                 this.persistSockdrivesPromise = null;
+            } break;
+            case "ws-get-running-program": {
+                if (this.getRunningProgramPromise !== null) {
+                    this.getRunningProgramResolve(props.program);
+                    this.getRunningProgramResolve = () => {/**/};
+                    this.getRunningProgramPromise = null;
+                }
             } break;
             default: {
                 // eslint-disable-next-line
@@ -903,6 +915,17 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
 
     public net(): Net | null {
         return this.transport.net ?? null;
+    }
+
+    public getRunningProgram(): Promise<string> {
+        if (this.getRunningProgramPromise !== null) {
+            return this.getRunningProgramPromise;
+        }
+        this.getRunningProgramPromise = new Promise<string>((resolve) => {
+            this.getRunningProgramResolve = resolve;
+        });
+        this.sendClientMessage("wc-get-running-program");
+        return this.getRunningProgramPromise;
     }
 }
 

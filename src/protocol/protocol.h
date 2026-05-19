@@ -67,5 +67,6 @@ extern void server_sockdrive_close(uint32_t handle);
 extern void server_sockdrive_load_range(uint32_t handle, uint32_t range);
 extern void server_sockdrive_write_sector(uint32_t handle, uint32_t sector, uint8_t* buffer);
 
+extern const char* server_get_running_program();
 
 #endif  // JS_DOS_JS_DOS_PROTOCOL_H

@@ -163,6 +163,7 @@ export interface CommandInterface {
 
     fsDeleteFile(file: string): Promise<boolean>;
 
+    getRunningProgram(): Promise<string>;
 }
 
 export type MessageType = "log" | "warn" | "error" | string;
