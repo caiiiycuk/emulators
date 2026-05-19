@@ -205,6 +205,7 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
     private myPeerId: number = 0;
     private netSent = 0;
     private netRecv = 0;
+    private netPollInterval: ReturnType<typeof setInterval> | null = null;
 
     public options: BackendOptions;
 
@@ -221,7 +222,7 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
         this.transport.net = this.transport.net ?? null;
         if (this.transport.net) {
             this.myPeerId = this.transport.net.peerId;
-            setInterval(() => {
+            this.netPollInterval = setInterval(() => {
                 this.transport.net!.wait(0);
 
                 let data = this.transport.net!.recvBinary();
@@ -714,6 +715,10 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
     private onExit() {
         if (!this.exited) {
             this.exited = true;
+            if (this.netPollInterval !== null) {
+                clearInterval(this.netPollInterval);
+                this.netPollInterval = null;
+            }
             if (this.transport.exit !== undefined) {
                 this.transport.exit();
             }
