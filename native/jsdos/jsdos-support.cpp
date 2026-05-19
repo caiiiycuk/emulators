@@ -71,3 +71,8 @@ void jsdos::cout(const char* data, int amount) {
     }
   }
 }
+
+extern const char * RunningProgram;
+const char* server_get_running_program() {
+  return RunningProgram;
+}

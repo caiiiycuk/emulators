@@ -408,6 +408,10 @@ EM_JS(void, ws_init_runtime, (const char* sessionId), {
             sendMessage("ws-persist-sockdrives", { drives });
           })().catch((e) => Module.err("Can't persist sockdrives: " + e.message));
         } break;
+        case "wc-get-running-program": {
+          const ptr = Module["_emGetRunningProgram"]();
+          sendMessage("ws-get-running-program", { program: ptr !== 0 ? UTF8ToString(ptr) : "" });
+        } break;
         default: {
           console.log("Unknown client message (wc): " + JSON.stringify(data));
         } break;
@@ -1255,4 +1259,8 @@ void server_unload() {
 
 extern "C" int EMSCRIPTEN_KEEPALIVE fsDeleteFile(const char* path) {
   return std::filesystem::remove_all(path) ? 1 : 0;
+}
+
+extern "C" const char* EMSCRIPTEN_KEEPALIVE emGetRunningProgram() {
+  return server_get_running_program();
 }
