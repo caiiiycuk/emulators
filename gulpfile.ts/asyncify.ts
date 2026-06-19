@@ -70,6 +70,7 @@ async function doAsyncifyAdd(asyncifyFile: string) {
 }
 
 function extractFnSignature(next: string): string {
+    next = next.replaceAll("wdosbox-x.wasm.", "").replaceAll("wdosbox.", "");
     next = next.trim();
     if (next.length === 0) {
         return "";
