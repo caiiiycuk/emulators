@@ -8985,22 +8985,6 @@ int jsdos_main(Config *config) SDL_MAIN_NOEXCEPT {
               EM_ASM((
                 Module.glfx = true;
               ));
-              char * href = (char *) EM_ASM_INT((
-                const ptr = Module._malloc(1024);
-                Module.stringToUTF8(location.href, ptr, 1024);
-                return ptr;
-              ));
-
-              while (true) {
-                if (strncmp(href, "https://dos.zone", 16) == 0 ||
-                    strncmp(href, "blob:https://dos.zone", 21) == 0 ||
-                    strncmp(href, "https://test.js-dos.com", 23) == 0 ||
-                    strncmp(href, "http://test.js-dos.com", 22) == 0 ||
-                    strncmp(href, "http://localhost", 16) == 0 ||
-                    strncmp(href, "http://127.0.0.1", 16) == 0) {
-                    break;
-                }
-              }
 #endif
 #endif
             }

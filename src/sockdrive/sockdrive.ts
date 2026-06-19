@@ -172,7 +172,7 @@ export async function sockdrive(
                 }
             }
 
-            let retries = 2;
+            let retries = 3;
             while (retries > 0) {
                 let response;
                 try {
@@ -182,10 +182,10 @@ export async function sockdrive(
                 }
 
                 if (!response || !response.ok) {
+                    retries--;
                     if (retries > 0) {
                         console.warn("Can't read range " + range + ", network response code is " +
                             response?.status + ", retrying...");
-                        retries--;
                         continue;
                     } else {
                         throw new Error("Can't read range " + range + ", network response code is " +
