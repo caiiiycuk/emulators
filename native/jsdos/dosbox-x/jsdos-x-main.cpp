@@ -87,6 +87,7 @@ extern bool switchttf, ttfswitch, switch_output_from_ttf;
 extern bool finish_prepare;
 bool checkmenuwidth = false;
 bool dos_kernel_disabled = true;
+bool dos_kernel_shutdown_mcb = true;
 bool winrun=false, use_save_file=false;
 bool maximize = false, tooutttf = false;
 bool tonoime = false, enableime = false;
@@ -744,6 +745,7 @@ void FreeBIOSDiskList();
 void GFX_ShutDown(void);
 void MAPPER_Shutdown();
 void SHELL_Init(void);
+void SHELL_MessagesInit(void);
 void CopyClipboard(int all);
 void CopyAllClipboard(bool bPressed);
 void PasteClipboard(bool bPressed);
@@ -3122,6 +3124,45 @@ void GFX_OpenGLRedrawScreen(void) {
 #endif
 }
 
+static void GFX_SendSurfaceFrame(const uint16_t *changedLines) {
+    if (!sdl.surface || !sdl.surface->pixels || sdl.surface->format->BytesPerPixel != 4)
+        return;
+
+    std::vector<uint32_t> lines;
+
+    if (changedLines) {
+      if (sdl.clip.y > 0) {
+          lines.push_back(0);
+          lines.push_back(sdl.clip.y);
+          lines.push_back(0);
+      }
+
+      Bitu y = 0, index = 0;
+      while (y < sdl.draw.height) {
+        if (!(index & 1)) {
+          y += changedLines[index];
+        } else {
+          int count = changedLines[index];
+          int surfaceY = sdl.clip.y + y;
+          lines.push_back(surfaceY);
+          lines.push_back(count);
+          lines.push_back(surfaceY * sdl.surface->pitch);
+          y += count;
+        }
+        index++;
+      }
+    }
+
+    if (lines.empty()) {
+      lines.push_back(0);
+      lines.push_back(sdl.surface->h);
+      lines.push_back(0);
+    }
+
+    client_frame_update_lines(lines.data(), lines.size() / 3, (uint32_t *) sdl.surface->pixels,
+                              vga.mode == M_LIN16 || vga.mode == M_LIN24 || vga.mode == M_LIN32);
+}
+
 void GFX_EndUpdate(const uint16_t *changedLines) {
     /* don't present our output if 3Dfx is in OpenGL mode */
     if (sdl.desktop.prevent_fullscreen)
@@ -3212,32 +3253,7 @@ void GFX_EndUpdate(const uint16_t *changedLines) {
         }
     }
 
-    if (changedLines) {
-      std::vector<uint32_t> lines;
-
-      if (sdl.clip.y > 0) {
-          lines.push_back(0);
-          lines.push_back(sdl.clip.y);
-          lines.push_back(0);
-      }
-
-      Bitu y = 0, index = 0;
-      while (y < sdl.draw.height) {
-        if (!(index & 1)) {
-          y += changedLines[index];
-        } else {
-          int count = changedLines[index];
-          int surfaceY = sdl.clip.y + y;
-          lines.push_back(surfaceY);
-          lines.push_back(count);
-          lines.push_back(surfaceY * sdl.surface->pitch);
-          y += count;
-        }
-        index++;
-      }
-      client_frame_update_lines(lines.data(), lines.size() / 3, (uint32_t *) sdl.surface->pixels,
-                                vga.mode == M_LIN16 || vga.mode == M_LIN24 || vga.mode == M_LIN32);
-    }
+    GFX_SendSurfaceFrame(changedLines);
 }
 
 void GFX_SetPalette(Bitu start,Bitu count,GFX_PalEntry * entries) {
@@ -6795,8 +6811,8 @@ static void launcheditor(std::string edit) {
     if (control->configfiles.size() && control->configfiles.front().size())
         execlp(edit.c_str(),edit.c_str(),control->configfiles.front().c_str(),(char*) 0);
     std::string path,file;
-    Cross::CreatePlatformConfigDir(path);
-    Cross::GetPlatformConfigName(file);
+    path = Cross::CreatePlatformConfigDir();
+    file = Cross::GetPlatformConfigName();
     path += file;
     FILE* f = fopen(path.c_str(),"r");
     if(!f && !control->PrintConfig(path.c_str())) {
@@ -6836,7 +6852,7 @@ static void launchcaptures(std::string const& edit) {
         exit(1);
     } else {
         path = "";
-        Cross::CreatePlatformConfigDir(path);
+        path = Cross::CreatePlatformConfigDir();
         path += file;
         Cross::CreateDir(path);
         stat(path.c_str(),&cstat);
@@ -6866,7 +6882,7 @@ static void launchsaves(std::string const& edit) {
         exit(1);
     } else {
         path = "";
-        Cross::CreatePlatformConfigDir(path);
+        path = Cross::CreatePlatformConfigDir();
         path += file;
         Cross::CreateDir(path);
         stat(path.c_str(),&cstat);
@@ -6883,8 +6899,8 @@ static void launchsaves(std::string const& edit) {
 
 static void printconfiglocation() {
     std::string path,file;
-    Cross::CreatePlatformConfigDir(path);
-    Cross::GetPlatformConfigName(file);
+    path = Cross::CreatePlatformConfigDir();
+    file = Cross::GetPlatformConfigName();
     path += file;
 
     FILE* f = fopen(path.c_str(),"r");
@@ -6905,8 +6921,8 @@ static void eraseconfigfile() {
         show_warning("Warning: dosbox-x.conf (or dosbox.conf) exists in current working directory.\nThis will override the configuration file at runtime.\n");
     }
     std::string path,file;
-    Cross::GetPlatformConfigDir(path);
-    Cross::GetPlatformConfigName(file);
+    path = Cross::GetPlatformConfigDir();
+    file = Cross::GetPlatformConfigName();
     path += file;
     f = fopen(path.c_str(),"r");
     if (!f) exit(0);
@@ -6925,7 +6941,7 @@ static void erasemapperfile() {
     }
 
     std::string path,file=MAPPERFILE;
-    Cross::GetPlatformConfigDir(path);
+    path = Cross::GetPlatformConfigDir();
     path += file;
     FILE* f = fopen(path.c_str(),"r");
     if (!f) exit(0);
@@ -7607,6 +7623,8 @@ bool VM_Boot_DOSBox_Kernel() {
         void EMS_Startup(Section* sec);
         EMS_Startup(NULL);
 
+        SHELL_MessagesInit();
+
         DispatchVMEvent(VM_EVENT_DOS_INIT_CONFIG_SYS_DONE); // <- we just finished executing CONFIG.SYS
         SHELL_Init(); // <- NTS: this will change CPU instruction pointer!
         DispatchVMEvent(VM_EVENT_DOS_INIT_SHELL_READY); // <- we just finished loading the shell (COMMAND.COM)
@@ -8077,8 +8095,8 @@ int jsdos_main(Config *config) SDL_MAIN_NOEXCEPT {
         std::string tmp,config_path,config_combined;
 
         /* -- Parse configuration files */
-        Cross::GetPlatformConfigDir(config_path);
-        Cross::GetPlatformConfigName(tmp);
+        config_path = Cross::GetPlatformConfigDir();
+        tmp = Cross::GetPlatformConfigName();
 
         if (exepath.size()) {
             control->ParseConfigFile((exepath + "dosbox-x.conf").c_str());
@@ -8116,7 +8134,7 @@ int jsdos_main(Config *config) SDL_MAIN_NOEXCEPT {
         usecfgdir = false;
     } else if (workdiropt == "userconfig") {
         std::string config_path;
-        Cross::GetPlatformConfigDir(config_path);
+        config_path = Cross::GetPlatformConfigDir();
         if (config_path.size()) {
             if (chdir(config_path.c_str()) == -1) {
                 LOG(LOG_GUI, LOG_ERROR)("sdlmain.cpp main() failed to change directories for workdiropt 'userconfig'.");
@@ -8164,7 +8182,7 @@ int jsdos_main(Config *config) SDL_MAIN_NOEXCEPT {
             }
 #endif
             std::string res_path;
-            Cross::GetPlatformResDir(res_path);
+            res_path = Cross::GetPlatformResDir();
             if(stat((res_path + "dosbox-x.conf").c_str(), &st) == 0) {
                 if(S_ISREG(st.st_mode)) {
                     control->opt_promptfolder = 0;
@@ -8297,9 +8315,9 @@ int jsdos_main(Config *config) SDL_MAIN_NOEXCEPT {
 #endif
     std::string tmp, config_path, res_path, config_combined;
     /* -- Parse configuration files */
-    Cross::GetPlatformConfigDir(config_path);
-    Cross::GetPlatformResDir(res_path);
-    Cross::GetPlatformConfigName(tmp);
+    config_path = Cross::GetPlatformConfigDir();
+    res_path = Cross::GetPlatformResDir();
+    tmp = Cross::GetPlatformConfigName();
     config_combined = config_path + tmp;
     {
 
@@ -8353,7 +8371,7 @@ int jsdos_main(Config *config) SDL_MAIN_NOEXCEPT {
                         tsec->HandleInputline("working directory option=autoprompt");
                 }
                 //Try to create the userlevel configfile.
-                Cross::CreatePlatformConfigDir(config_path);
+                config_path = Cross::CreatePlatformConfigDir();
 
                 LOG(LOG_MISC,LOG_DEBUG)("Attempting to write config file according to -userconf, to %s",config_combined.c_str());
                 if (control->PrintConfig(config_combined.c_str())) {
@@ -8416,7 +8434,7 @@ int jsdos_main(Config *config) SDL_MAIN_NOEXCEPT {
 
         /* -- -- if none found, create userlevel conf */
         if(!control->configfiles.size()) {
-            Cross::CreatePlatformConfigDir(config_path);
+            config_path = Cross::CreatePlatformConfigDir();
             control->PrintConfig(config_combined.c_str());
             control->ParseConfigFile(config_combined.c_str()); // Load the conf file created above
             if(control->configfiles.size()) LOG_MSG("CONFIG: Created and loaded user config file %s", config_combined.c_str());
@@ -8719,7 +8737,7 @@ int jsdos_main(Config *config) SDL_MAIN_NOEXCEPT {
             }
         } else if (workdiropt == "userconfig") {
             std::string config_path;
-            Cross::GetPlatformConfigDir(config_path);
+            config_path = Cross::GetPlatformConfigDir();
             if(config_path.size()) {
                 if(chdir(config_path.c_str()) == -1) {
                     LOG(LOG_GUI, LOG_ERROR)("sdlmain.cpp main() failed to change directories for workdiropt 'userconfig'.");

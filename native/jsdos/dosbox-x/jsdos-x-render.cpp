@@ -8,12 +8,15 @@
 #include "logging.h"
 #include "render.h"
 #include "sdlmain.h"
+#include "vga.h"
 
 extern int aspect_ratio_x, aspect_ratio_y;
 extern void E_Exit(const char * format,...);
 extern Bitu MakeAspectTable(Bitu skip, Bitu height, double scaley, Bitu miny);
 extern void RENDER_CallBack(GFX_CallBackFunctions_t function);
 extern void RENDER_FinishLineHandler(const void *s);
+extern void Scaler_AspectChangedLinesFree(void);
+extern void Scaler_AspectChangedLinesAlloc(unsigned int h);
 
 void RENDER_Reset(void) {
   Bitu width = render.src.width;
@@ -23,6 +26,8 @@ void RENDER_Reset(void) {
 
   double gfx_scalew;
   double gfx_scaleh;
+
+  Scaler_AspectChangedLinesFree();
 
   if (width == 0 || height == 0) return;
 
@@ -129,6 +134,7 @@ void RENDER_Reset(void) {
   }
   width *= xscale;
   constexpr Bitu skip = 0;
+  Scaler_AspectChangedLinesAlloc(render.src.height);
   if (gfx_flags & GFX_SCALING) {
     if (render.scale.size == 1 && render.scale.hardware) {  // hardware_none
       if (dblh) gfx_scaleh *= 1;
@@ -245,6 +251,10 @@ void RENDER_Reset(void) {
       break;
       // E_Exit("RENDER:Wrong source bpp %d", render.src.bpp );
   }
+
+  scalerSourceCacheBufferAlloc(render.scale.cachePitch, render.src.height);
+  TempLineAlloc(render.src.width);
+
   render.scale.blocks = render.src.width / SCALER_BLOCKSIZE;
   render.scale.lastBlock = render.src.width % SCALER_BLOCKSIZE;
   render.scale.inHeight = render.src.height;
@@ -255,6 +265,7 @@ void RENDER_Reset(void) {
   memset(render.pal.modified, 0, sizeof(render.pal.modified));
   // Finish this frame using a copy only handler
   RENDER_DrawLine = RENDER_FinishLineHandler;
+  vga.draw.must_complete_frame = true;
   render.scale.outWrite = 0;
   /* Signal the next frame to first reinit the cache */
   render.scale.clearCache = true;
