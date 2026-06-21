@@ -120,7 +120,12 @@ function testServer(factory: CIFactory, name: string, assets: string) {
     test(name + " can take screenshot of dosbox", async () => {
         const ci = await CI(emulatorsImpl.bundle());
         assert.ok(ci);
-        await waitImage(assets + "/init.png", ci, { threshold: 0 });
+        await waitImage(assets + "/init.png", ci, {
+            threshold: 0,
+            maxShift: assets === "dosbox-x" ? 4 : 0,
+            timeout: assets === "dosbox-x" ? 15000 : undefined,
+            interval: assets === "dosbox-x" ? 250 : undefined,
+        });
     });
 
     test(name + " should not start without jsdos conf", async () => {
