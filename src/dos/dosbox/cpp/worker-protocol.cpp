@@ -48,7 +48,7 @@ EM_JS(void, ws_init_runtime, (const char* sessionId), {
           node.nodes = null;
           node.size = fsNode.usedBytes;
         }
-        
+
         parent.nodes.push(node);
 
         if (folder) {
@@ -128,7 +128,7 @@ EM_JS(void, ws_init_runtime, (const char* sessionId), {
             } break;
             default:
                 Module.err("Unknown event: " + json);
-        } 
+        }
     };
 
     function messageHandler(e) {
@@ -295,7 +295,7 @@ EM_JS(void, ws_init_runtime, (const char* sessionId), {
 
               return path;
           }
-          
+
           const chunk = data.props.chunk;
           if (chunk.type === "bundle") {
             const index = Number.parseInt(chunk.name);
@@ -744,10 +744,10 @@ EM_JS(void, emsc_ws_client_frame_set_size, (int width, int height), {
       }
       Module.canvas.width = width;
       Module.canvas.height = height;
-      
+
       Module.bind3Dfx(width, height);
     }
-  
+
     Module.sendMessage("ws-frame-set-size", {width : width, height : height});
   });
 
@@ -774,7 +774,7 @@ EM_JS(void, emsc_end_frame_update, (uint8_t* frameRgb, uint32_t frameWidth, uint
           Module.updateTexture(frameRgb, frameWidth, frameHeight);
         }
       } else {
-        Module.sendMessage("ws-update-lines", 
+        Module.sendMessage("ws-update-lines",
           { lines: Module.frame_update_lines },
           Module.frame_update_lines_transferable);
       }
@@ -795,13 +795,13 @@ EM_JS(void, emsc_ws_client_sound_push, (const float *samples, int num_samples), 
     if (num_samples <= 0) {
         return;
     }
-  
+
     ++Module.messageSound;
     const heapf32 = Module.HEAPF32.slice(samples / 4, samples / 4 + num_samples);
     if (Module.audioPort) {
       Module.audioPort.postMessage(heapf32, [heapf32.buffer]);
     } else {
-      Module.sendMessage("ws-sound-push", 
+      Module.sendMessage("ws-sound-push",
         { samples: heapf32 },
         [ heapf32.buffer ]);
     }
@@ -877,14 +877,14 @@ EM_JS(void, emsc_extract_bundle_to_fs, (), {
         return;
       }
 
-        
+
       if (index === 0) {
         try {
           dosboxConf = Module.FS.readFile("/home/web_user/.jsdos/dosbox.conf");
         } catch (e) {
           // ignore
         }
-        
+
         Module.fsCreatedAt = Module._get_changes_mtime_ms();
 
         // delay needed to create rest of files after fsCreatedAt
@@ -898,7 +898,7 @@ EM_JS(void, emsc_extract_bundle_to_fs, (), {
     if (dosboxConf === null) {
       try {
         dosboxConf = Module.FS.readFile("/home/web_user/.jsdos/dosbox.conf");
-      } catch (e) { 
+      } catch (e) {
         Module.err("Broken bundle, .jsdos/dosbox.conf not found");
         return;
       }
@@ -1077,24 +1077,24 @@ extern "C" void EMSCRIPTEN_KEEPALIVE runRuntime() {
   emscripten_force_exit(0);
 }
 
-extern "C" void EMSCRIPTEN_KEEPALIVE requestPause() { 
-  server_pause(); 
+extern "C" void EMSCRIPTEN_KEEPALIVE requestPause() {
+  server_pause();
 }
 
-extern "C" void EMSCRIPTEN_KEEPALIVE requestResume() { 
-  server_resume(); 
+extern "C" void EMSCRIPTEN_KEEPALIVE requestResume() {
+  server_resume();
 }
 
-extern "C" void EMSCRIPTEN_KEEPALIVE requestMute() { 
-  server_mute(); 
+extern "C" void EMSCRIPTEN_KEEPALIVE requestMute() {
+  server_mute();
 }
 
-extern "C" void EMSCRIPTEN_KEEPALIVE requestUnmute() { 
-  server_unmute(); 
+extern "C" void EMSCRIPTEN_KEEPALIVE requestUnmute() {
+  server_unmute();
 }
 
-extern "C" void EMSCRIPTEN_KEEPALIVE requestExit() { 
-  server_exit(); 
+extern "C" void EMSCRIPTEN_KEEPALIVE requestExit() {
+  server_exit();
 }
 
 extern "C" char* EMSCRIPTEN_KEEPALIVE getConfigContent() {
@@ -1149,7 +1149,7 @@ extern "C" void EMSCRIPTEN_KEEPALIVE em_client_sockdrive_opened(
   uint32_t handle, uint32_t size, uint32_t heads, uint32_t cylinders, uint32_t sectors,
   uint32_t sectorSize, uint32_t aheadRange, uint32_t emptyRangesCount,
   uint8_t* emptyRanges) {
-  
+
 #ifdef JSDOS_X
   client_sockdrive_opened(handle, size, heads, cylinders, sectors, sectorSize, aheadRange, emptyRangesCount, emptyRanges);
 #endif

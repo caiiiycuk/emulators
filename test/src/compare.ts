@@ -4,18 +4,22 @@ export interface WaitImageProps {
     resize?: boolean,
     threshold?: number,
     timeout?: number,
+    interval?: number,
+    maxShift?: number,
     success?: () => Promise<void>;
 }
 
 export function waitImage(imageUrl: string, ci: CommandInterface, options?: WaitImageProps) {
     const threshold = options?.threshold ?? 1;
     const timeout = options?.timeout ?? 3000;
+    const interval = options?.interval ?? 64;
     const success = options?.success === undefined ? async () => { } : options.success;
     const resize = options?.resize ?? false;
+    const maxShift = options?.maxShift ?? 0;
 
     return new Promise<void>((resolve, reject) => {
         let intervalId = setInterval(() => {
-            compare(imageUrl, ci, threshold, false, resize)
+            compare(imageUrl, ci, threshold, false, resize, maxShift)
                 .then((error) => {
                     if (intervalId !== null && error === null) {
                         clearInterval(intervalId);
@@ -28,12 +32,12 @@ export function waitImage(imageUrl: string, ci: CommandInterface, options?: Wait
                     }
                 })
                 .catch(() => { });
-        }, 64);
+        }, interval);
 
         setTimeout(() => {
             if (intervalId !== null) {
                 clearInterval(intervalId);
-                compare(imageUrl, ci, threshold, true, resize)
+                compare(imageUrl, ci, threshold, true, resize, maxShift)
                     .then((error) => {
                         if (error === null) {
                             success()
@@ -56,19 +60,21 @@ const compare = (imageUrl: string,
     ci: CommandInterface,
     threshold: number,
     showComparsion: boolean,
-    resize: boolean): Promise<null | Error> => {
+    resize: boolean,
+    maxShift: number): Promise<null | Error> => {
     if (typeof document === "undefined" || typeof Image === "undefined") {
-        return compareNode(imageUrl, ci, threshold, resize);
+        return compareNode(imageUrl, ci, threshold, resize, maxShift);
     }
 
-    return compareBrowser(imageUrl, ci, threshold, showComparsion, resize);
+    return compareBrowser(imageUrl, ci, threshold, showComparsion, resize, maxShift);
 };
 
 const compareBrowser = (imageUrl: string,
     ci: CommandInterface,
     threshold: number,
     showComparsion: boolean,
-    resize: boolean): Promise<null | Error> => {
+    resize: boolean,
+    maxShift: number): Promise<null | Error> => {
     return ci.screenshot()
         .then(imageDataToUrl)
         .then((actualUrl: string) => new Promise<null | Error>((resolve, reject) => {
@@ -104,19 +110,15 @@ const compareBrowser = (imageUrl: string,
                     actualCtx.drawImage(actualImage, 0, 0, img.width, img.height);
                     const actual = actualCtx.getImageData(0, 0, img.width, img.height).data;
 
-                    let total = 0;
-                    const width = img.width;
-                    const height = img.height;
-                    for (let x = 0; x < width; x++) {
-                        for (let y = 0; y < height; y++) {
-                            total += Math.abs(expected[y * width * 4 + x * 4 + 0] - actual[y * width * 4 + x * 4 + 0]);
-                            total += Math.abs(expected[y * width * 4 + x * 4 + 1] - actual[y * width * 4 + x * 4 + 1]);
-                            total += Math.abs(expected[y * width * 4 + x * 4 + 2] - actual[y * width * 4 + x * 4 + 2]);
-                        }
-                    }
-
-                    // floor, to allow some margin of error for antialiasing
-                    const wrong = Math.floor(total / (img.width * img.height * 3));
+                    const wrong = comparePixels({
+                        width: img.width,
+                        height: img.height,
+                        data: expected,
+                    }, {
+                        width: img.width,
+                        height: img.height,
+                        data: actual,
+                    }, maxShift);
                     if (showComparsion && wrong > threshold) {
                         renderComparsion(img, resize ? actualCanvas : actualImage);
                     }
@@ -139,7 +141,8 @@ interface ComparableImage {
 async function compareNode(imageUrl: string,
                            ci: CommandInterface,
                            threshold: number,
-                           resize: boolean): Promise<null | Error> {
+                           resize: boolean,
+                           maxShift: number): Promise<null | Error> {
     const expected = readPng(imageUrl);
     const screenshot = await ci.screenshot();
     let actual: ComparableImage = {
@@ -160,7 +163,7 @@ async function compareNode(imageUrl: string,
         actual = resizeNearest(actual, expected.width, expected.height);
     }
 
-    const wrong = comparePixels(expected, actual);
+    const wrong = comparePixels(expected, actual, maxShift);
     return wrong > threshold ?
         new Error("Image not same, wrong: " + wrong) :
         null;
@@ -207,21 +210,45 @@ function resizeNearest(image: ComparableImage, width: number, height: number): C
     };
 }
 
-function comparePixels(expected: ComparableImage, actual: ComparableImage) {
-    let total = 0;
+function comparePixels(expected: ComparableImage, actual: ComparableImage, maxShift = 0) {
+    let best = Number.MAX_SAFE_INTEGER;
 
-    for (let x = 0; x < expected.width; x++) {
-        for (let y = 0; y < expected.height; y++) {
-            total += Math.abs(expected.data[y * expected.width * 4 + x * 4 + 0] -
-                actual.data[y * expected.width * 4 + x * 4 + 0]);
-            total += Math.abs(expected.data[y * expected.width * 4 + x * 4 + 1] -
-                actual.data[y * expected.width * 4 + x * 4 + 1]);
-            total += Math.abs(expected.data[y * expected.width * 4 + x * 4 + 2] -
-                actual.data[y * expected.width * 4 + x * 4 + 2]);
+    for (let dy = -maxShift; dy <= maxShift; dy++) {
+        for (let dx = -maxShift; dx <= maxShift; dx++) {
+            best = Math.min(best, comparePixelsAtOffset(expected, actual, dx, dy));
         }
     }
 
-    return Math.floor(total / (expected.width * expected.height * 3));
+    return best;
+}
+
+function comparePixelsAtOffset(expected: ComparableImage, actual: ComparableImage, dx: number, dy: number) {
+    let total = 0;
+    let compared = 0;
+
+    for (let x = 0; x < expected.width; x++) {
+        const actualX = x + dx;
+        if (actualX < 0 || actualX >= actual.width) {
+            continue;
+        }
+
+        for (let y = 0; y < expected.height; y++) {
+            const actualY = y + dy;
+            if (actualY < 0 || actualY >= actual.height) {
+                continue;
+            }
+
+            total += Math.abs(expected.data[y * expected.width * 4 + x * 4 + 0] -
+                actual.data[actualY * actual.width * 4 + actualX * 4 + 0]);
+            total += Math.abs(expected.data[y * expected.width * 4 + x * 4 + 1] -
+                actual.data[actualY * actual.width * 4 + actualX * 4 + 1]);
+            total += Math.abs(expected.data[y * expected.width * 4 + x * 4 + 2] -
+                actual.data[actualY * actual.width * 4 + actualX * 4 + 2]);
+            compared += 3;
+        }
+    }
+
+    return Math.floor(total / compared);
 }
 
 function imageDataToUrl(imageData: ImageData) {
