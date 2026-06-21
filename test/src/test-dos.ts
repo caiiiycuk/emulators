@@ -16,18 +16,54 @@ import emulators from "../../src/impl/emulators-impl";
 
 type CIFactory = (bundle: InitFs, options?: BackendOptions) => Promise<CommandInterface>;
 
-export function testDos() {
-    testServer((bundle, options) => emulatorsImpl.dosboxDirect(bundle, options), "dosboxDirect", "dosbox");
-    testServer((bundle, options) => emulatorsImpl.dosboxWorker(bundle, options), "dosboxWorker", "dosbox");
-    testServer((bundle, options) => emulatorsImpl.dosboxXDirect(bundle, options), "dosboxXDirect", "dosbox-x");
-    testServer((bundle, options) => emulatorsImpl.dosboxXWorker(bundle, options), "dosboxXWorker", "dosbox-x");
-    testServer((bundle, options) => emulatorsImpl.dosboxXJspiWorker(bundle, options), "dosboxXJspiWorker", "dosbox-x");
+export interface DosBackend {
+    factory: CIFactory;
+    name: string;
+    assets: string;
+}
+
+export function testDos(backends: DosBackend[] = browserBackends()) {
+    for (const backend of backends) {
+        testServer(backend.factory, backend.name, backend.assets);
+    }
+}
+
+function browserBackends(): DosBackend[] {
+    return [
+        {
+            factory: (bundle, options) => emulatorsImpl.dosboxDirect(bundle, options),
+            name: "dosboxDirect",
+            assets: "dosbox",
+        },
+        {
+            factory: (bundle, options) => emulatorsImpl.dosboxWorker(bundle, options),
+            name: "dosboxWorker",
+            assets: "dosbox",
+        },
+        {
+            factory: (bundle, options) => emulatorsImpl.dosboxXDirect(bundle, options),
+            name: "dosboxXDirect",
+            assets: "dosbox-x",
+        },
+        {
+            factory: (bundle, options) => emulatorsImpl.dosboxXWorker(bundle, options),
+            name: "dosboxXWorker",
+            assets: "dosbox-x",
+        },
+        {
+            factory: (bundle, options) => emulatorsImpl.dosboxXJspiWorker(bundle, options),
+            name: "dosboxXJspiWorker",
+            assets: "dosbox-x",
+        },
+    ];
 }
 
 function testServer(factory: CIFactory, name: string, assets: string) {
     suite(name + ".common");
     beforeEach(() => {
-        (Mocha as any).process.removeListener("uncaughtException");
+        if (typeof Mocha !== "undefined" && (Mocha as any).process?.removeListener) {
+            (Mocha as any).process.removeListener("uncaughtException");
+        }
     });
 
     async function CI(bundle: DosBundle | Promise<DosBundle>, options?: BackendOptions) {
