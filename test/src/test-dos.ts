@@ -13,6 +13,7 @@ import { Keys } from "../../src/keys";
 import { makeLibZip } from "./libzip";
 import { Build } from "../../src/build";
 import emulators from "../../src/impl/emulators-impl";
+import { isJspiSupported } from "./jspi";
 
 type CIFactory = (bundle: InitFs, options?: BackendOptions) => Promise<CommandInterface>;
 
@@ -29,7 +30,7 @@ export function testDos(backends: DosBackend[] = browserBackends()) {
 }
 
 function browserBackends(): DosBackend[] {
-    return [
+    const backends: DosBackend[] = [
         {
             factory: (bundle, options) => emulatorsImpl.dosboxDirect(bundle, options),
             name: "dosboxDirect",
@@ -50,12 +51,19 @@ function browserBackends(): DosBackend[] {
             name: "dosboxXWorker",
             assets: "dosbox-x",
         },
-        {
+    ];
+
+    if (isJspiSupported()) {
+        backends.push({
             factory: (bundle, options) => emulatorsImpl.dosboxXJspiWorker(bundle, options),
             name: "dosboxXJspiWorker",
             assets: "dosbox-x",
-        },
-    ];
+        });
+    } else {
+        console.warn("Skipping dosboxXJspiWorker tests: JSPI is not supported by this browser.");
+    }
+
+    return backends;
 }
 
 function testServer(factory: CIFactory, name: string, assets: string) {
