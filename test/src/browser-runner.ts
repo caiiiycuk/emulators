@@ -21,9 +21,16 @@ interface MochaResult {
     failures: BrowserMochaFailure[];
 }
 
+interface BrowserTestMode {
+    name: string;
+    createTestsFunction: string;
+    timeoutMs: number;
+}
+
 const repoRoot = resolve(__dirname, "../..");
 const distRoot = join(repoRoot, "dist");
-const timeoutMs = Number(process.env.BROWSER_TEST_TIMEOUT_MS ?? 15 * 60 * 1000);
+const testMode = getBrowserTestMode();
+const maxBrowserLogs = Number(process.env.BROWSER_TEST_MAX_CONSOLE_LOGS ?? 200);
 
 const requiredArtifacts = [
     "test/test.html",
@@ -66,14 +73,22 @@ async function main() {
         browser = await chromium.launch({ headless: true });
         const page = await browser.newPage();
         const browserLogs: BrowserLog[] = [];
+        let omittedBrowserLogs = 0;
         const pageErrors: string[] = [];
         const requestFailures: string[] = [];
 
-        page.on("console", (message) => browserLogs.push({
-            type: message.type(),
-            text: message.text(),
-            location: formatConsoleLocation(message.location()),
-        }));
+        page.on("console", (message) => {
+            if (browserLogs.length >= maxBrowserLogs) {
+                browserLogs.shift();
+                omittedBrowserLogs++;
+            }
+
+            browserLogs.push({
+                type: message.type(),
+                text: message.text(),
+                location: formatConsoleLocation(message.location()),
+            });
+        });
         page.on("pageerror", (error) => {
             const formattedError = formatError(error).trim();
 
@@ -92,18 +107,18 @@ async function main() {
         });
 
         await page.goto(baseUrl + "/test/test.html", { waitUntil: "load" });
-        const mochaResult = await withTimeout(runBrowserTests(page), timeoutMs, "Browser tests");
+        const mochaResult = await withTimeout(runBrowserTests(page, testMode), testMode.timeoutMs, testMode.name);
         const hasFailures = mochaResult.failureCount > 0 || pageErrors.length > 0;
 
         if (hasFailures) {
-            printDiagnostics(mochaResult, pageErrors, requestFailures, browserLogs);
+            printDiagnostics(testMode.name, mochaResult, pageErrors, requestFailures, browserLogs, omittedBrowserLogs);
             process.exitCode = 1;
             return;
         }
 
-        console.log("Browser tests passed.");
+        console.log(testMode.name + " passed.");
         if (browserLogs.length > 0) {
-            console.log("Browser console messages collected: " + browserLogs.length);
+            console.log("Browser console messages collected: " + (browserLogs.length + omittedBrowserLogs));
         }
     } catch (error) {
         console.error("Browser test runner failed:");
@@ -113,6 +128,24 @@ async function main() {
         await browser?.close();
         await closeServer(server);
     }
+}
+
+function getBrowserTestMode(): BrowserTestMode {
+    if (process.argv.includes("--net")) {
+        return {
+            name: "Browser network tests",
+            createTestsFunction: "createNetworkTests",
+            timeoutMs: Number(process.env.BROWSER_NET_TEST_TIMEOUT_MS ??
+                process.env.BROWSER_TEST_TIMEOUT_MS ??
+                15 * 60 * 1000),
+        };
+    }
+
+    return {
+        name: "Browser tests",
+        createTestsFunction: "createTests",
+        timeoutMs: Number(process.env.BROWSER_TEST_TIMEOUT_MS ?? 15 * 60 * 1000),
+    };
 }
 
 function assertRequiredArtifacts() {
@@ -203,13 +236,13 @@ function closeServer(server: Server): Promise<void> {
     });
 }
 
-async function runBrowserTests(page: Page): Promise<MochaResult> {
-    return await page.evaluate(async () => {
+async function runBrowserTests(page: Page, mode: BrowserTestMode): Promise<MochaResult> {
+    return await page.evaluate(async (createTestsFunction) => {
         const browserWindow = window as any;
         const testConfig = document.getElementById("test-config");
 
-        if (typeof browserWindow.createTests !== "function") {
-            throw new Error("window.createTests is not available.");
+        if (typeof browserWindow[createTestsFunction] !== "function") {
+            throw new Error("window." + createTestsFunction + " is not available.");
         }
 
         if (typeof browserWindow.mocha?.run !== "function") {
@@ -220,7 +253,7 @@ async function runBrowserTests(page: Page): Promise<MochaResult> {
             testConfig.style.display = "none";
         }
 
-        browserWindow.createTests();
+        browserWindow[createTestsFunction]();
 
         return await new Promise((resolve) => {
             const failures: Array<{ title: string; message: string; stack: string }> = [];
@@ -234,7 +267,7 @@ async function runBrowserTests(page: Page): Promise<MochaResult> {
                 stack: String(error?.stack ?? ""),
             }));
         });
-    }) as MochaResult;
+    }, mode.createTestsFunction) as MochaResult;
 }
 
 function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
@@ -246,11 +279,13 @@ function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise
 }
 
 function printDiagnostics(
+    title: string,
     mochaResult: MochaResult,
     pageErrors: string[],
     requestFailures: string[],
-    browserLogs: BrowserLog[]) {
-    console.error("Browser tests failed.");
+    browserLogs: BrowserLog[],
+    omittedBrowserLogs: number) {
+    console.error(title + " failed.");
 
     if (mochaResult.failures.length > 0) {
         console.error("\nMocha failures:");
@@ -281,6 +316,10 @@ function printDiagnostics(
 
     if (browserLogs.length > 0) {
         console.error("\nBrowser console:");
+        if (omittedBrowserLogs > 0) {
+            console.error("Showing last " + browserLogs.length + " messages; omitted " + omittedBrowserLogs + ".");
+        }
+
         for (const log of browserLogs) {
             console.error("[" + log.type + "] " + log.text + log.location);
         }

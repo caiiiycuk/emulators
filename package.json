@@ -32,7 +32,9 @@
         "test:node": "mocha --require ts-node/register/transpile-only --ui qunit --bail --full-trace --timeout 60000 --exit test/src/node-runner.ts",
         "test:node:build": "yarn run gulp wasm && yarn test:node",
         "test:browser": "node -r ts-node/register/transpile-only test/src/browser-runner.ts",
-        "test:browser:build": "yarn run gulp production && yarn test:browser"
+        "test:browser:build": "yarn run gulp production && yarn test:browser",
+        "test:browser:net": "node -r ts-node/register/transpile-only test/src/browser-runner.ts --net",
+        "test:browser:net:build": "yarn run gulp production && yarn test:browser:net"
     },
     "devDependencies": {
         "@babel/core": "^7.21.4",

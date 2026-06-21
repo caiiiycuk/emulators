@@ -38,6 +38,7 @@ jobs:
     - run: source ./emsdk/emsdk_env.sh && yarn run gulp production
     - run: yarn test:node
     - run: yarn test:browser
+    - run: yarn test:browser:net
     - run: zip -9r release.zip dist/*
     - name: publish
       if: startsWith(github.ref, 'refs/tags/')
