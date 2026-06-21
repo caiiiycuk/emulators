@@ -152,6 +152,9 @@ extern void mickeySync() {
 
 mickey getRelMickey(float prevCol, float prevRow,
                     float col, float row) {
+  static float mickey_x_residual = 0.0f;
+  static float mickey_y_residual = 0.0f;
+
   if (relativeMode) {
     return {
       .mickey_x = (int) prevCol,
@@ -185,6 +188,8 @@ mickey getRelMickey(float prevCol, float prevRow,
     // / mouse.row were correct for fn 0x03. Zero delta keeps fn 0x0B
     // consumers in sync while still clearing the internal mickey
     // accumulator that the sync is there to reset.
+    mickey_x_residual = 0.0f;
+    mickey_y_residual = 0.0f;
     return {
         .mickey_x = 0,
         .mickey_y = 0,
@@ -214,12 +219,10 @@ mickey getRelMickey(float prevCol, float prevRow,
   // Also carry a per-axis fractional residual so sub-mickey motions
   // (e.g. dCol=0.5 in cumulative pass-through) don't vanish to int
   // rounding. Without this, slow drags stutter or stall.
-  static float mickey_x_residual = 0.0f;
-  static float mickey_y_residual = 0.0f;
   float mickey_x_f = dCol * mouse.mickeysPerPixel_x + mickey_x_residual;
   float mickey_y_f = dRow * mouse.mickeysPerPixel_y + mickey_y_residual;
-  int mickey_x = (int) round(mickey_x_f);
-  int mickey_y = (int) round(mickey_y_f);
+  int mickey_x = (int) truncf(mickey_x_f);
+  int mickey_y = (int) truncf(mickey_y_f);
   mickey_x_residual = mickey_x_f - (float) mickey_x;
   mickey_y_residual = mickey_y_f - (float) mickey_y;
 
@@ -238,9 +241,10 @@ mickey getRelMickey(float prevCol, float prevRow,
   return {
     .mickey_x = mickey_x,
     .mickey_y = mickey_y,
-    // Invert the mickey formula: dCol = mickey / mickeysPerPixel_x.
-    .col = prevCol + ((float) mickey_x / mouse.mickeysPerPixel_x),
-    .row = prevRow + ((float) mickey_y / mouse.mickeysPerPixel_y),
+    // Keep the next baseline at the actual absolute cursor position. The
+    // fractional rounding error is tracked only by the residuals above.
+    .col = col,
+    .row = row,
   };
 }
 
