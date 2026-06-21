@@ -48,7 +48,53 @@ class Xhr {
             throw new Error("Method " + this.options.method + " is not supported");
         }
 
-        this.makeHttpRequest();
+        if (typeof XMLHttpRequest === "undefined") {
+            this.makeNodeRequest();
+        } else {
+            this.makeHttpRequest();
+        }
+    }
+
+    private makeNodeRequest() {
+        const load = (module as any)["req" + "uire"].bind(module);
+        const fs = load("fs");
+        const path = load("path");
+        const url = load("url");
+
+        let resourcePath = this.resource;
+        if (resourcePath.startsWith("file://")) {
+            resourcePath = url.fileURLToPath(resourcePath);
+        } else if (resourcePath.startsWith("/")) {
+            const absolutePath = resourcePath;
+            const cwdPath = path.resolve(process.cwd(), "." + resourcePath);
+            resourcePath = fs.existsSync(absolutePath) ? absolutePath : cwdPath;
+        } else {
+            resourcePath = path.resolve(process.cwd(), resourcePath);
+        }
+
+        fs.readFile(resourcePath, (err: any, buffer: any) => {
+            if (err !== null) {
+                if (this.options.fail) {
+                    this.options.fail("Unable to download '" + this.resource + "', code: 404");
+                    delete this.options.fail;
+                }
+                return;
+            }
+
+            if (this.options.progress) {
+                this.options.progress(buffer.byteLength, buffer.byteLength);
+            }
+
+            if (this.options.success) {
+                if (this.options.responseType === "arraybuffer") {
+                    const arrayBuffer = buffer.buffer
+                        .slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
+                    this.options.success(arrayBuffer);
+                } else {
+                    this.options.success(buffer.toString("utf8"));
+                }
+            }
+        });
     }
 
     private makeHttpRequest() {
@@ -108,4 +154,3 @@ class Xhr {
         }
     }
 }
-

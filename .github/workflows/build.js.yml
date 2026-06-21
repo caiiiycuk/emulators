@@ -29,12 +29,16 @@ jobs:
     - run: sudo apt-get install -yq --no-install-recommends cmake ninja-build zip
     - run: npm install -g yarn
     - run: yarn
+    - run: yarn playwright install --with-deps chromium
     - run: yarn run eslint src --ext ts,tsx --max-warnings 0
     - run: yarn run eslint test --ext ts,tsx --max-warnings 0
     - run: yarn run tsc --noemit
     - run: git clone https://github.com/emscripten-core/emsdk.git
     - run: cd emsdk && ./emsdk install ${{ matrix.emsdk-version }} && ./emsdk activate ${{ matrix.emsdk-version }} && cd ..
     - run: source ./emsdk/emsdk_env.sh && yarn run gulp production
+    - run: yarn test:node
+    - run: yarn test:browser
+    # - run: yarn test:browser:net
     - run: zip -9r release.zip dist/*
     - name: publish
       if: startsWith(github.ref, 'refs/tags/')

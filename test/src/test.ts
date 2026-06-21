@@ -20,5 +20,7 @@ export function createNetworkTests() {
     return testNet();
 }
 
-(window as any).createTests = createTests;
-(window as any).createNetworkTests = createNetworkTests;
+if (typeof window !== "undefined") {
+    (window as any).createTests = createTests;
+    (window as any).createNetworkTests = createNetworkTests;
+}

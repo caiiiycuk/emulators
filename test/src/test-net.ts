@@ -5,6 +5,7 @@ import DosBundle from "../../src/dos/bundle/dos-bundle";
 import { CommandInterface, NetworkType } from "../../src/emulators";
 import emulatorsImpl from "../../src/impl/emulators-impl";
 import { createNet as createNetImpl, Net } from "../humblenet/humblenet";
+import { isJspiSupported } from "./jspi";
 
 type CIFactory = (bundle: Uint8Array | Uint8Array[], net?: Net) => Promise<CommandInterface>;
 
@@ -31,8 +32,12 @@ export function testNet() {
     testServer((bundle, net: Net) => emulatorsImpl.dosboxWorker(bundle, { net }), "dosboxWorker", "dosbox");
     testServer((bundle, net: Net) => emulatorsImpl.dosboxXDirect(bundle, { net }), "dosboxXDirect", "dosbox-x");
     testServer((bundle, net: Net) => emulatorsImpl.dosboxXWorker(bundle, { net }), "dosboxXWorker", "dosbox-x");
-    testServer((bundle, net: Net) => emulatorsImpl.dosboxXJspiWorker(bundle, { net }),
-        "dosboxXJspiWorker", "dosbox-x-jspi");
+    if (isJspiSupported()) {
+        testServer((bundle, net: Net) => emulatorsImpl.dosboxXJspiWorker(bundle, { net }),
+            "dosboxXJspiWorker", "dosbox-x-jspi");
+    } else {
+        console.warn("Skipping dosboxXJspiWorker net tests: JSPI is not supported by this browser.");
+    }
 }
 
 function testServer(factory: CIFactory, name: string, backend: "dosbox" | "dosbox-x" | "dosbox-x-jspi") {
