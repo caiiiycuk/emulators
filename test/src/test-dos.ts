@@ -513,4 +513,21 @@ function testServer(factory: CIFactory, name: string, assets: string) {
             setTimeout(interactFn, assets === "dosbox" ? 1000 : 3000);
         });
     });
+
+    if (name.startsWith("dosboxX")) {
+        suite(name + ".sockdrive");
+        test(name + " load win 3.11 from qcow2", async () => {
+            const buffer = await httpRequest("https://v8.js-dos.com/test/win311.jsdos", {
+                responseType: "arraybuffer",
+            });
+
+            const ci = await factory(new Uint8Array(buffer as ArrayBuffer));
+            assert.ok(ci);
+
+            await waitImage(assets + "/win311-qcow2.png", ci, {
+                timeout: 15000,
+                interval: 250,
+            });
+        });
+    }
 }
