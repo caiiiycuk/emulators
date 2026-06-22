@@ -62,6 +62,11 @@ class Xhr {
         const url = load("url");
 
         let resourcePath = this.resource;
+        if (resourcePath.startsWith("http://") || resourcePath.startsWith("https://")) {
+            this.makeNodeHttpRequest(resourcePath, load);
+            return;
+        }
+
         if (resourcePath.startsWith("file://")) {
             resourcePath = url.fileURLToPath(resourcePath);
         } else if (resourcePath.startsWith("/")) {
@@ -93,6 +98,75 @@ class Xhr {
                 } else {
                     this.options.success(buffer.toString("utf8"));
                 }
+            }
+        });
+    }
+
+    private makeNodeHttpRequest(resource: string, load: (name: string) => any, redirects = 0) {
+        const url = load("url");
+        const parsedUrl = new url.URL(resource);
+        const requestModule = load(parsedUrl.protocol === "https:" ? "https" : "http");
+
+        const request = requestModule.get(parsedUrl, (response: any) => {
+            const statusCode = response.statusCode || 0;
+            const location = response.headers.location;
+            if (statusCode >= 300 && statusCode < 400 && location !== undefined) {
+                response.resume();
+                if (redirects >= 5) {
+                    if (this.options.fail) {
+                        this.options.fail("Unable to download '" + this.resource + "', code: " + statusCode);
+                        delete this.options.fail;
+                    }
+                    return;
+                }
+
+                this.makeNodeHttpRequest(new url.URL(location, parsedUrl).toString(), load, redirects + 1);
+                return;
+            }
+
+            if (statusCode < 200 || statusCode >= 300) {
+                response.resume();
+                if (this.options.fail) {
+                    this.options.fail("Unable to download '" + this.resource + "', code: " + statusCode);
+                    delete this.options.fail;
+                }
+                return;
+            }
+
+            const chunks: any[] = [];
+            const total = Number.parseInt(response.headers["content-length"] || "0", 10);
+            let loaded = 0;
+
+            response.on("data", (chunk: any) => {
+                chunks.push(chunk);
+                loaded += chunk.byteLength;
+                if (this.options.progress) {
+                    this.options.progress(total, loaded);
+                }
+            });
+
+            response.on("end", () => {
+                const buffer = load("buffer").Buffer.concat(chunks);
+                if (this.options.progress) {
+                    this.options.progress(total || buffer.byteLength, buffer.byteLength);
+                }
+
+                if (this.options.success) {
+                    if (this.options.responseType === "arraybuffer") {
+                        const arrayBuffer = buffer.buffer
+                            .slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
+                        this.options.success(arrayBuffer);
+                    } else {
+                        this.options.success(buffer.toString("utf8"));
+                    }
+                }
+            });
+        });
+
+        request.on("error", (err: Error) => {
+            if (this.options.fail) {
+                this.options.fail("Unable to download '" + this.resource + "', code: " + err.message);
+                delete this.options.fail;
             }
         });
     }

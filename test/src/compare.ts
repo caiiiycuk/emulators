@@ -9,7 +9,7 @@ export interface WaitImageProps {
     success?: () => Promise<void>;
 }
 
-export function waitImage(imageUrl: string, ci: CommandInterface, options?: WaitImageProps) {
+export async function waitImage(imageUrl: string, ci: CommandInterface, options?: WaitImageProps) {
     const threshold = options?.threshold ?? 1;
     const timeout = options?.timeout ?? 3000;
     const interval = options?.interval ?? 64;
@@ -17,9 +17,17 @@ export function waitImage(imageUrl: string, ci: CommandInterface, options?: Wait
     const resize = options?.resize ?? false;
     const maxShift = options?.maxShift ?? 0;
 
+    let expected: LoadedComparableImage;
+    try {
+        expected = await loadExpectedImage(imageUrl);
+    } catch (e) {
+        await ci.exit().catch(() => undefined);
+        throw e;
+    }
+
     return new Promise<void>((resolve, reject) => {
         let intervalId = setInterval(() => {
-            compare(imageUrl, ci, threshold, false, resize, maxShift)
+            compare(expected, ci, threshold, false, resize, maxShift)
                 .then((error) => {
                     if (intervalId !== null && error === null) {
                         clearInterval(intervalId);
@@ -37,7 +45,7 @@ export function waitImage(imageUrl: string, ci: CommandInterface, options?: Wait
         setTimeout(() => {
             if (intervalId !== null) {
                 clearInterval(intervalId);
-                compare(imageUrl, ci, threshold, true, resize, maxShift)
+                compare(expected, ci, threshold, true, resize, maxShift)
                     .then((error) => {
                         if (error === null) {
                             success()
@@ -56,20 +64,20 @@ export function waitImage(imageUrl: string, ci: CommandInterface, options?: Wait
     });
 }
 
-const compare = (imageUrl: string,
+const compare = (expected: LoadedComparableImage,
     ci: CommandInterface,
     threshold: number,
     showComparsion: boolean,
     resize: boolean,
     maxShift: number): Promise<null | Error> => {
     if (typeof document === "undefined" || typeof Image === "undefined") {
-        return compareNode(imageUrl, ci, threshold, resize, maxShift);
+        return compareNode(expected, ci, threshold, resize, maxShift);
     }
 
-    return compareBrowser(imageUrl, ci, threshold, showComparsion, resize, maxShift);
+    return compareBrowser(expected, ci, threshold, showComparsion, resize, maxShift);
 };
 
-const compareBrowser = (imageUrl: string,
+const compareBrowser = (expected: LoadedComparableImage,
     ci: CommandInterface,
     threshold: number,
     showComparsion: boolean,
@@ -78,57 +86,44 @@ const compareBrowser = (imageUrl: string,
     return ci.screenshot()
         .then(imageDataToUrl)
         .then((actualUrl: string) => new Promise<null | Error>((resolve, reject) => {
-            const img = new Image();
-            img.onload = () => {
-                const canvas = document.createElement("canvas");
-                canvas.width = img.width;
-                canvas.height = img.height;
-                const ctx = canvas.getContext("2d");
-                ctx.drawImage(img, 0, 0);
-                const expected = ctx.getImageData(0, 0, img.width, img.height).data;
-
-                const actualImage = new Image();
-                actualImage.onload = () => {
-                    if (!resize &&
-                        (img.width !== actualImage.width ||
-                            img.height !== actualImage.height)) {
-                        if (showComparsion) {
-                            renderComparsion(img, actualImage);
-                        }
-                        if (img.width !== actualImage.width) {
-                            resolve(new Error("Invalid width: " + actualImage.width + ", should be " + img.width));
-                        } else {
-                            resolve(new Error("Invalid height: " + actualImage.height + ", should be " + img.height));
-                        }
+            const actualImage = new Image();
+            actualImage.onload = () => {
+                if (!resize &&
+                    (expected.width !== actualImage.width ||
+                        expected.height !== actualImage.height)) {
+                    if (showComparsion && expected.element !== undefined) {
+                        renderComparsion(expected.element, actualImage);
                     }
-
-                    const actualCanvas = document.createElement("canvas");
-                    actualCanvas.width = img.width;
-                    actualCanvas.height = img.height;
-                    actualCanvas.style.imageRendering = "pixelated";
-                    const actualCtx = actualCanvas.getContext("2d");
-                    actualCtx.drawImage(actualImage, 0, 0, img.width, img.height);
-                    const actual = actualCtx.getImageData(0, 0, img.width, img.height).data;
-
-                    const wrong = comparePixels({
-                        width: img.width,
-                        height: img.height,
-                        data: expected,
-                    }, {
-                        width: img.width,
-                        height: img.height,
-                        data: actual,
-                    }, maxShift);
-                    if (showComparsion && wrong > threshold) {
-                        renderComparsion(img, resize ? actualCanvas : actualImage);
+                    if (expected.width !== actualImage.width) {
+                        resolve(new Error("Invalid width: " + actualImage.width + ", should be " + expected.width));
+                    } else {
+                        resolve(new Error("Invalid height: " + actualImage.height + ", should be " + expected.height));
                     }
-                    resolve(wrong > threshold ?
-                        new Error("Image not same, wrong: " + wrong) :
-                        null);
-                };
-                actualImage.src = actualUrl;
+                    return;
+                }
+
+                const actualCanvas = document.createElement("canvas");
+                actualCanvas.width = expected.width;
+                actualCanvas.height = expected.height;
+                actualCanvas.style.imageRendering = "pixelated";
+                const actualCtx = actualCanvas.getContext("2d");
+                actualCtx.drawImage(actualImage, 0, 0, expected.width, expected.height);
+                const actual = actualCtx.getImageData(0, 0, expected.width, expected.height).data;
+
+                const wrong = comparePixels(expected, {
+                    width: expected.width,
+                    height: expected.height,
+                    data: actual,
+                }, maxShift);
+                if (showComparsion && wrong > threshold && expected.element !== undefined) {
+                    renderComparsion(expected.element, resize ? actualCanvas : actualImage);
+                }
+                resolve(wrong > threshold ?
+                    new Error("Image not same, wrong: " + wrong) :
+                    null);
             };
-            img.src = imageUrl;
+            actualImage.onerror = () => reject(new Error("Failed to load screenshot image"));
+            actualImage.src = actualUrl;
         }));
 };
 
@@ -138,12 +133,15 @@ interface ComparableImage {
     data: Uint8Array | Uint8ClampedArray;
 }
 
-async function compareNode(imageUrl: string,
+interface LoadedComparableImage extends ComparableImage {
+    element?: HTMLImageElement;
+}
+
+async function compareNode(expected: LoadedComparableImage,
                            ci: CommandInterface,
                            threshold: number,
                            resize: boolean,
                            maxShift: number): Promise<null | Error> {
-    const expected = readPng(imageUrl);
     const screenshot = await ci.screenshot();
     let actual: ComparableImage = {
         width: screenshot.width,
@@ -167,6 +165,36 @@ async function compareNode(imageUrl: string,
     return wrong > threshold ?
         new Error("Image not same, wrong: " + wrong) :
         null;
+}
+
+function loadExpectedImage(imageUrl: string): Promise<LoadedComparableImage> {
+    if (typeof document === "undefined" || typeof Image === "undefined") {
+        return Promise.resolve(readPng(imageUrl));
+    }
+
+    return new Promise<LoadedComparableImage>((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => {
+            try {
+                const canvas = document.createElement("canvas");
+                canvas.width = img.width;
+                canvas.height = img.height;
+                const ctx = canvas.getContext("2d");
+                ctx.drawImage(img, 0, 0);
+
+                resolve({
+                    width: img.width,
+                    height: img.height,
+                    data: ctx.getImageData(0, 0, img.width, img.height).data,
+                    element: img,
+                });
+            } catch (e) {
+                reject(e);
+            }
+        };
+        img.onerror = () => reject(new Error("Failed to load image: " + imageUrl));
+        img.src = imageUrl;
+    });
 }
 
 function readPng(imageUrl: string): ComparableImage {
