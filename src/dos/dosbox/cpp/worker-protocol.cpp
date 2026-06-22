@@ -1213,7 +1213,7 @@ EM_JS(void, em_server_sockdrive_ready, (uint32_t handle), {
 });
 
 EM_JS(void, em_server_sockdrive_close, (uint32_t handle), {
-  delete this.sockdrives[handle];
+  delete Module.sockdrives[handle];
 });
 
 EM_JS(void, em_server_sockdrive_load_range, (uint32_t handle, uint32_t range), {

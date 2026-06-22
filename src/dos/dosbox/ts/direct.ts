@@ -2,6 +2,8 @@ import { WasmModule } from "../../../impl/modules";
 import { TransportLayer, MessageHandler, ClientMessage, ServerMessage, Net } from "../../../protocol/protocol";
 import { MessagesQueue } from "../../../protocol/messages-queue";
 import { createAudioPort } from "./audio-worklet";
+// Raw Node wasm wrappers expect sockdrive helpers to exist on the global object.
+import "../../../sockdrive/sockdrive";
 
 export async function dosDirect(wasmModule: WasmModule,
                                 sessionId: string,
