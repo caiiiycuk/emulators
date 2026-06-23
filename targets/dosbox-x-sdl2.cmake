@@ -632,7 +632,6 @@ set(SOURCES_X_SDL_MAIN
         )
 
 set(SOURCES_X_JSDOS_CORE
-        "${NATIVE_DIR}/jsdos/dosbox-x/jsdos-x-render.cpp"
         "${NATIVE_DIR}/jsdos/dosbox-x/jsdos-x-tinyfd.cpp"
         "${NATIVE_DIR}/jsdos/jsdos-timer.cpp"
         "${NATIVE_DIR}/jsdos/jsdos-support.cpp"
@@ -752,7 +751,7 @@ if (${EMSCRIPTEN})
         ${WDOSBOXX_LINK_OPTIONS}
         "-sASYNCIFY=1"
         "-sASYNCIFY_IMPORTS=['syncSleep']"
-#        "-sASYNCIFY_WHITELIST=@${TARGETS_DIR}/dosbox-x-asyncify.txt"
+        "-sASYNCIFY_WHITELIST=@${TARGETS_DIR}/dosbox-x-asyncify.txt"
 #       "-sASYNCIFY_STACK_SIZE=16384"
         "-sEXPORT_NAME='WDOSBOXX'"
     )
