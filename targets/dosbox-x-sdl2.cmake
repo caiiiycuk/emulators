@@ -741,8 +741,8 @@ if (${EMSCRIPTEN})
         "-sGL_POOL_TEMP_BUFFERS=1"
         "-sFULL_ES2=1"
 #       "-sGL_ASSERTIONS=1"
-       "--profiling-funcs"
-       "-sASSERTIONS=2"
+#       "--profiling-funcs"
+#       "-sASSERTIONS=2"
 #       "-sSAFE_HEAP=2"
         "-sERROR_ON_UNDEFINED_SYMBOLS=1"
     )
