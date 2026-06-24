@@ -73,7 +73,7 @@ export async function sockdrive(
         for (let i = 0; i < info.small_ranges.length; i++) {
             const range = info.small_ranges[i];
             storeKeys.add(range);
-            await store.put(range, preload.slice(i * info.ahead_read, (i + 1) * info.ahead_read));
+            store.put(range, preload.slice(i * info.ahead_read, (i + 1) * info.ahead_read)).catch(console.error);
         };
     }
 

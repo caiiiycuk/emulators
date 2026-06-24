@@ -58,4 +58,4 @@ CMakeCache*
 .ninja*
 build.ninja
 dosbox-x-sdl2*
-sockdrive
+sockdrive/

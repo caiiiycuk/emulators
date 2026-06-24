@@ -114,6 +114,14 @@ class EmulatorsImpl implements Emulators {
         return this.backend(init, transportLayer, options);
     }
 
+    async dosboxXJspiDirect(init: InitFs, options?: BackendOptions): Promise<CommandInterface> {
+        const modules = await this.wasmModules();
+        const dosboxxWasm = await modules.dosboxxJspi();
+        const transportLayer = await dosDirect(dosboxxWasm, "session-" + Date.now(),
+            options?.canvas, options?.audioWorklet, options?.net);
+        return this.backend(init, transportLayer, options);
+    }
+
     async dosboxXWorker(init: InitFs, options?: BackendOptions): Promise<CommandInterface> {
         const modules = await this.wasmModules();
         const dosboxxWasm = await modules.dosboxx();
