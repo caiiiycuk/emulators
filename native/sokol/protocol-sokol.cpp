@@ -42,6 +42,7 @@ int frameCount = 0;
 extern int frameWidth = 0;
 extern int frameHeight = 0;
 extern uint32_t *frameRgba = nullptr;
+int frameSize = 0;
 
 static float vertices[] = {0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f,
                            0.0f, 1.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f};
@@ -115,6 +116,7 @@ void client_frame_set_size(int width, int height) {
   }
   frameWidth = width;
   frameHeight = height;
+  frameSize = width * height;
   frameRgba = new uint32_t[width * height];
 }
 
@@ -129,6 +131,10 @@ void client_frame_update_lines(uint32_t *lines, uint32_t count, void *rgba, bool
     uint32_t start = lines[i * 3] * frameWidth;
     uint32_t count = lines[i * 3 + 1] * sizeof(uint32_t) * frameWidth;
     uint32_t offset = lines[i * 3 + 2];
+    if (start + count / 4 > frameSize) {
+      printf("line is out frame bounds\n");
+      continue;
+    }
     memcpy(&frameRgba[start], (char *)rgba + offset, count);
     if (bgra) {
         auto begin = (uint8_t*) &frameRgba[start];
