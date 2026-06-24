@@ -56,6 +56,11 @@ function browserBackends(): DosBackend[] {
     if (isJspiSupported()) {
         backends.push({
             factory: (bundle, options) => emulatorsImpl.dosboxXJspiWorker(bundle, options),
+            name: "dosboxXJspiDirect",
+            assets: "dosbox-x",
+        });
+        backends.push({
+            factory: (bundle, options) => emulatorsImpl.dosboxXJspiWorker(bundle, options),
             name: "dosboxXJspiWorker",
             assets: "dosbox-x",
         });
