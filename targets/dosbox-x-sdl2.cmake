@@ -225,6 +225,7 @@ set(SOURCES_X_CORE
         "${DBX_PATH}/src/cpu/core_normal_8086.cpp"
         "${DBX_PATH}/src/cpu/core_prefetch_8086.cpp"
         "${DBX_PATH}/src/cpu/core_dyn_x86.cpp"
+        "${DBX_PATH}/src/cpu/core_wasm.cpp"
         "${DBX_PATH}/src/cpu/cpu.cpp"
         "${DBX_PATH}/src/cpu/core_full.cpp"
         "${DBX_PATH}/src/shell/shell_batch.cpp"
