@@ -627,8 +627,8 @@ set(SOURCES_X_SDL_MAIN
         "${DBX_PATH}/src/hardware/mixer.cpp"
         "${DBX_PATH}/src/hardware/ipx.cpp"
         "${DBX_PATH}/src/hardware/ipxserver.cpp"
-        "${NATIVE_DIR}/jsdos/sockdrive/sockdrive.cpp"
         "${NATIVE_DIR}/jsdos/sockdrive/sockdrive-noop.cpp"
+        "${NATIVE_DIR}/jsdos/jsdos-x-sdl2-noop.cpp"
         )
 
 set(SOURCES_X_JSDOS_CORE
