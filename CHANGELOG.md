@@ -1,5 +1,13 @@
 # Changelog
 
+## v8.4.1
+
+- Improve sockdrive in direct mode
+- Fix sockdrive in node environment
+- Fix for #caiiiycuk/js-dos/303
+- Fix for #caiiiycuk/js-dos/310
+- Fix for #caiiiycuk/js-dos/426
+
 ## v8.4.0
 
 ### Added
