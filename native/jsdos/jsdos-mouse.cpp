@@ -90,6 +90,12 @@ static struct {
 	Bit16s min_x,max_x,min_y,max_y;
 	float col, row;
         float mickeyCol, mickeyRow;
+        // Fractional mickey carry for getRelMickey(). Kept inside `mouse` so
+        // that INT 33h fn 0x16 / 0x17 (save / load driver state) round-trip it
+        // with the rest of the driver state, and so MOUSE_Init's memset of
+        // the whole struct clears it. dosbox-x keeps its equivalent
+        // mickey_accum_x/y in the mouse struct for the same reason.
+        float mickeyResidualCol, mickeyResidualRow;
 	button_event event_queue[QUEUE_SIZE];
 	Bit8u events;//Increase if QUEUE_SIZE >255 (currently 32)
 	Bit16u sub_seg,sub_ofs;
@@ -152,9 +158,6 @@ extern void mickeySync() {
 
 mickey getRelMickey(float prevCol, float prevRow,
                     float col, float row) {
-  static float mickey_x_residual = 0.0f;
-  static float mickey_y_residual = 0.0f;
-
   if (relativeMode) {
     return {
       .mickey_x = (int) prevCol,
@@ -188,8 +191,8 @@ mickey getRelMickey(float prevCol, float prevRow,
     // / mouse.row were correct for fn 0x03. Zero delta keeps fn 0x0B
     // consumers in sync while still clearing the internal mickey
     // accumulator that the sync is there to reset.
-    mickey_x_residual = 0.0f;
-    mickey_y_residual = 0.0f;
+    mouse.mickeyResidualCol = 0.0f;
+    mouse.mickeyResidualRow = 0.0f;
     return {
         .mickey_x = 0,
         .mickey_y = 0,
@@ -219,12 +222,12 @@ mickey getRelMickey(float prevCol, float prevRow,
   // Also carry a per-axis fractional residual so sub-mickey motions
   // (e.g. dCol=0.5 in cumulative pass-through) don't vanish to int
   // rounding. Without this, slow drags stutter or stall.
-  float mickey_x_f = dCol * mouse.mickeysPerPixel_x + mickey_x_residual;
-  float mickey_y_f = dRow * mouse.mickeysPerPixel_y + mickey_y_residual;
+  float mickey_x_f = dCol * mouse.mickeysPerPixel_x + mouse.mickeyResidualCol;
+  float mickey_y_f = dRow * mouse.mickeysPerPixel_y + mouse.mickeyResidualRow;
   int mickey_x = (int) truncf(mickey_x_f);
   int mickey_y = (int) truncf(mickey_y_f);
-  mickey_x_residual = mickey_x_f - (float) mickey_x;
-  mickey_y_residual = mickey_y_f - (float) mickey_y;
+  mouse.mickeyResidualCol = mickey_x_f - (float) mickey_x;
+  mouse.mickeyResidualRow = mickey_y_f - (float) mickey_y;
 
   if (mickey_x >= 32768.0)  {
     mickey_x -= 65536.0;
@@ -845,6 +848,12 @@ static void Mouse_Reset(void) {
 	mouse.row = static_cast<float>((mouse.max_y + 1)/ 2);
         mouse.mickeyCol = mouse.col;
         mouse.mickeyRow = mouse.row;
+        // Clear the fractional carry here as well as in the mickeySync()
+        // branch of getRelMickey(). A reset taken while relativeMode is set
+        // returns from getRelMickey() before that branch runs, so without
+        // this a stale sub-mickey fraction could survive a driver reset.
+        mouse.mickeyResidualCol = 0.0f;
+        mouse.mickeyResidualRow = 0.0f;
 	mouse.sub_mask = 0;
 	mouse.in_UIR = false;
         mickeySync();
