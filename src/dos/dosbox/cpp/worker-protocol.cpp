@@ -158,6 +158,7 @@ EM_JS(void, ws_init_runtime, (const char* sessionId), {
           }
           Module.token = data.props.token || "";
           Module.sockdrivePreload = data.props.sockdrivePreload || "default";
+          Module.sockdriveOpfsRoot = data.props.sockdriveOpfsRoot || "jsdos";
           Module._extractBundleToFs();
           Module._runRuntime();
           sendMessage("ws-server-ready");
@@ -1175,7 +1176,7 @@ EM_JS(void, em_server_sockdrive_open, (uint32_t handle, const char* url), {
 
   sockdrive(url, Module.sockdriveChanges[url], Module.sockdrivePreload, (range, buffer) => {
       Module.onSockdriveNewRange(handle, range, buffer);
-  }).then((drive) => {
+  }, Module.sockdriveOpfsRoot).then((drive) => {
       Module.sockdrives[handle] = drive;
       delete Module.sockdriveChanges[url];
       const emptyRanges = Array.from(drive.info.dropped_ranges);

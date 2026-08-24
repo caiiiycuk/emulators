@@ -22,6 +22,7 @@ export interface BackendOptions {
     canvas?: OffscreenCanvas;
     audioWorklet?: boolean;
     sockdrivePreload?: "all" | "default" | "none";
+    sockdriveOpfsRoot?: string;
     net?: Net;
 }
 

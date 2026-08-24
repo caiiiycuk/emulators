@@ -38,10 +38,11 @@ export async function sockdrive(
     persistedSectors: Uint8Array | null,
     preloadMode: "all" | "default" | "none",
     _onNewRange: (range: number, buffer: Uint8Array) => void,
+    opfsRoot: string,
 ): Promise<Drive> {
     const response = await fetch(url + "/sockdrive.metaj");
     const info = await response.json() as DriveInfo;
-    const store = await getStore(url, info.ahead_read);
+    const store = await getStore(url, info.ahead_read, opfsRoot);
     try {
         info.preload_ranges = await (await fetch(url + "/preload_ranges.metaj")).json();
     } catch (e) {

@@ -68,9 +68,9 @@ export class OpfsStore implements Store {
         this.blockLength = blockLength;
     }
 
-    static async create(url: string, blockLength: number): Promise<OpfsStore> {
+    static async create(url: string, blockLength: number, opfsRoot: string): Promise<OpfsStore> {
         const root = await navigator.storage.getDirectory();
-        const jsdosRoot = await root.getDirectoryHandle("jsdos", { create: true });
+        const jsdosRoot = await root.getDirectoryHandle(opfsRoot, { create: true });
         const cachesRoot = await jsdosRoot.getDirectoryHandle("caches", {
             create: true,
         });
@@ -319,6 +319,7 @@ export class OpfsStore implements Store {
 export async function getStore(
     url: string,
     blockLength: number,
+    opfsRoot: string,
 ): Promise<Store> {
     try {
         if (
@@ -326,7 +327,7 @@ export async function getStore(
       navigator.storage &&
       typeof navigator.storage.getDirectory === "function"
         ) {
-            return await OpfsStore.create(url, blockLength);
+            return await OpfsStore.create(url, blockLength, opfsRoot);
         }
     } catch (e) {
         console.warn("OPFS not available, falling back to in-memory store", e);
