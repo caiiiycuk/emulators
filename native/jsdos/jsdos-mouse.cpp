@@ -876,9 +876,6 @@ static Bitu INT33_Handler(void) {
 		reg_dx=POS_Y;
 		break;
 	case 0x04: {	/* Position Mouse */
-		const float oldCol = mouse.col;
-		const float oldRow = mouse.row;
-
 		/* If position isn't different from current position
 		 * don't change it then. (as position is rounded so numbers get
 		 * lost when the rounded number is set) (arena/simulation Wolf) */
@@ -889,14 +886,6 @@ static Bitu INT33_Handler(void) {
 		if ((Bit16s)reg_dx >= mouse.max_y) mouse.row = static_cast<float>(mouse.max_y);
 		else if (mouse.min_y >= (Bit16s)reg_dx) mouse.row = static_cast<float>(mouse.min_y);
 		else if ((Bit16s)reg_dx != POS_Y) mouse.row = static_cast<float>(reg_dx);
-
-		// Function 4 repositions the cursor without physical motion. Shift
-		// the absolute-mode snapshot by only the cursor-warp delta so pending
-		// physical motion remains available to AX=000Bh and user callbacks.
-		if (!relativeMode) {
-			mouse.mickeyCol += mouse.col - oldCol;
-			mouse.mickeyRow += mouse.row - oldRow;
-		}
 
 		DrawCursor();
 		break;
