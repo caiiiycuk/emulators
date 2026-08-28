@@ -90,11 +90,12 @@ static struct {
 	Bit16s min_x,max_x,min_y,max_y;
 	float col, row;
         float mickeyCol, mickeyRow;
-        // Fractional mickey carry for getRelMickey(). Kept inside `mouse` so
-        // that INT 33h fn 0x16 / 0x17 (save / load driver state) round-trip it
-        // with the rest of the driver state, and so MOUSE_Init's memset of
-        // the whole struct clears it. dosbox-x keeps its equivalent
-        // mickey_accum_x/y in the mouse struct for the same reason.
+        // Pending absolute-mode motion, including its fractional carry.
+        // Kept inside `mouse` so INT 33h fn 0x16 / 0x17 (save / load driver
+        // state) round-trip it with the rest of the driver state, and so
+        // MOUSE_Init's memset of the whole struct clears it. dosbox-x keeps
+        // its equivalent mickey_accum_x/y in the mouse struct for the same
+        // reason.
         float mickeyResidualCol, mickeyResidualRow;
 	button_event event_queue[QUEUE_SIZE];
 	Bit8u events;//Increase if QUEUE_SIZE >255 (currently 32)
@@ -149,9 +150,6 @@ bool relativeMode = false;
 // fix it with mickeySync()
 constexpr Bitu mickeyRelSyncCount = 3;
 Bitu mickeyRelSyncTries = mickeyRelSyncCount;
-extern Bitu surfaceWidth;
-extern Bitu surfaceHeight;
-
 extern void mickeySync() {
   mickeyRelSyncTries = mickeyRelSyncCount;
 }
@@ -201,29 +199,12 @@ mickey getRelMickey(float prevCol, float prevRow,
     };
   }
 
-  auto dCol = col - prevCol;
-  auto dRow = row - prevRow;
-
-  // Match the original DOSBox mickey formula: mickey = delta *
-  // mickeysPerPixel, applied directly to the absolute col/row delta.
-  //
-  // The previous version multiplied by `pxPerCol = surfaceWidth / max_x`
-  // (≈ 0.5 for VGA mode 13h, since INT 33h uses a doubled-X range 0..639
-  // over a 320-pixel screen) and also divided the Y mickey by 2 (the
-  // `// why div 2?` comment). Together these halve the mickey rate that
-  // DOS games see via INT 33h fn 0x0B / INT 74 callbacks.
-  //
-  // Games that read cursor position only through the mickey stream (e.g.
-  // Ultima Underworld 1/2, whose UW.EXE reads `mov ax,0Bh;int 33h` then
-  // `imul bx=100; idiv [200]` to convert mickeys to game pixels) get
-  // cursor motion at ½ the expected rate. Restoring the original DOSBox
-  // formula fixes UW1/UW2 cursor tracking.
-  //
-  // Also carry a per-axis fractional residual so sub-mickey motions
-  // (e.g. dCol=0.5 in cumulative pass-through) don't vanish to int
-  // rounding. Without this, slow drags stutter or stall.
-  float mickey_x_f = dCol * mouse.mickeysPerPixel_x + mouse.mickeyResidualCol;
-  float mickey_y_f = dRow * mouse.mickeysPerPixel_y + mouse.mickeyResidualRow;
+  // Absolute col/row values are scaled into the guest-selected cursor range,
+  // so deriving motion from their delta makes the mickey rate depend on INT
+  // 33h functions 07h/08h. Mouse_CursorMoved accumulates the physical host
+  // delta here instead, using the same conversion as relative mode.
+  float mickey_x_f = mouse.mickeyResidualCol;
+  float mickey_y_f = mouse.mickeyResidualRow;
   int mickey_x = (int) truncf(mickey_x_f);
   int mickey_y = (int) truncf(mickey_y_f);
   mouse.mickeyResidualCol = mickey_x_f - (float) mickey_x;
@@ -592,15 +573,15 @@ void Mouse_CursorMoved(float xrel,float yrel,float x,float y,bool emulate) {
 	}
 
 	relativeMode = emulate;
+	float dx = xrel * mouse.pixelPerMickey_x;
+	float dy = yrel * mouse.pixelPerMickey_y;
+
+	if((fabs(xrel) > 1.0) || (mouse.senv_x < 1.0)) dx *= mouse.senv_x;
+	if((fabs(yrel) > 1.0) || (mouse.senv_y < 1.0)) dy *= mouse.senv_y;
+
+	if (useps2callback) dy *= 2;
+
 	if (emulate) {
-		float dx = xrel * mouse.pixelPerMickey_x;
-		float dy = yrel * mouse.pixelPerMickey_y;
-
-		if((fabs(xrel) > 1.0) || (mouse.senv_x < 1.0)) dx *= mouse.senv_x;
-		if((fabs(yrel) > 1.0) || (mouse.senv_y < 1.0)) dy *= mouse.senv_y;
-
-		if (useps2callback) dy *= 2;
-
 		mouse.mickeyCol += (dx * mouse.mickeysPerPixel_x);
 		mouse.mickeyRow += (dy * mouse.mickeysPerPixel_y);
 		if (mouse.mickeyCol >= 32768.0) mouse.mickeyCol -= 65536.0;
@@ -611,6 +592,12 @@ void Mouse_CursorMoved(float xrel,float yrel,float x,float y,bool emulate) {
 		mouse.col += dx;
 		mouse.row += dy;
 	} else {
+		// Motion counters describe physical movement, not logical cursor
+		// coordinates. In particular, changing min/max through INT 33h 07h/08h
+		// must not change the mickey count for the same host movement.
+		mouse.mickeyResidualCol += (dx * mouse.mickeysPerPixel_x);
+		mouse.mickeyResidualRow += (dy * mouse.mickeysPerPixel_y);
+
 		if (CurMode->type == M_TEXT) {
 			mouse.col = x*real_readw(BIOSMEM_SEG,BIOSMEM_NB_COLS)*8;
 			mouse.row = y*(real_readb(BIOSMEM_SEG,BIOSMEM_NB_ROWS)+1)*8;
@@ -848,10 +835,10 @@ static void Mouse_Reset(void) {
 	mouse.row = static_cast<float>((mouse.max_y + 1)/ 2);
         mouse.mickeyCol = mouse.col;
         mouse.mickeyRow = mouse.row;
-        // Clear the fractional carry here as well as in the mickeySync()
+        // Clear pending absolute motion here as well as in the mickeySync()
         // branch of getRelMickey(). A reset taken while relativeMode is set
         // returns from getRelMickey() before that branch runs, so without
-        // this a stale sub-mickey fraction could survive a driver reset.
+        // this stale motion could survive a driver reset.
         mouse.mickeyResidualCol = 0.0f;
         mouse.mickeyResidualRow = 0.0f;
 	mouse.sub_mask = 0;
