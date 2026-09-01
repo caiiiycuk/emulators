@@ -164,7 +164,9 @@ char* revert_escape_newlines(const char* aMessage);
 #include "../libs/tinyfiledialogs/tinyfiledialogs.h"
 #endif
 #if C_DEBUG
+#ifndef EMSCRIPTEN
 #include "display2.cpp"
+#endif
 #endif
 
 #if (defined __i386__ || defined __x86_64__) && (defined BSD || defined LINUX) && !defined(JSDOS)
@@ -7365,6 +7367,7 @@ bool DOSBOX_parse_argv() {
             control->opt_console = true;
         }
 #if C_DEBUG
+#ifndef EMSCRIPTEN
         else if (optname == "display2") {
         uint8_t disp2_color = 0;
             if (control->cmdline->NextOptArgv(tmp)) {
@@ -7374,6 +7377,7 @@ bool DOSBOX_parse_argv() {
             DISP2_Init(disp2_color);
             control->opt_display2 = true;
         }
+#endif
 #endif
         else if (optname == "nomenu") {
             control->opt_nomenu = true;
@@ -9620,7 +9624,11 @@ fresh_boot:
         guest_msdos_mcb_chain = (uint16_t)(~0u);
 
 #if C_DEBUG
-        if (control->opt_test) ::testing::InitGoogleTest(&argc, argv);
+        if (control->opt_test) {
+          printf("GoogleTests not supported\n");
+          abort();
+          // ::testing::InitGoogleTest(&argc, argv);
+        }
 #endif
 
         /* NTS: CPU reset handler, and BIOS init, has the instruction pointer poised to run through BIOS initialization,

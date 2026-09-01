@@ -86,10 +86,10 @@ set(SOURCES_CORE_CXX03
         "${NATIVE_DIR}/dosbox/src/gui/sdl_gui.cpp"
         "${NATIVE_DIR}/dosbox/src/gui/render_scalers.cpp"
         "${NATIVE_DIR}/dosbox/src/gui/render.cpp"
-        "${NATIVE_DIR}/dosbox/src/debug/debug.cpp"
-        "${NATIVE_DIR}/dosbox/src/debug/debug_win32.cpp"
-        "${NATIVE_DIR}/dosbox/src/debug/debug_disasm.cpp"
-        "${NATIVE_DIR}/dosbox/src/debug/debug_gui.cpp"
+        # "${NATIVE_DIR}/dosbox/src/debug/debug.cpp"
+        # "${NATIVE_DIR}/dosbox/src/debug/debug_win32.cpp"
+        # "${NATIVE_DIR}/dosbox/src/debug/debug_disasm.cpp"
+        # "${NATIVE_DIR}/dosbox/src/debug/debug_gui.cpp"
         "${NATIVE_DIR}/dosbox/src/hardware/pcspeaker.cpp"
         "${NATIVE_DIR}/dosbox/src/hardware/sblaster.cpp"
         "${NATIVE_DIR}/dosbox/src/hardware/gus.cpp"
@@ -207,4 +207,3 @@ elseif (ANDROID)
 else ()
     set_target_properties(libdosbox-core PROPERTIES COMPILE_FLAGS "-m32" LINK_FLAGS "-m32")
 endif ()
-

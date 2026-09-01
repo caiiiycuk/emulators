@@ -607,10 +607,10 @@ set(SOURCES_X_CORE
         "${DBX_PATH}/src/builtin/xcopy_exe.cpp"
         # "${DBX_PATH}/src/builtin/find_exe.cpp"
         # "${DBX_PATH}/src/tool/mach-o-matic.cpp"
-        "${DBX_PATH}/src/debug/debug.cpp"
-        "${DBX_PATH}/src/debug/debug_disasm.cpp"
+        # "${DBX_PATH}/src/debug/debug.cpp"
+        # "${DBX_PATH}/src/debug/debug_disasm.cpp"
         "${DBX_PATH}/src/hardware/imfc.cpp"
-        #	"${DBX_PATH}/src/debug/debug_win32.cpp"
+        # "${DBX_PATH}/src/debug/debug_win32.cpp"
         )
 
 if (APPLE)
@@ -623,7 +623,7 @@ endif ()
 set(SOURCES_X_SDL_MAIN
         "${DBX_PATH}/src/gui/sdlmain.cpp"
         "${DBX_PATH}/src/gui/sdlmain_linux.cpp"
-        "${DBX_PATH}/src/debug/debug_gui.cpp"
+        # "${DBX_PATH}/src/debug/debug_gui.cpp"
         "${DBX_PATH}/src/hardware/mixer.cpp"
         "${DBX_PATH}/src/hardware/ipx.cpp"
         "${DBX_PATH}/src/hardware/ipxserver.cpp"
@@ -651,12 +651,32 @@ set(SOURCES_X_JSDOS_MAIN
         "${NATIVE_DIR}/jsdos/jsdos-net.cpp"
         )
 
-add_library(libdosbox-x-sdl2 OBJECT ${SOURCES_X_SDL} ${SOURCES_X_CORE} ${SOURCES_X_JSDOS_CORE})
+if (DOSBOX_DEBUG)
+    set(SOURCES_X_DEBUG
+        "${DBX_PATH}/src/debug/debug.cpp"
+        "${DBX_PATH}/src/debug/debug_disasm.cpp"
+        "${DBX_PATH}/src/debug/debug_gui.cpp"
+    )
+
+    if(${EMSCRIPTEN})
+        list(APPEND SOURCES_X_DEBUG
+            "${NATIVE_DIR}/jsdos/jsdos-curses.cpp"
+        )
+    endif()
+
+    if (DOSBOX_DEBUG)
+        list(APPEND DEFINITIONS_CORE_X -DC_DEBUG=1 -DC_HEAVY_DEBUG=1)
+    endif()
+else()
+    set(SOURCES_X_DEBUG)
+endif()
+
+add_library(libdosbox-x-sdl2 OBJECT ${SOURCES_X_SDL} ${SOURCES_X_CORE} ${SOURCES_X_JSDOS_CORE} ${SOURCES_X_DEBUG})
 target_compile_definitions(libdosbox-x-sdl2 PUBLIC ${DEFINITIONS_CORE_X})
 set_property(TARGET libdosbox-x-sdl2 PROPERTY CXX_STANDARD 11)
 
 add_library(libdosbox-x-jsdos OBJECT ${SOURCES_X_SDL} ${SOURCES_X_CORE} ${SOURCES_X_JSDOS_CORE}
-        ${SOURCES_X_JSDOS_MAIN})
+        ${SOURCES_X_JSDOS_MAIN} ${SOURCES_X_DEBUG})
 target_compile_definitions(libdosbox-x-jsdos
         PUBLIC ${DEFINITIONS_CORE_X}
         PUBLIC "-DJSDOS_X")
