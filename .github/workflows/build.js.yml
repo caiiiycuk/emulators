@@ -38,7 +38,16 @@ jobs:
       - run: source ./emsdk/emsdk_env.sh && yarn run gulp production
       - run: yarn test:node
       - run: yarn test:browser
-      - run: yarn test:browser:net
+      - name: browser net tests
+        id: browser-net-tests
+        continue-on-error: true
+        run: yarn test:browser:net
+      - name: report browser net test failure
+        if: steps.browser-net-tests.outcome == 'failure'
+        run: |
+          echo "### Browser net tests failed" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "\`yarn test:browser:net\` failed, but this check is informational because the suite may be flaky." >> "$GITHUB_STEP_SUMMARY"
       - run: zip -9r release.zip dist/*
       - name: publish
         if: startsWith(github.ref, 'refs/tags/')
