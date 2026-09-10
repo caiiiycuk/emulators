@@ -1,0 +1,1 @@
+test/dosbox-x/tomb3dfx.jsdos filter=lfs diff=lfs merge=lfs -text

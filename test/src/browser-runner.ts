@@ -1,8 +1,9 @@
-import { createReadStream, existsSync, statSync } from "fs";
+import { createReadStream, existsSync, mkdirSync, rmSync, statSync, writeFileSync } from "fs";
 import { createServer, IncomingMessage, Server, ServerResponse } from "http";
 import { AddressInfo } from "net";
 import { extname, join, resolve, sep } from "path";
 import { chromium, Page } from "playwright";
+import { runTomb3dfx } from "./tomb3dfx";
 
 interface BrowserLog {
     type: string;
@@ -30,9 +31,14 @@ interface BrowserTestMode {
 const repoRoot = resolve(__dirname, "../..");
 const distRoot = join(repoRoot, "dist");
 const testMode = getBrowserTestMode();
+const tomb3dfx = process.argv.includes("--tomb3dfx");
+const artifactsDir = join(distRoot, "test-artifacts/tomb3dfx");
 const maxBrowserLogs = Number(process.env.BROWSER_TEST_MAX_CONSOLE_LOGS ?? 200);
 
-const requiredArtifacts = [
+const requiredArtifacts = tomb3dfx ? [
+    "test/tomb3dfx.html", "test/dosbox-x/tomb3dfx.jsdos",
+    "emulators.js", "wlibzip.js", "wlibzip.wasm", "wdosbox-x.js", "wdosbox-x.wasm",
+] : [
     "test/test.html",
     "test/test.js",
     "test/mocha.js",
@@ -64,10 +70,22 @@ const mimeTypes: Record<string, string> = {
 
 async function main() {
     assertRequiredArtifacts();
+    if (tomb3dfx) {
+        mkdirSync(artifactsDir, { recursive: true });
+        const screenshots = ["menu", "passport", "level", "menu-waiting", "passport-waiting", "level-waiting",
+            "level-before-f4", "level-between-f4", "level-after-f4", "failure",
+            ...Array.from({ length: 8 }, (_, i) => "boot-" + (i + 1))];
+        for (const name of [...screenshots.map((name) => name + ".png"), "failure.txt", "browser.log.json"]) {
+            rmSync(join(artifactsDir, name), { force: true });
+        }
+        writeFileSync(join(artifactsDir, "keys.jsonl"), "");
+    }
+    const abort = new AbortController();
 
     const server = await startStaticServer();
     const baseUrl = getServerBaseUrl(server);
     let browser;
+    let page: Page | undefined;
     const browserLogs: BrowserLog[] = [];
     let omittedBrowserLogs = 0;
     const pageErrors: string[] = [];
@@ -75,7 +93,9 @@ async function main() {
 
     try {
         browser = await chromium.launch({ headless: true });
-        const page = await browser.newPage();
+        page = await browser.newPage(tomb3dfx ? {
+            viewport: { width: 640, height: 480 }, deviceScaleFactor: 1,
+        } : {});
 
         page.on("console", (message) => {
             const text = message.text();
@@ -112,6 +132,17 @@ async function main() {
             }
         });
 
+        if (tomb3dfx) {
+            await withTimeout((async () => {
+                await page!.goto(baseUrl + "/test/tomb3dfx.html", { waitUntil: "load" });
+                await runTomb3dfx(page!, artifactsDir, abort.signal);
+            })(), testMode.timeoutMs, testMode.name);
+            if (pageErrors.length > 0 || requestFailures.length > 0) {
+                throw new Error("Tomb Raider browser errors; see browser.log.json");
+            }
+            console.log("Tomb Raider screenshots saved to " + artifactsDir);
+            return;
+        }
         await page.goto(baseUrl + "/test/test.html", { waitUntil: "load" });
         const mochaResult = await withTimeout(runBrowserTests(page, testMode), testMode.timeoutMs, testMode.name);
         const hasFailures = mochaResult.failureCount > 0 || pageErrors.length > 0;
@@ -127,18 +158,39 @@ async function main() {
             console.log("Browser console messages collected: " + (browserLogs.length + omittedBrowserLogs));
         }
     } catch (error) {
+        abort.abort();
+        if (tomb3dfx && page !== undefined) {
+            await page.locator("canvas").screenshot({ path: join(artifactsDir, "failure.png"),
+                timeout: 5000 }).catch(() => undefined);
+            writeFileSync(join(artifactsDir, "failure.txt"), formatError(error));
+        }
         console.error("Browser test runner failed:");
         console.error(formatError(error));
         printDiagnostics(testMode.name, { failureCount: 0, failures: [] },
             pageErrors, requestFailures, browserLogs, omittedBrowserLogs);
         process.exitCode = 1;
     } finally {
-        await browser?.close();
-        await closeServer(server);
+        try {
+            if (tomb3dfx) {
+                writeFileSync(join(artifactsDir, "browser.log.json"), JSON.stringify({
+                    browserLogs, omittedBrowserLogs, pageErrors, requestFailures,
+                }, null, 2));
+            }
+        } finally {
+            try {
+                await browser?.close();
+            } finally {
+                await closeServer(server);
+            }
+        }
     }
 }
 
 function getBrowserTestMode(): BrowserTestMode {
+    if (process.argv.includes("--tomb3dfx")) {
+        return { name: "Tomb Raider 3dfx", createTestsFunction: "",
+            timeoutMs: Number(process.env.BROWSER_TEST_TIMEOUT_MS ?? 180000) };
+    }
     if (process.argv.includes("--net")) {
         return {
             name: "Browser network tests",
