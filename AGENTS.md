@@ -13,6 +13,13 @@ yarn run eslint src --ext ts,tsx --max-warnings 0
 yarn run eslint test --ext ts,tsx --max-warnings 0
 ```
 
+- Style-only issues may be fixed with eslint autofix:
+
+```bash
+yarn run eslint src --ext ts,tsx --max-warnings 0 --fix
+yarn run eslint test --ext ts,tsx --max-warnings 0 --fix
+```
+
 ## Required Verification
 
 - After source, test, or build-related changes, `yarn test:node:build` must pass.
