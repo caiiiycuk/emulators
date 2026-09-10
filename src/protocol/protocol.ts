@@ -334,7 +334,7 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
                 this.onFrameSize(props.width, props.height);
             } break;
             case "ws-update-lines": {
-                this.onFrameLines(props.lines, props.rgba);
+                this.onFrameLines(props.lines, props.rgba, props.width, props.height);
             } break;
             case "ws-exit": {
                 this.onExit();
@@ -528,7 +528,16 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
         this.eventsImpl.fireFrameSize(width, height);
     }
 
-    private onFrameLines(lines: FrameLine[], rgbaPtr: number) {
+    private onFrameLines(lines: FrameLine[], rgbaPtr: number, width?: number, height?: number) {
+        if (this.rgb === null || !Array.isArray(lines)) {
+            return;
+        }
+
+        if ((width !== undefined || height !== undefined) &&
+            (width !== this.frameWidth || height !== this.frameHeight)) {
+            return;
+        }
+
         for (const line of (lines as FrameLine[])) {
             this.rgb!.set(line.heapu8, line.start * this.frameWidth * 3);
         }

@@ -3,12 +3,14 @@ import { testLibZip } from "./test-libzip";
 import { testDosBundle } from "./test-bundle";
 import { testDos } from "./test-dos";
 import { testNet } from "./test-net";
+import { testProtocol } from "./test-protocol";
 
 import emulatorsImpl from "../../src/impl/emulators-impl";
 
 emulatorsImpl.pathPrefix = "/";
 
 export function createTests() {
+    testProtocol();
     testLoader();
     testLibZip();
 

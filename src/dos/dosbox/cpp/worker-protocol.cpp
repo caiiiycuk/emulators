@@ -776,7 +776,7 @@ EM_JS(void, emsc_end_frame_update, (uint8_t* frameRgb, uint32_t frameWidth, uint
         }
       } else {
         Module.sendMessage("ws-update-lines",
-          { lines: Module.frame_update_lines },
+          { lines: Module.frame_update_lines, width: frameWidth, height: frameHeight },
           Module.frame_update_lines_transferable);
       }
     }

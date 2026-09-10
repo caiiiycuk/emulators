@@ -8,6 +8,7 @@ import { loadWasmModule } from "../../src/impl/modules";
 import { testLibZip } from "./test-libzip";
 import { testDosBundle } from "./test-bundle";
 import { testDos } from "./test-dos";
+import { testProtocol } from "./test-protocol";
 
 const repoRoot = resolve(__dirname, "../..");
 const testRoot = join(repoRoot, "test");
@@ -53,6 +54,7 @@ test("loader can load wdosbox.js from build/wasm", async () => {
     assert.isFunction(module.instantiate);
 });
 
+testProtocol();
 testLibZip();
 testDosBundle();
 testDos([
