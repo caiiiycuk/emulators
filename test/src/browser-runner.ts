@@ -68,16 +68,22 @@ async function main() {
     const server = await startStaticServer();
     const baseUrl = getServerBaseUrl(server);
     let browser;
+    const browserLogs: BrowserLog[] = [];
+    let omittedBrowserLogs = 0;
+    const pageErrors: string[] = [];
+    const requestFailures: string[] = [];
 
     try {
         browser = await chromium.launch({ headless: true });
         const page = await browser.newPage();
-        const browserLogs: BrowserLog[] = [];
-        let omittedBrowserLogs = 0;
-        const pageErrors: string[] = [];
-        const requestFailures: string[] = [];
 
         page.on("console", (message) => {
+            const text = message.text();
+
+            if (text.startsWith("[mocha] ")) {
+                console.log(text);
+            }
+
             if (browserLogs.length >= maxBrowserLogs) {
                 browserLogs.shift();
                 omittedBrowserLogs++;
@@ -85,7 +91,7 @@ async function main() {
 
             browserLogs.push({
                 type: message.type(),
-                text: message.text(),
+                text,
                 location: formatConsoleLocation(message.location()),
             });
         });
@@ -123,6 +129,8 @@ async function main() {
     } catch (error) {
         console.error("Browser test runner failed:");
         console.error(formatError(error));
+        printDiagnostics(testMode.name, { failureCount: 0, failures: [] },
+            pageErrors, requestFailures, browserLogs, omittedBrowserLogs);
         process.exitCode = 1;
     } finally {
         await browser?.close();
@@ -266,6 +274,16 @@ async function runBrowserTests(page: Page, mode: BrowserTestMode): Promise<Mocha
                 message: String(error?.message ?? error),
                 stack: String(error?.stack ?? ""),
             }));
+            runner.on("test", (test: any) => {
+                const title = typeof test?.fullTitle === "function" ?
+                    test.fullTitle() : String(test?.title ?? "unknown test");
+                console.log("[mocha] start: " + title);
+            });
+            runner.on("test end", (test: any) => {
+                const title = typeof test?.fullTitle === "function" ?
+                    test.fullTitle() : String(test?.title ?? "unknown test");
+                console.log("[mocha] end: " + title);
+            });
         });
     }, mode.createTestsFunction) as MochaResult;
 }

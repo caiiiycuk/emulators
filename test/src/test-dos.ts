@@ -21,11 +21,12 @@ export interface DosBackend {
     factory: CIFactory;
     name: string;
     assets: string;
+    supportsSockdrive?: boolean;
 }
 
 export function testDos(backends: DosBackend[] = browserBackends()) {
     for (const backend of backends) {
-        testServer(backend.factory, backend.name, backend.assets);
+        testServer(backend);
     }
 }
 
@@ -50,6 +51,7 @@ function browserBackends(): DosBackend[] {
             factory: (bundle, options) => emulatorsImpl.dosboxXWorker(bundle, options),
             name: "dosboxXWorker",
             assets: "dosbox-x",
+            supportsSockdrive: true,
         },
     ];
 
@@ -58,11 +60,13 @@ function browserBackends(): DosBackend[] {
             factory: (bundle, options) => emulatorsImpl.dosboxXJspiWorker(bundle, options),
             name: "dosboxXJspiDirect",
             assets: "dosbox-x",
+            supportsSockdrive: true,
         });
         backends.push({
             factory: (bundle, options) => emulatorsImpl.dosboxXJspiWorker(bundle, options),
             name: "dosboxXJspiWorker",
             assets: "dosbox-x",
+            supportsSockdrive: true,
         });
     } else {
         console.warn("Skipping dosboxXJspiWorker tests: JSPI is not supported by this browser.");
@@ -71,7 +75,9 @@ function browserBackends(): DosBackend[] {
     return backends;
 }
 
-function testServer(factory: CIFactory, name: string, assets: string) {
+function testServer(backend: DosBackend) {
+    const { factory, name, assets } = backend;
+
     suite(name + ".common");
     beforeEach(() => {
         if (typeof Mocha !== "undefined" && (Mocha as any).process?.removeListener) {
@@ -519,7 +525,7 @@ function testServer(factory: CIFactory, name: string, assets: string) {
         });
     });
 
-    if (name.startsWith("dosboxX")) {
+    if (name.startsWith("dosboxX") && backend.supportsSockdrive) {
         suite(name + ".sockdrive");
         const win311Bundles = {
             "qcow2": "https://v8.js-dos.com/test/win311.jsdos",
