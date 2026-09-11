@@ -1,0 +1,26 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Tomb Raider 3dfx diagnostic</title>
+    <style>
+        body { margin: 0; background: black; }
+        canvas { display: block; width: 640px; height: 480px; }
+    </style>
+    <script src="../emulators.js"></script>
+</head>
+<body>
+    <canvas id="canvas" width="640" height="480"></canvas>
+    <script>
+        emulators.pathPrefix = "../";
+        window.ready = (async () => {
+            const response = await fetch("dosbox-x/tomb3dfx.jsdos");
+            if (!response.ok) throw new Error("Bundle HTTP " + response.status);
+            window.ci = await emulators.dosboxXWorker(new Uint8Array(await response.arrayBuffer()), {
+                canvas: document.getElementById("canvas").transferControlToOffscreen(),
+            });
+            ci.events().onStdout((message) => console.log(message));
+        })();
+    </script>
+</body>
+</html>

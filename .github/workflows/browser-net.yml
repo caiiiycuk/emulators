@@ -1,4 +1,4 @@
-name: build
+name: browser net
 
 on:
   push:
@@ -7,9 +7,10 @@ on:
       - "v*.*.*"
   pull_request:
     branches: [8.xx]
+  workflow_dispatch:
 
 jobs:
-  build:
+  browser-net:
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -19,7 +20,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
-      - name: build emulators
+      - name: setup node
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
@@ -30,29 +31,6 @@ jobs:
       - run: npm install -g yarn
       - run: yarn
       - run: yarn playwright install --with-deps chromium
-      - run: yarn run eslint src --ext ts,tsx --max-warnings 0
-      - run: yarn run eslint test --ext ts,tsx --max-warnings 0
-      - run: yarn run tsc --noemit
       - run: git clone https://github.com/emscripten-core/emsdk.git
       - run: cd emsdk && ./emsdk install ${{ matrix.emsdk-version }} && ./emsdk activate ${{ matrix.emsdk-version }} && cd ..
-      - run: source ./emsdk/emsdk_env.sh && yarn run gulp production
-      - run: yarn test:node
-      - run: yarn test:browser
-      - run: zip -9r release.zip dist/*
-      - name: publish
-        if: startsWith(github.ref, 'refs/tags/')
-        run: npm publish
-        env:
-          NODE_AUTH_TOKEN: ${{secrets.NODE_AUTH_TOKEN}}
-      - name: upload
-        uses: actions/upload-artifact@v4.0.0
-        with:
-          name: "dist"
-          path: "dist"
-      - name: Release
-        uses: softprops/action-gh-release@v2
-        if: startsWith(github.ref, 'refs/tags/')
-        with:
-          name: ${{ github.ref_name }}
-          files: |
-            ${{github.workspace}}/release.zip
+      - run: source ./emsdk/emsdk_env.sh && yarn test:browser:net:build

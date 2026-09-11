@@ -10,7 +10,7 @@ import source from "vinyl-source-stream";
 const tsify = require("tsify");
 
 function clean() {
-    return del(["dist/test*", "dist/test/temp.jsdos"], { force: true });
+    return del(["dist/test"], { force: true });
 }
 
 function copyTestAssets() {

@@ -90,6 +90,13 @@ static struct {
 	Bit16s min_x,max_x,min_y,max_y;
 	float col, row;
         float mickeyCol, mickeyRow;
+        // Pending absolute-mode motion, including its fractional carry.
+        // Kept inside `mouse` so INT 33h fn 0x16 / 0x17 (save / load driver
+        // state) round-trip it with the rest of the driver state, and so
+        // MOUSE_Init's memset of the whole struct clears it. dosbox-x keeps
+        // its equivalent mickey_accum_x/y in the mouse struct for the same
+        // reason.
+        float mickeyResidualCol, mickeyResidualRow;
 	button_event event_queue[QUEUE_SIZE];
 	Bit8u events;//Increase if QUEUE_SIZE >255 (currently 32)
 	Bit16u sub_seg,sub_ofs;
@@ -143,9 +150,6 @@ bool relativeMode = false;
 // fix it with mickeySync()
 constexpr Bitu mickeyRelSyncCount = 3;
 Bitu mickeyRelSyncTries = mickeyRelSyncCount;
-extern Bitu surfaceWidth;
-extern Bitu surfaceHeight;
-
 extern void mickeySync() {
   mickeyRelSyncTries = mickeyRelSyncCount;
 }
@@ -162,29 +166,49 @@ mickey getRelMickey(float prevCol, float prevRow,
   }
 
   while (mickeyRelSyncTries) {
-    mouse.col = 0;
-    mouse.row = 0;
+    // The sync pass exists to clear accumulated RELATIVE mickey drift when
+    // the host cursor regains focus — it must not touch the ABSOLUTE cursor
+    // position (mouse.col / mouse.row), which is what INT 33h fn 0x03
+    // returns to DOS games as POS_X / POS_Y. Previously this loop zeroed
+    // mouse.col / mouse.row, which combined with the fact that every
+    // wc-mouse-sync message re-arms mickeyRelSyncTries meant that bridges
+    // which sync on every event (e.g. abedegno/dos-mcp) kept the cursor
+    // pinned at (0, 0) permanently — fn 0x03 reported POS_X=POS_Y=0 even
+    // while absolute updates through Mouse_CursorMoved were landing
+    // correctly in mouse.col / mouse.row.
     mouse.mickeyCol = 0;
     mouse.mickeyRow = 0;
     if (!mouse.in_UIR) {
       mickeyRelSyncTries--;
     }
+    // Return a *zero* mickey delta and the current absolute col/row.
+    // Previously this returned -(max - min) as a sentinel which games
+    // using INT 33h fn 0x0B (e.g. Ultima Underworld) accumulate into
+    // their own cursor position tracker — one big negative delta per
+    // poll rapidly walked UW's cursor off-screen even though mouse.col
+    // / mouse.row were correct for fn 0x03. Zero delta keeps fn 0x0B
+    // consumers in sync while still clearing the internal mickey
+    // accumulator that the sync is there to reset.
+    mouse.mickeyResidualCol = 0.0f;
+    mouse.mickeyResidualRow = 0.0f;
     return {
-        .mickey_x = -(mouse.max_x - mouse.min_x),
-        .mickey_y = -(mouse.max_y - mouse.min_y),
-        .col = 0,
-        .row = 0,
+        .mickey_x = 0,
+        .mickey_y = 0,
+        .col = mouse.col,
+        .row = mouse.row,
     };
   }
 
-  auto dCol = col - prevCol;
-  auto dRow = row - prevRow;
-
-  auto pxPerCol = surfaceWidth / (float) (mouse.max_x - mouse.min_x);
-  auto pxPerRow = surfaceHeight / (float) (mouse.max_y - mouse.min_y);
-
-  int mickey_x = (int) round(dCol * pxPerCol * mouse.mickeysPerPixel_x);
-  int mickey_y = (int) round(dRow * pxPerRow * mouse.mickeysPerPixel_y / 2); // why div 2?
+  // Absolute col/row values are scaled into the guest-selected cursor range,
+  // so deriving motion from their delta makes the mickey rate depend on INT
+  // 33h functions 07h/08h. Mouse_CursorMoved accumulates the physical host
+  // delta here instead, using the same conversion as relative mode.
+  float mickey_x_f = mouse.mickeyResidualCol;
+  float mickey_y_f = mouse.mickeyResidualRow;
+  int mickey_x = (int) truncf(mickey_x_f);
+  int mickey_y = (int) truncf(mickey_y_f);
+  mouse.mickeyResidualCol = mickey_x_f - (float) mickey_x;
+  mouse.mickeyResidualRow = mickey_y_f - (float) mickey_y;
 
   if (mickey_x >= 32768.0)  {
     mickey_x -= 65536.0;
@@ -201,8 +225,10 @@ mickey getRelMickey(float prevCol, float prevRow,
   return {
     .mickey_x = mickey_x,
     .mickey_y = mickey_y,
-    .col = prevCol + ((float) mickey_x / pxPerCol / mouse.mickeysPerPixel_x),
-    .row = prevRow + ((float) mickey_y / pxPerRow / mouse.mickeysPerPixel_y * 2)
+    // Keep the next baseline at the actual absolute cursor position. The
+    // fractional rounding error is tracked only by the residuals above.
+    .col = col,
+    .row = row,
   };
 }
 
@@ -547,15 +573,15 @@ void Mouse_CursorMoved(float xrel,float yrel,float x,float y,bool emulate) {
 	}
 
 	relativeMode = emulate;
+	float dx = xrel * mouse.pixelPerMickey_x;
+	float dy = yrel * mouse.pixelPerMickey_y;
+
+	if((fabs(xrel) > 1.0) || (mouse.senv_x < 1.0)) dx *= mouse.senv_x;
+	if((fabs(yrel) > 1.0) || (mouse.senv_y < 1.0)) dy *= mouse.senv_y;
+
+	if (useps2callback) dy *= 2;
+
 	if (emulate) {
-		float dx = xrel * mouse.pixelPerMickey_x;
-		float dy = yrel * mouse.pixelPerMickey_y;
-
-		if((fabs(xrel) > 1.0) || (mouse.senv_x < 1.0)) dx *= mouse.senv_x;
-		if((fabs(yrel) > 1.0) || (mouse.senv_y < 1.0)) dy *= mouse.senv_y;
-
-		if (useps2callback) dy *= 2;
-
 		mouse.mickeyCol += (dx * mouse.mickeysPerPixel_x);
 		mouse.mickeyRow += (dy * mouse.mickeysPerPixel_y);
 		if (mouse.mickeyCol >= 32768.0) mouse.mickeyCol -= 65536.0;
@@ -566,6 +592,12 @@ void Mouse_CursorMoved(float xrel,float yrel,float x,float y,bool emulate) {
 		mouse.col += dx;
 		mouse.row += dy;
 	} else {
+		// Motion counters describe physical movement, not logical cursor
+		// coordinates. In particular, changing min/max through INT 33h 07h/08h
+		// must not change the mickey count for the same host movement.
+		mouse.mickeyResidualCol += (dx * mouse.mickeysPerPixel_x);
+		mouse.mickeyResidualRow += (dy * mouse.mickeysPerPixel_y);
+
 		if (CurMode->type == M_TEXT) {
 			mouse.col = x*real_readw(BIOSMEM_SEG,BIOSMEM_NB_COLS)*8;
 			mouse.row = y*(real_readb(BIOSMEM_SEG,BIOSMEM_NB_ROWS)+1)*8;
@@ -803,6 +835,12 @@ static void Mouse_Reset(void) {
 	mouse.row = static_cast<float>((mouse.max_y + 1)/ 2);
         mouse.mickeyCol = mouse.col;
         mouse.mickeyRow = mouse.row;
+        // Clear pending absolute motion here as well as in the mickeySync()
+        // branch of getRelMickey(). A reset taken while relativeMode is set
+        // returns from getRelMickey() before that branch runs, so without
+        // this stale motion could survive a driver reset.
+        mouse.mickeyResidualCol = 0.0f;
+        mouse.mickeyResidualRow = 0.0f;
 	mouse.sub_mask = 0;
 	mouse.in_UIR = false;
         mickeySync();
@@ -837,7 +875,7 @@ static Bitu INT33_Handler(void) {
 		reg_cx=POS_X;
 		reg_dx=POS_Y;
 		break;
-	case 0x04:	/* Position Mouse */
+	case 0x04: {	/* Position Mouse */
 		/* If position isn't different from current position
 		 * don't change it then. (as position is rounded so numbers get
 		 * lost when the rounded number is set) (arena/simulation Wolf) */
@@ -851,6 +889,7 @@ static Bitu INT33_Handler(void) {
 
 		DrawCursor();
 		break;
+	}
 	case 0x05:	/* Return Button Press Data */
 		{
 			Bit16u but=reg_bx;
