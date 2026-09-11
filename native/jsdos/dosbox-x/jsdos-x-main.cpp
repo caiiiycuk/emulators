@@ -60,6 +60,10 @@
 #endif
 #endif
 
+#ifndef O_BINARY
+# define O_BINARY 0
+#endif
+
 int socknum=-1;
 int posx = -1;
 int posy = -1;
@@ -87,7 +91,6 @@ extern bool switchttf, ttfswitch, switch_output_from_ttf;
 extern bool finish_prepare;
 bool checkmenuwidth = false;
 bool dos_kernel_disabled = true;
-bool dos_kernel_shutdown_mcb = true;
 bool winrun=false, use_save_file=false;
 bool maximize = false, tooutttf = false;
 bool tonoime = false, enableime = false;
@@ -98,6 +101,10 @@ void DOSBox_SetSysMenu(void), GFX_OpenGLRedrawScreen(void), InitFontHandle(void)
 void MenuBrowseProgramFile(void), OutputSettingMenuUpdate(void), aspect_ratio_menu(void), update_pc98_clock_pit_menu(void), AllocCallback1(void), AllocCallback2(void), ToggleMenu(bool pressed);
 extern int tryconvertcp, Reflect_Menu(void);
 bool kana_input = false; // true if a half-width kana was typed
+
+#if __APPLE__ && __MAC_OS_X_VERSION_MIN_REQUIRED < 101200
+#define IS_OLDMACOS 1 /* FIX_ME: Tested on El Capitan (10.11). If this macro is required for Sierra (10.12), change to 101300 */
+#endif
 
 #ifndef LINUX
 char* convert_escape_newlines(const char* aMessage);
@@ -134,6 +141,7 @@ char* revert_escape_newlines(const char* aMessage);
 #endif
 
 #include "control.h"
+#include "dos_inc.h"
 #include "dosbox.h"
 #include "menudef.h"
 #include "pic.h"
@@ -188,10 +196,19 @@ char* revert_escape_newlines(const char* aMessage);
 #include <output/output_ttf.h>
 #include <output/output_tools_xbrz.h>
 static bool init_output = false;
+std::string working_dir = ""; // Store working directory
 
 #if defined(WIN32)
 #include "resource.h"
 #if !defined(HX_DOS)
+
+#ifndef PATH_MAX
+    #if defined(WIN32)
+        #define PATH_MAX MAX_PATH
+    #else
+        #define PATH_MAX 4096 /* LINUX sets to 4096, while this varies from 260 to 4096 depending on platforms */
+    #endif
+#endif
 
 BOOL CALLBACK EnumDispProc(HMONITOR hMon, HDC dcMon, RECT* pRcMon, LPARAM lParam) {
     (void)hMon;
@@ -328,6 +345,10 @@ void macosx_GetWindowDPI(ScreenSizeInfo &info);
 int macosx_yesno(const char *title, const char *message);
 int macosx_yesnocancel(const char *title, const char *message);
 std::string macosx_prompt_folder(const char *default_folder);
+#endif
+
+#if defined(C_HAVE_DUKTAPE)
+duk_context *js_heap = NULL;
 #endif
 
 #if C_DIRECT3D
@@ -771,7 +792,7 @@ void UpdateWindowDimensions(Bitu width, Bitu height)
     currentWindowHeight = height;
 }
 
-static Bitu dim_width=0, dim_height=0, dpi_width=0, dpi_height=0;
+static double dim_width=0, dim_height=0, dpi_width=0, dpi_height=0;
 
 void PrintScreenSizeInfo(void) {
 #if 1
@@ -909,7 +930,7 @@ void                        GUI_LoadFonts();
 void                        GUI_Run(bool);
 
 const char*                 titlebar = NULL;
-extern const char*          RunningProgram;
+extern std::string          RunningProgram;
 extern bool                 CPU_CycleAutoAdjust;
 extern                      cpu_cycles_count_t CPU_CyclePercUsed;
 #if !(ENVIRON_INCLUDED)
@@ -925,11 +946,11 @@ bool                        startup_state_capslock = false; // Global for keyboa
 bool                        startup_state_scrlock = false; // Global for keyboard initialisation
 int mouse_start_x=-1, mouse_start_y=-1, mouse_end_x=-1, mouse_end_y=-1, fx=-1, fy=-1, paste_speed=20, wheel_key=0, mbutton=3;
 bool wheel_guest = false, clipboard_dosapi = true, clipboard_biospaste =
-#if defined (WIN32) && (!defined(__MINGW32__) || defined(__MINGW64_VERSION_MAJOR))
-false;
-#else
+//#if defined (WIN32) && (!defined(__MINGW32__) || defined(__MINGW64_VERSION_MAJOR))
+//false;
+//#else
 true;
-#endif
+//#endif
 const char *modifier;
 
 #ifdef WIN32
@@ -1067,53 +1088,27 @@ void GFX_SetTitle(int32_t cycles, int frameskip, Bits timing, bool paused) {
 bool warn_on_mem_write = false;
 bool CodePageGuestToHostUTF8(char *d/*CROSS_LEN*/,const char *s/*CROSS_LEN*/) ;
 
-#if defined(WIN32)
-char* convert_escape_newlines(const char* aMessage) {
-    size_t len = strlen(aMessage);
-    char* lMessage = (char*)malloc(len * 2 + 1); // Allocate memory considering convert to UTF8
-
-    if(!lMessage) return nullptr;
-
-    const char* src = aMessage;
-    char* dst = lMessage;
-
-    while(*src) {
-        if(*src == '\n') {
-            *dst++ = '\\';
-            *dst++ = 'n';
-            src++;
+#ifdef WIN32
+#ifdef __cplusplus
+extern "C" {
+#endif
+    int tinyfd_messageBoxW(
+        wchar_t const* aTitle, /* NULL or "" */
+        wchar_t const* aMessage, /* NULL or ""  may contain \n and \t */
+        wchar_t const* aDialogType, /* "ok" "okcancel" "yesno" "yesnocancel" */
+        wchar_t const* aIconType, /* "info" "warning" "error" "question" */
+        int aDefaultButton);
+#ifdef __cplusplus
+}
+#endif
+bool CodePageGuestToHostUTF16(uint16_t* d/*CROSS_LEN*/, const char* s/*CROSS_LEN*/);
+void SanitizeUTF16Newlines(uint16_t* utf16Message, size_t maxLen) {
+    for(size_t i = 0; i < maxLen && utf16Message[i] != 0; ++i) {
+        if(utf16Message[i] == 0x25D9) {
+            utf16Message[i] = 0x000A;
         }
-        else {
-            *dst++ = *src++;
         }
     }
-
-    *dst = '\0'; // Terminate with NULL character
-    return lMessage;
-}
-
-char* revert_escape_newlines(const char* aMessage) {
-    size_t len = strlen(aMessage);
-    char* lMessage = (char*)malloc(len * 2 + 1); // Allocate memory considering convert to UTF8
-
-    if(!lMessage) return nullptr;
-
-    const char* src = aMessage;
-    char* dst = lMessage;
-
-    while(*src) {
-        if(src[0] == '\\' && src[1] == 'n') {
-            *dst++ = '\n';
-            src += 2;
-        }
-        else {
-            *dst++ = *src++;
-        }
-    }
-
-    *dst = '\0'; // Terminate with NULL character
-    return lMessage;
-}
 #elif defined(MACOSX)
 std::string replaceNewlineWithEscaped(const std::string& input) {
     std::string output;
@@ -1226,7 +1221,7 @@ bool CheckQuit(void) {
             return systemmessagebox("Quit DOSBox-X warning", MSG_Get("QUIT_CONFIRM"),"yesno", "question", 1);
     } else if (warn == "false")
         return true;
-    if (dos_kernel_disabled&&strcmp(RunningProgram, "DOSBOX-X")) {
+    if (dos_kernel_disabled && RunningProgram != "DOSBOX-X") {
         if (!quit) {
             systemmessagebox("Quit DOSBox-X warning", MSG_Get("QUIT_GUEST_DISABLED"),"ok", "warning", 1);
             return false;
@@ -1243,7 +1238,7 @@ bool CheckQuit(void) {
                     return systemmessagebox("Quit DOSBox-X warning", MSG_Get("QUIT_FILE_OPEN_CONFIRM"),"yesno", "question", 1);
             }
         }
-    else if (RunningProgram&&strcmp(RunningProgram, "DOSBOX-X")&&strcmp(RunningProgram, "COMMAND")&&strcmp(RunningProgram, "4DOS")) {
+    else if (!RunningProgram.empty() && RunningProgram != "DOSBOX-X" && RunningProgram != "COMMAND" && RunningProgram != "4DOS") {
         if (!quit) {
             systemmessagebox("Quit DOSBox-X warning",MSG_Get("QUIT_PROGRAM_DISABLED"),"ok", "warning", 1);
             return false;
@@ -1766,17 +1761,18 @@ SDL_Window* GFX_SetSDLWindowMode(uint16_t width, uint16_t height, SCREEN_TYPES s
 	/*
 	 * When modeswitching _is_ enabled let's go with sane values.
 	 */
-	bool p_modeswitch = vga.draw.modeswitch_set;
-	if(p_modeswitch) {
-		flags = SDL_WINDOW_FULLSCREEN;
-		width = sdl.draw.width;
-		height = sdl.draw.height;
-	}
+	bool isModeswicthSet = vga.draw.modeswitch_set;
 #endif
 
     if (GFX_IsFullscreen()) {
         SDL_DisplayMode displayMode;
         SDL_GetWindowDisplayMode(sdl.window, &displayMode);
+
+	if(isModeswicthSet) {
+		flags = SDL_WINDOW_FULLSCREEN;
+		width = vga.draw.width;
+		height = vga.draw.height;
+	}
 
         displayMode.w = width;
         displayMode.h = height;
@@ -2014,6 +2010,7 @@ bool DOSBox_isMenuVisible(void);
 void MenuShadeRect(int x,int y,int w,int h);
 void MenuDrawRect(int x,int y,int w,int h,Bitu color);
 void GFX_DrawSDLMenu(DOSBoxMenu &menu, DOSBoxMenu::displaylist &dl) {
+    menu.check_layout();
     if (!menu.needsRedraw() || (sdl.updating && !OpenGL_using())) {
         return;
     }
@@ -2031,8 +2028,7 @@ void GFX_DrawSDLMenu(DOSBoxMenu &menu, DOSBoxMenu::displaylist &dl) {
 
     if (&dl == &menu.display_list) { /* top level menu, draw background */
         MenuDrawRect(menu.menuBox.x, menu.menuBox.y, menu.menuBox.w, menu.menuBox.h - 1, GFX_GetRGB(63, 63, 63));
-        MenuDrawRect(menu.menuBox.x, menu.menuBox.y + menu.menuBox.h - 1, menu.menuBox.w, 1,
-                     GFX_GetRGB(31, 31, 31));
+        MenuDrawRect(menu.menuBox.x, menu.menuBox.y + menu.menuBox.h - 1, menu.menuBox.w, 1, GFX_GetRGB(31, 31, 31));
     }
 
     if (mustLock) {
@@ -4699,7 +4695,7 @@ static void HandleMouseButton(SDL_MouseButtonEvent * button, SDL_MouseMotionEven
     if (button->button == SDL_BUTTON_LEFT) {
         if (button->state == SDL_PRESSED) {
             GFX_SDLMenuTrackHilight(mainMenu,mainMenu.menuUserHoverAt);
-            if (mainMenu.menuUserHoverAt != DOSBoxMenu::unassigned_item_handle) {
+            if (mainMenu.menuUserHoverAt != DOSBoxMenu::unassigned_item_handle && mainMenu.get_item(mainMenu.menuUserHoverAt).is_enabled()) {
                 std::vector<DOSBoxMenu::item_handle_t> popup_stack;
                 DOSBoxMenu::item_handle_t choice_item;
                 DOSBoxMenu::item_handle_t psel_item;
@@ -4714,6 +4710,7 @@ static void HandleMouseButton(SDL_MouseButtonEvent * button, SDL_MouseMotionEven
                 psel_item = DOSBoxMenu::unassigned_item_handle;
                 choice_item = mainMenu.menuUserHoverAt = mainMenu.menuUserAttentionAt;
 
+                mainMenu.get_item(mainMenu.menuUserAttentionAt).check_layout();
                 popup_stack.push_back(mainMenu.menuUserAttentionAt);
 
 #if C_DIRECT3D
@@ -4987,7 +4984,7 @@ static void HandleMouseButton(SDL_MouseButtonEvent * button, SDL_MouseMotionEven
 
                                     if (sel_item != DOSBoxMenu::unassigned_item_handle) {
                                         if (mainMenu.get_item(sel_item).get_type() == DOSBoxMenu::submenu_type_id) {
-                                            if (!mainMenu.get_item(sel_item).isHilight()) {
+                                            if (!mainMenu.get_item(sel_item).isHilight() && mainMenu.get_item(sel_item).is_enabled()) {
                                                 /* use a copy of the iterator to scan forward and un-hilight the menu items.
                                                  * then use the original iterator to erase from the vector. */
                                                 for (auto ss=search;ss != popup_stack.end();ss++) {
@@ -4999,6 +4996,7 @@ static void HandleMouseButton(SDL_MouseButtonEvent * button, SDL_MouseMotionEven
 
                                                 popup_stack.erase(search,popup_stack.end());
                                                 mainMenu.get_item(sel_item).setHilight(mainMenu,true).setHover(mainMenu,true);
+                                                mainMenu.get_item(sel_item).check_layout();
                                                 popup_stack.push_back(sel_item);
                                                 redrawAll = true;
                                             }
@@ -5967,7 +5965,7 @@ void __GFX_Events() {
                     if((buff = (uint8_t *)malloc(len * 2)) != NULL) {
                         if(CodePageHostToGuestUTF8((char *)buff, event.text.text)) {
                             for(int no = 0 ; buff[no] != 0 ; no++) {
-                                if (IS_PC98_ARCH || isDBCSCP()) {
+                                if (IS_PC98_ARCH ) {
                                     if(dos.loaded_codepage == 932 && isKanji1(buff[no]) && isKanji2(buff[no + 1])) {
 #if defined(MACOSX)
                                         if (buff[no] == 0x81 && buff[no + 1] == 0x40) no++;
@@ -6191,7 +6189,7 @@ void __GFX_Events() {
                             GFX_CaptureMouse();
                         SetPriority(sdl.priority.focus);
                         CPU_Disable_SkipAutoAdjust();
-                        if (strcmp(RunningProgram, "LOADLIN") && IsSafeToMemIOOnBehalfOfGuest()) {
+                        if (RunningProgram != "LOADLIN" && IsSafeToMemIOOnBehalfOfGuest()) {
                             BIOS_SynchronizeNumLock();
                             BIOS_SynchronizeCapsLock();
                             BIOS_SynchronizeScrollLock();
@@ -6327,8 +6325,9 @@ void __GFX_Events() {
                     uname[0]=event.key.keysym.unicode;
                     uname[1]=0;
                     if (CodePageHostToGuestUTF16(chars, uname)) {
-                        for (size_t i=0; i<strlen(chars); i++) {
-                            if (dos.loaded_codepage == 932 && strlen(chars) == 2 && isKanji1(chars[0]))
+                        size_t char_length = strlen(chars);
+                        for (size_t i=0; i< char_length; i++) {
+                            if (IS_PC98_ARCH && dos.loaded_codepage == 932 && char_length == 2 && isKanji1(chars[0]))
                                 BIOS_AddKeyToBuffer((i==0?0xf100:0xf000) | (unsigned char)chars[i]);
                             else
                                 BIOS_AddKeyToBuffer((unsigned char)chars[i]);
@@ -6383,8 +6382,9 @@ void __GFX_Events() {
                             uname[0]=buff[no];
                             uname[1]=0;
                             if (CodePageHostToGuestUTF16(chars, uname)) {
-                                for (size_t i=0; i<strlen(chars); i++) {
-                                    if (dos.loaded_codepage == 932 && strlen(chars) == 2 && isKanji1(chars[0]))
+                                size_t char_length = strlen(chars);
+                                for (size_t i=0; i< char_length; i++) {
+                                    if (IS_PC98_ARCH && dos.loaded_codepage == 932 && char_length == 2 && isKanji1(chars[0]))
                                         BIOS_AddKeyToBuffer((i==0?0xf100:0xf000) | (unsigned char)chars[i]);
                                     else
                                         BIOS_AddKeyToBuffer((unsigned char)chars[i]);
@@ -6545,14 +6545,19 @@ void SDL_SetupConfigSection() {
     Pstring->SetBasic(true);
 
     const char* outputs[] = {
-        "default", "surface", "overlay", "ttf",
+        "default", "surface",
+#if defined(USE_TTF)
+        "ttf",
+#endif
 #if C_OPENGL
         "opengl", "openglnb", "openglhq", "openglpp",
 #endif
 #if C_GAMELINK
         "gamelink",
 #endif
-        "ddraw", "direct3d",
+#if C_DIRECT3D
+        "direct3d",
+#endif
         nullptr };
 
     Pint = sdl_sec->Add_int("display", Property::Changeable::Always, 0);
@@ -7771,6 +7776,15 @@ bool custom_bios = false;
 size_t custom_bios_image_size = 0;
 Bitu custom_bios_image_offset = 0;
 unsigned char *custom_bios_image = NULL;
+
+/* 2026/06/07: We now accept from BOOT a boot sector to load into memory
+ *             after DOS kernel shutdown, so that the process shutdown
+ *             is cleaner and the "don't check MCB corruption" flag is
+ *             no longer necessary. */
+std::vector<uint8_t> boot_code_image;
+PhysPt boot_code_image_load_to = 0;
+uint16_t boot_code_image_stack_ss = 0;
+uint16_t boot_code_image_stack_sp = 0;
 
 // OK why isn't this being set for Linux??
 #ifndef SDL_MAIN_NOEXCEPT
@@ -9782,7 +9796,7 @@ fresh_boot:
             dos_kernel_disabled = true;
 
             std::string core(static_cast<Section_prop *>(control->GetSection("cpu"))->Get_string("core"));
-            if (!strcmp(RunningProgram, "LOADLIN") && core == "auto") {
+            if (RunningProgram == "LOADLIN" && core == "auto") {
                 cpudecoder=&CPU_Core_Normal_Run;
                 mainMenu.get_item("mapper_normal").check(true).refresh_item(mainMenu);
 #if (C_DYNAMIC_X86) || (C_DYNREC)
@@ -9826,8 +9840,20 @@ fresh_boot:
                 PC98_show_cursor(false);
             }
 
+            /* if BOOT gave us code to load, do it -- I hope you set boot_code_image_load_to to a nonzero value! */
+            if (!boot_code_image.empty()) {
+                LOG_MSG("Loading %u bytes of boot code to %x",(unsigned int)boot_code_image.size(),(unsigned int)boot_code_image_load_to);
+                MEM_BlockWrite(boot_code_image_load_to,boot_code_image.data(),boot_code_image.size());
+                boot_code_image_load_to = 0;
+                boot_code_image.clear();
+            }
+
             /* new code: fire event */
             DispatchVMEvent(VM_EVENT_GUEST_OS_BOOT);
+
+            /* just to be sure nothing during DOS kernel shutdown changed the stack pointer */
+            SegSet16(ss,boot_code_image_stack_ss);
+            reg_esp = boot_code_image_stack_sp;
 
             LOG_MSG("Alright: DOS kernel shutdown, booting a guest OS\n");
             LOG_MSG("  CS:IP=%04x:%04x SS:SP=%04x:%04x AX=%04x BX=%04x CX=%04x DX=%04x\n",

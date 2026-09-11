@@ -25,15 +25,15 @@ jsdos::SockDrive::SockDrive(size_t handle, const std::string& url)
 
 jsdos::SockDrive::~SockDrive() { sockdrive_close(handle); }
 
-uint8_t jsdos::SockDrive::Read_AbsoluteSector(uint32_t sectnum, void* data) {
-  return sockdrive_read(handle, sectnum, (uint8_t*)data);
+Int13Status jsdos::SockDrive::Read_AbsoluteSector(uint32_t sectnum, void* data) {
+  return sockdrive_read(handle, sectnum, (uint8_t*)data) == 0 ? Int13Status::NoError : Int13Status::DriveNotReady;
 }
 
-uint8_t jsdos::SockDrive::Write_AbsoluteSector(uint32_t sectnum, const void* data) {
+Int13Status jsdos::SockDrive::Write_AbsoluteSector(uint32_t sectnum, const void* data) {
   int errcode = sockdrive_write(handle, sectnum, (uint8_t*)data);
   if (errcode) {
     std::cerr << "sockdrive_write error " << errcode << std::endl;
     abort();
   }
-  return errcode;
+  return Int13Status::DriveNotReady;
 }
