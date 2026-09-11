@@ -1,0 +1,44 @@
+name: browser tomb3dfx
+
+on:
+  push:
+    branches: [8.xx]
+    tags:
+      - "v*.*.*"
+  pull_request:
+    branches: [8.xx]
+  workflow_dispatch:
+
+jobs:
+  browser-tomb3dfx:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [22.x]
+        emsdk-version: [5.0.2]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          lfs: true
+      - name: setup node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          registry-url: "https://registry.npmjs.org"
+          cache: "npm"
+      - run: sudo apt-get -yqq update
+      - run: sudo apt-get install -yq --no-install-recommends cmake ninja-build zip
+      - run: npm install -g yarn
+      - run: yarn
+      - run: yarn playwright install --with-deps chromium
+      - run: git clone https://github.com/emscripten-core/emsdk.git
+      - run: cd emsdk && ./emsdk install ${{ matrix.emsdk-version }} && ./emsdk activate ${{ matrix.emsdk-version }} && cd ..
+      - run: source ./emsdk/emsdk_env.sh && yarn run gulp production && yarn test:browser:tomb3dfx
+      - name: upload Tomb Raider diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tomb3dfx
+          path: dist/test-artifacts/tomb3dfx/
+          if-no-files-found: ignore

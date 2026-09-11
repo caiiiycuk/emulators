@@ -47,15 +47,46 @@ BROWSER_TEST_TIMEOUT_MS=12000 yarn test:browser:tomb3dfx
 This command should exit nonzero, retain diagnostics, and close Chromium and
 the HTTP server. Copy any results worth keeping before another run.
 
-## Observed result (2026-09-10)
+## Rendering regression check
 
-The rebuilt local emulator entered the first level before the demo. Visual
-inspection confirmed dark, missing-looking surface textures before F4. Two
-separate F4 presses caused video mode resets in the log but did not restore
-those textures. Both final screenshots show Lara stationary in the initial
-room. There were no page errors or failed requests.
+After saving both final screenshots, the scenario checks a 200×100 region of
+snow floor to Lara's right. At least 75% must be visible grey snow pixels. The
+previous defective frame had 0% coverage; the corrected frame has about 98%.
+This catches the missing-texture regression without requiring an exact match
+of Lara's animation or using a damaged frame as a golden image. It is a targeted
+check, not a validation of all Voodoo rendering.
 
-A successful run means the diagnostic screenshots were produced; it does not
-assert that rendering is correct. No golden image is generated. Use the same
-entry sequence and inspect `level-before-f4.png` when evaluating future renderer
-changes; the F4 workaround was not confirmed on this build.
+## Verified fix (2026-09-10)
+
+The browser renderer in `native/jsdos/jsdos-voodoo.cpp` had the old texture cache
+implementation, while the shared texture RAM writer had already been changed
+to invalidate by write address. Its cache still only looked for an exact base
+address. The browser implementation now invalidates overlapping cached textures
+and recreates entries when an address is reused with another texture layout.
+These changes match the existing local DOSBox-X texture-cache changes.
+
+Visual inspection confirmed wall and snow textures in the first level before
+F4, with Lara stationary and without waiting for the demo. They remain present
+after two F4 presses. The scenario now fails if the floor regresses to the dark
+teal rendering; both final screenshots are retained on that failure. There were
+no page errors or failed requests in the corrected run.
+
+## Native cache regressions
+
+```sh
+python3 test/native/voodoo-regression.py
+```
+
+This requires g++ with AddressSanitizer. The harness compiles the actual TMU
+write, NCC update, and GL texture-cache functions from both renderer sources
+against small RAM and GL substitutes. It checks circular 8/16-bit writes,
+deferred invalidation after bulk writes, TMU isolation, and NCC color updates
+and palette-variant reuse without texel downloads. It also compares the shared
+cache implementations to detect divergence between native and js-dos builds.
+
+Texture writes now accumulate a conservative dirty byte interval per TMU; cache
+entries are checked once on the next cache access, after pending GL primitives
+are completed. Wrapped writes may invalidate extra entries but cannot leave a
+stale texture. Every RAM write index wraps independently. NCC updates invalidate
+palette-dependent textures, and the selected NCC texel table participates in
+the palette checksum.

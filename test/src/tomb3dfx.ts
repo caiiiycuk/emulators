@@ -33,6 +33,16 @@ function hasLevel(png: PNG) {
         (r, g, b) => r > 60 && r > g && g > b * 1.3) > 0.65;
 }
 
+function assertSnowTexture(png: PNG, name: string) {
+    // The initial room has a grey snow floor to Lara's right. The stale texture
+    // cache rendered this whole area dark teal. Ignore Lara and the moving camera.
+    const snow = fraction(png, 400, 340, 200, 100,
+        (r, g, b) => r > 30 && Math.abs(r - g) < 10 && Math.abs(g - b) < 10);
+    if (snow < 0.75) {
+        throw new Error(name + ": missing snow texture (grey floor coverage " + snow.toFixed(3) + ")");
+    }
+}
+
 export async function runTomb3dfx(page: Page, artifactsDir: string, signal: AbortSignal) {
     const started = Date.now();
     const canvas = page.locator("canvas");
@@ -95,11 +105,14 @@ export async function runTomb3dfx(page: Page, artifactsDir: string, signal: Abor
     await waitForScreen("level", hasLevel, 30000);
     // Let the introductory camera settle. No movement keys are sent.
     await page.waitForTimeout(2000);
-    await capture("level-before-f4");
+    const before = PNG.sync.read(await capture("level-before-f4"));
     await key("F4", 293);
     await page.waitForTimeout(700);
     await capture("level-between-f4");
     await key("F4", 293);
     await page.waitForTimeout(1000);
-    await capture("level-after-f4");
+    const after = PNG.sync.read(await capture("level-after-f4"));
+    // Preserve both diagnostic images even when the regression check fails.
+    assertSnowTexture(before, "level-before-f4");
+    assertSnowTexture(after, "level-after-f4");
 }
