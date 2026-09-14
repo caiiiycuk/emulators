@@ -35,5 +35,5 @@ Int13Status jsdos::SockDrive::Write_AbsoluteSector(uint32_t sectnum, const void*
     std::cerr << "sockdrive_write error " << errcode << std::endl;
     abort();
   }
-  return Int13Status::DriveNotReady;
+  return Int13Status::NoError;
 }

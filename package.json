@@ -38,7 +38,7 @@
     "test:browser:build": "yarn run gulp production && yarn test:browser",
     "test:browser:net": "node -r ts-node/register/transpile-only test/src/browser-runner.ts --net",
     "test:browser:net:build": "yarn run gulp production && yarn test:browser:net",
-    "test:all": "yarn run gulp production && yarn test:node && yarn test:browser && yarn test:browser:net"
+    "test:all": "yarn test:node && yarn test:browser && yarn test:browser:net && yarn test:tomb3dfx"
   },
   "devDependencies": {
     "@babel/core": "^7.21.4",
