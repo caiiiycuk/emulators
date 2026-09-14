@@ -666,12 +666,16 @@ if (DOSBOX_DEBUG)
         "${DBX_PATH}/src/debug/debug.cpp"
         "${DBX_PATH}/src/debug/debug_disasm.cpp"
         "${DBX_PATH}/src/debug/debug_gui.cpp"
-        "${DBX_PATH}/src/debug/debug_mcp.cpp"
     )
 
     if(${EMSCRIPTEN})
         list(APPEND SOURCES_X_DEBUG
             "${NATIVE_DIR}/jsdos/jsdos-curses.cpp"
+            "${NATIVE_DIR}/jsdos/jsdos-debug-mcp.cpp"
+        )
+    else()
+        list(APPEND SOURCES_X_DEBUG
+                "${DBX_PATH}/src/debug/debug_mcp.cpp"
         )
     endif()
 
