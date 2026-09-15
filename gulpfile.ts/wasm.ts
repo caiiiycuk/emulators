@@ -121,13 +121,13 @@ export const Build = {
 `);
 }
 
-export function wasm(compress: boolean) {
+export function wasm(compress: boolean, debug: boolean) {
     return series(clean,
         makeWLibZip,
         makeGL4ES,
         makeWDosbox,
         makeWDosboxX,
-        makeWDosboxXDebug,
+        () => debug ? makeWDosboxXDebug() : Promise.resolve(),
         makeWDosboxXJspi,
         copyAssets,
         () => generateBuildInfo(compress),
