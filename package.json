@@ -35,10 +35,11 @@
     "test:node:build": "yarn run gulp wasm && yarn test:node",
     "test:browser": "node -r ts-node/register/transpile-only test/src/browser-runner.ts",
     "test:browser:tomb3dfx": "node -r ts-node/register/transpile-only test/src/browser-runner.ts --tomb3dfx",
+    "test:browser:d3dtunnel": "node -r ts-node/register/transpile-only test/src/browser-runner.ts --d3dtunnel",
     "test:browser:build": "yarn run gulp production && yarn test:browser",
     "test:browser:net": "node -r ts-node/register/transpile-only test/src/browser-runner.ts --net",
     "test:browser:net:build": "yarn run gulp production && yarn test:browser:net",
-    "test:all": "yarn test:node && yarn test:browser && yarn test:browser:net && yarn test:tomb3dfx"
+    "test:all": "yarn test:node && yarn test:browser && yarn test:browser:net && yarn test:browser:tomb3dfx && yarn test:browser:d3dtunnel"
   },
   "devDependencies": {
     "@babel/core": "^7.21.4",

@@ -3,6 +3,7 @@ import { createServer, IncomingMessage, Server, ServerResponse } from "http";
 import { AddressInfo } from "net";
 import { extname, join, resolve, sep } from "path";
 import { chromium, Page } from "playwright";
+import { runD3DTunnel } from "./d3dtunnel";
 import { runTomb3dfx } from "./tomb3dfx";
 
 interface BrowserLog {
@@ -32,11 +33,16 @@ const repoRoot = resolve(__dirname, "../..");
 const distRoot = join(repoRoot, "dist");
 const testMode = getBrowserTestMode();
 const tomb3dfx = process.argv.includes("--tomb3dfx");
-const artifactsDir = join(distRoot, "test-artifacts/tomb3dfx");
+const d3dtunnel = process.argv.includes("--d3dtunnel");
+const artifactsName = tomb3dfx ? "tomb3dfx" : d3dtunnel ? "d3dtunnel" : "";
+const artifactsDir = join(distRoot, "test-artifacts", artifactsName);
 const maxBrowserLogs = Number(process.env.BROWSER_TEST_MAX_CONSOLE_LOGS ?? 200);
 
 const requiredArtifacts = tomb3dfx ? [
     "test/tomb3dfx.html", "test/dosbox-x/tomb3dfx.jsdos",
+    "emulators.js", "wlibzip.js", "wlibzip.wasm", "wdosbox-x.js", "wdosbox-x.wasm",
+] : d3dtunnel ? [
+    "test/d3dtunnel.html", "test/dosbox-x/d3d_tunnel.jsdos",
     "emulators.js", "wlibzip.js", "wlibzip.wasm", "wdosbox-x.js", "wdosbox-x.wasm",
 ] : [
     "test/test.html",
@@ -70,15 +76,23 @@ const mimeTypes: Record<string, string> = {
 
 async function main() {
     assertRequiredArtifacts();
-    if (tomb3dfx) {
+    if (tomb3dfx || d3dtunnel) {
         mkdirSync(artifactsDir, { recursive: true });
-        const screenshots = ["menu", "passport", "level", "menu-waiting", "passport-waiting", "level-waiting",
+        const screenshots = tomb3dfx ? [
+            "menu", "passport", "level", "menu-waiting", "passport-waiting", "level-waiting",
             "level-before-f4", "level-between-f4", "level-after-f4", "failure",
-            ...Array.from({ length: 8 }, (_, i) => "boot-" + (i + 1))];
+            ...Array.from({ length: 8 }, (_, i) => "boot-" + (i + 1)),
+        ] : [
+            "waiting", "failure",
+            ...Array.from({ length: 12 }, (_, i) => "boot-" + (i + 1)),
+            ...Array.from({ length: 20 }, (_, i) => "tunnel-" + (i + 1).toString().padStart(2, "0")),
+        ];
         for (const name of [...screenshots.map((name) => name + ".png"), "failure.txt", "browser.log.json"]) {
             rmSync(join(artifactsDir, name), { force: true });
         }
-        writeFileSync(join(artifactsDir, "keys.jsonl"), "");
+        if (tomb3dfx) {
+            writeFileSync(join(artifactsDir, "keys.jsonl"), "");
+        }
     }
     const abort = new AbortController();
 
@@ -93,7 +107,7 @@ async function main() {
 
     try {
         browser = await chromium.launch({ headless: true });
-        page = await browser.newPage(tomb3dfx ? {
+        page = await browser.newPage(tomb3dfx || d3dtunnel ? {
             viewport: { width: 640, height: 480 }, deviceScaleFactor: 1,
         } : {});
 
@@ -143,6 +157,27 @@ async function main() {
             console.log("Tomb Raider screenshots saved to " + artifactsDir);
             return;
         }
+        if (d3dtunnel) {
+            await withTimeout((async () => {
+                await page!.goto(baseUrl + "/test/d3dtunnel.html", { waitUntil: "load" });
+                await runD3DTunnel(page!, artifactsDir, abort.signal);
+            })(), testMode.timeoutMs, testMode.name);
+            const hasVoodooOpenGl = browserLogs.some((log) =>
+                log.text.includes("opengl: I am able to use OpenGL to emulate Voodoo graphics"));
+            if (!hasVoodooOpenGl) {
+                throw new Error("D3DTunnel did not initialize Voodoo OpenGL; see browser.log.json");
+            }
+            const hasWebGlFeedbackLoop = browserLogs.some((log) =>
+                log.text.includes("Feedback loop formed between Framebuffer and active Texture"));
+            if (hasWebGlFeedbackLoop) {
+                throw new Error("D3DTunnel triggered a WebGL feedback loop; see browser.log.json");
+            }
+            if (pageErrors.length > 0 || requestFailures.length > 0) {
+                throw new Error("D3DTunnel browser errors; see browser.log.json");
+            }
+            console.log("D3DTunnel screenshots saved to " + artifactsDir);
+            return;
+        }
         await page.goto(baseUrl + "/test/test.html", { waitUntil: "load" });
         const mochaResult = await withTimeout(runBrowserTests(page, testMode), testMode.timeoutMs, testMode.name);
         const hasFailures = mochaResult.failureCount > 0 || pageErrors.length > 0;
@@ -159,9 +194,14 @@ async function main() {
         }
     } catch (error) {
         abort.abort();
-        if (tomb3dfx && page !== undefined) {
-            await page.locator("canvas").screenshot({ path: join(artifactsDir, "failure.png"),
-                timeout: 5000 }).catch(() => undefined);
+        if ((tomb3dfx || d3dtunnel) && page !== undefined) {
+            if (d3dtunnel) {
+                await page.screenshot({ path: join(artifactsDir, "failure.png"),
+                    timeout: 5000 }).catch(() => undefined);
+            } else {
+                await page.locator("canvas").screenshot({ path: join(artifactsDir, "failure.png"),
+                    timeout: 5000 }).catch(() => undefined);
+            }
             writeFileSync(join(artifactsDir, "failure.txt"), formatError(error));
         }
         console.error("Browser test runner failed:");
@@ -171,7 +211,7 @@ async function main() {
         process.exitCode = 1;
     } finally {
         try {
-            if (tomb3dfx) {
+            if (tomb3dfx || d3dtunnel) {
                 writeFileSync(join(artifactsDir, "browser.log.json"), JSON.stringify({
                     browserLogs, omittedBrowserLogs, pageErrors, requestFailures,
                 }, null, 2));
@@ -190,6 +230,10 @@ function getBrowserTestMode(): BrowserTestMode {
     if (process.argv.includes("--tomb3dfx")) {
         return { name: "Tomb Raider 3dfx", createTestsFunction: "",
             timeoutMs: Number(process.env.BROWSER_TEST_TIMEOUT_MS ?? 180000) };
+    }
+    if (process.argv.includes("--d3dtunnel")) {
+        return { name: "D3DTunnel", createTestsFunction: "",
+            timeoutMs: Number(process.env.BROWSER_TEST_TIMEOUT_MS ?? 240000) };
     }
     if (process.argv.includes("--net")) {
         return {
