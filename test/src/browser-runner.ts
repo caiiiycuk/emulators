@@ -5,6 +5,7 @@ import { extname, join, resolve, sep } from "path";
 import { chromium, Page } from "playwright";
 import { runD3DTunnel } from "./d3dtunnel";
 import { runTomb3dfx } from "./tomb3dfx";
+import { runWorkerWebGL } from "./worker-webgl";
 
 interface BrowserLog {
     type: string;
@@ -110,6 +111,8 @@ async function main() {
         page = await browser.newPage(tomb3dfx || d3dtunnel ? {
             viewport: { width: 640, height: 480 }, deviceScaleFactor: 1,
         } : {});
+
+        await runWorkerWebGL(page);
 
         page.on("console", (message) => {
             const text = message.text();

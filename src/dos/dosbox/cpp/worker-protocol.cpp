@@ -595,44 +595,106 @@ EM_JS(void, ws_init_runtime, (const char* sessionId), {
               1, 1, 0, gl.RGB, gl.UNSIGNED_BYTE,
               pixel);
 
-          function withQuadProgram(fn, flipped) {
-            let binded = false;
-            function bindQuadProgram() {
-                if (binded) {
-                  return;
-                }
+          function bindQuadAttributes(flipped) {
+            gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+            gl.vertexAttribPointer(vertexPosition, 3, gl.FLOAT, false, 0, 0);
+            gl.enableVertexAttribArray(vertexPosition);
+            gl.bindBuffer(gl.ARRAY_BUFFER, flipped ? textureCoordinatesFlippedBuffer : textureCoordBuffer);
+            gl.vertexAttribPointer(textureCoord, 2, gl.FLOAT, false, 0, 0);
+            gl.enableVertexAttribArray(textureCoord);
+          }
 
-                gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
-                gl.vertexAttribPointer(vertexPosition, 3, gl.FLOAT, false, 0, 0);
-                gl.enableVertexAttribArray(vertexPosition);
-                gl.bindBuffer(gl.ARRAY_BUFFER, flipped ? textureCoordinatesFlippedBuffer : textureCoordBuffer);
-                gl.vertexAttribPointer(textureCoord, 2, gl.FLOAT, false, 0, 0);
-                gl.enableVertexAttribArray(textureCoord);
+          const vaoExtension = gl.getExtension("OES_vertex_array_object");
+          const quadVaos = [];
+          if (vaoExtension) {
+            const prevVao = gl.getParameter(vaoExtension.VERTEX_ARRAY_BINDING_OES);
+            const prevArrayBuffer = gl.getParameter(gl.ARRAY_BUFFER_BINDING);
+            for (const flipped of [false, true]) {
+              const vao = vaoExtension.createVertexArrayOES();
+              vaoExtension.bindVertexArrayOES(vao);
+              bindQuadAttributes(flipped);
+              quadVaos.push(vao);
+            }
+            vaoExtension.bindVertexArrayOES(prevVao);
+            gl.bindBuffer(gl.ARRAY_BUFFER, prevArrayBuffer);
+          }
+
+          function saveAttribute(index) {
+            return {
+              index,
+              enabled: gl.getVertexAttrib(index, gl.VERTEX_ATTRIB_ARRAY_ENABLED),
+              buffer: gl.getVertexAttrib(index, gl.VERTEX_ATTRIB_ARRAY_BUFFER_BINDING),
+              size: gl.getVertexAttrib(index, gl.VERTEX_ATTRIB_ARRAY_SIZE),
+              type: gl.getVertexAttrib(index, gl.VERTEX_ATTRIB_ARRAY_TYPE),
+              normalized: gl.getVertexAttrib(index, gl.VERTEX_ATTRIB_ARRAY_NORMALIZED),
+              stride: gl.getVertexAttrib(index, gl.VERTEX_ATTRIB_ARRAY_STRIDE),
+              offset: gl.getVertexAttribOffset(index, gl.VERTEX_ATTRIB_ARRAY_POINTER),
+            };
+          }
+
+          function restoreAttribute(attribute) {
+            // WebGL cannot set a pointer with no buffer; an unused attribute stays disabled.
+            if (attribute.buffer) {
+              gl.bindBuffer(gl.ARRAY_BUFFER, attribute.buffer);
+              gl.vertexAttribPointer(attribute.index, attribute.size, attribute.type,
+                  attribute.normalized, attribute.stride, attribute.offset);
+            }
+            if (attribute.enabled) {
+              gl.enableVertexAttribArray(attribute.index);
+            } else {
+              gl.disableVertexAttribArray(attribute.index);
+            }
+          }
+
+          const quadDisabledCapabilities = [gl.BLEND, gl.DEPTH_TEST, gl.STENCIL_TEST,
+              gl.SCISSOR_TEST, gl.CULL_FACE];
+
+          function withQuadProgram(fn, flipped) {
+            function bindQuadProgram() {
+                if (vaoExtension && Module.glfx) {
+                  vaoExtension.bindVertexArrayOES(quadVaos[flipped ? 1 : 0]);
+                } else {
+                  bindQuadAttributes(flipped);
+                }
                 gl.useProgram(quadProgram);
                 gl.activeTexture(gl.TEXTURE0);
                 gl.uniform1i(uSampler, 0);
-                binded = true;
             }
 
             if (Module.glfx) {
               const prevProgram = gl.getParameter(gl.CURRENT_PROGRAM);
               const prevActiveTexture = gl.getParameter(gl.ACTIVE_TEXTURE);
-              const prevTexture = gl.getParameter(gl.TEXTURE_BINDING_2D);
-              const prevArrayBuffer = gl.getParameter(gl.ARRAY_BUFFER_BINDING);
-              const prevVertexAttribPosition = gl.getVertexAttrib(vertexPosition, gl.VERTEX_ATTRIB_ARRAY_ENABLED);
-              const prevVertexAttribTextureCoord = gl.getVertexAttrib(textureCoord, gl.VERTEX_ATTRIB_ARRAY_ENABLED);
+              gl.activeTexture(gl.TEXTURE0);
+              const prevTexture0 = gl.getParameter(gl.TEXTURE_BINDING_2D);
+              const prevVao = vaoExtension ? gl.getParameter(vaoExtension.VERTEX_ARRAY_BINDING_OES) : null;
+              const prevArrayBuffer = vaoExtension ? null : gl.getParameter(gl.ARRAY_BUFFER_BINDING);
+              const prevAttributes = vaoExtension ? null :
+                  [saveAttribute(vertexPosition), saveAttribute(textureCoord)];
+              const prevCapabilities = quadDisabledCapabilities.map((capability) => gl.isEnabled(capability));
+              const prevColorMask = gl.getParameter(gl.COLOR_WRITEMASK);
 
-              bindQuadProgram();
-              fn();
-
-              gl.useProgram(prevProgram);
-              gl.activeTexture(prevActiveTexture);
-              gl.bindTexture(gl.TEXTURE_2D, prevTexture);
-              gl.bindBuffer(gl.ARRAY_BUFFER, prevArrayBuffer);
-              if (!prevVertexAttribPosition) gl.disableVertexAttribArray(vertexPosition);
-              if (!prevVertexAttribTextureCoord) gl.disableVertexAttribArray(textureCoord);
-
-              binded = false;
+              try {
+                bindQuadProgram();
+                for (let i = 0; i < quadDisabledCapabilities.length; ++i) {
+                  if (prevCapabilities[i]) gl.disable(quadDisabledCapabilities[i]);
+                }
+                gl.colorMask(true, true, true, true);
+                fn();
+              } finally {
+                gl.useProgram(prevProgram);
+                gl.bindTexture(gl.TEXTURE_2D, prevTexture0 === Module.fboTexture ? null : prevTexture0);
+                gl.activeTexture(prevActiveTexture);
+                if (vaoExtension) {
+                  vaoExtension.bindVertexArrayOES(prevVao);
+                } else {
+                  prevAttributes.forEach(restoreAttribute);
+                  gl.bindBuffer(gl.ARRAY_BUFFER, prevArrayBuffer);
+                }
+                for (let i = 0; i < quadDisabledCapabilities.length; ++i) {
+                  if (prevCapabilities[i]) gl.enable(quadDisabledCapabilities[i]);
+                }
+                gl.colorMask(prevColorMask[0], prevColorMask[1], prevColorMask[2], prevColorMask[3]);
+              }
             } else {
               bindQuadProgram();
               fn();
@@ -647,6 +709,7 @@ EM_JS(void, ws_init_runtime, (const char* sessionId), {
               // screen viewport
               gl.viewport(0, 0, width, height);
 
+              const prevTexture = gl.getParameter(gl.TEXTURE_BINDING_2D);
               const fboTexture = gl.createTexture();
               gl.bindTexture(gl.TEXTURE_2D, fboTexture);
               gl.texImage2D(
@@ -680,6 +743,7 @@ EM_JS(void, ws_init_runtime, (const char* sessionId), {
                 console.error("Framebuffer is not complete");
               }
 
+              gl.bindTexture(gl.TEXTURE_2D, prevTexture);
               gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
 
               Module.fboTexture = fboTexture;
@@ -693,11 +757,14 @@ EM_JS(void, ws_init_runtime, (const char* sessionId), {
 
               Module.swapbuffers = function() {
                 gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-                withQuadProgram(function() {
-                  gl.bindTexture(gl.TEXTURE_2D, fboTexture);
-                  gl.drawArrays(gl.TRIANGLES, 0, 6);
-                }, true);
-                gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+                try {
+                  withQuadProgram(function() {
+                    gl.bindTexture(gl.TEXTURE_2D, fboTexture);
+                    gl.drawArrays(gl.TRIANGLES, 0, 6);
+                  }, true);
+                } finally {
+                  gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+                }
               };
             } else {
               Module.swapbuffers = function() {
