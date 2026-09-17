@@ -72,7 +72,14 @@ void jsdos::cout(const char* data, int amount) {
   }
 }
 
+#ifdef JSDOS_X
 extern std::string RunningProgram;
 const char* server_get_running_program() {
   return RunningProgram.c_str();
 }
+#else
+extern const char* RunningProgram;
+const char* server_get_running_program() {
+  return RunningProgram;
+}
+#endif

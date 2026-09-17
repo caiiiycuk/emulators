@@ -853,6 +853,7 @@ EM_JS(void, emsc_end_frame_update, (uint8_t* frameRgb, uint32_t frameWidth, uint
 
 EM_JS(void, emsc_ws_client_sound_init, (int freq), {
     if (Module.audioPort) {
+      Module.audioPort.postMessage({ type: "init", sourceRate: freq });
       Module.sendMessage("ws-sound-init", { freq : 0 });
     } else {
       Module.sendMessage("ws-sound-init", { freq : freq });

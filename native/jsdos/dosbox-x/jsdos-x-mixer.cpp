@@ -80,6 +80,7 @@ static struct {
     int32_t          work[MIXER_BUFSIZE][2];
     Bitu            work_in,work_out,work_wrap;
     Bitu            pos,done;
+    float           last_dac;
     int32_t         dc_adj[2];
     float           mastervol[2];
     float           recordvol[2];
@@ -904,24 +905,27 @@ static void MIXER_Mix(void) {
     
     MIXER_FillUp();
 
+    if (mixer.mute) {
+        mixer.work_out = mixer.work_in;
+        mixer.prebuffer_wait = true;
+        mixer.last_dac = 0.0f;
+        return;
+    }
 
-    static auto pushedAt = GetMsPassedFromStart();
-    static double restSamplesCount = 0;
-    auto now = GetMsPassedFromStart();
-    auto dt = now - pushedAt;
+    int remains = (int)mixer.work_in - (int)mixer.work_out;
+    if (remains < 0) remains += (int)mixer.work_wrap;
+    if (remains < 0) remains = 0;
 
-    auto exactSamplesCount = dt * mixer.freq / 1000 + restSamplesCount;
-    int samplesCount = exactSamplesCount;
-    if (samplesCount >= PUSH_SIZE) {
-      restSamplesCount = exactSamplesCount - samplesCount;
-      if (samplesCount > BLOCK_SIZE) {
-        samplesCount = BLOCK_SIZE;
-      }
-      MIXER_CallBack(blockBuffer, samplesCount);
-      if (!mixer.mute && !muted) {
-        client_sound_push(blockBuffer, samplesCount);
-      }
-      pushedAt = now;
+    if (mixer.prebuffer_wait && (unsigned int)remains >= mixer.prebuffer_samples)
+        mixer.prebuffer_wait = false;
+
+    while (!mixer.prebuffer_wait && remains >= PUSH_SIZE) {
+        MIXER_CallBack(blockBuffer, PUSH_SIZE);
+        if (!muted)
+            client_sound_push(blockBuffer, PUSH_SIZE);
+
+        remains = (int)mixer.work_in - (int)mixer.work_out;
+        if (remains < 0) remains += (int)mixer.work_wrap;
     }
 }
 
@@ -930,24 +934,14 @@ static void MIXER_CallBack(float *stream, int len) {
     int32_t volscale2 = (int32_t)(mixer.mastervol[1] * (1 << MIXER_VOLSHIFT));
     Bitu need = (Bitu)len;
     float *output = stream;
-    int remains;
-
-    if (mixer.prebuffer_wait) {
-        remains = (int)mixer.work_in - (int)mixer.work_out;
-        if (remains < 0) remains += (int)mixer.work_wrap;
-        if (remains < 0) remains = 0;
-
-        if ((unsigned int)remains >= mixer.prebuffer_samples)
-            mixer.prebuffer_wait = false;
-    }
-
-    if (!mixer.prebuffer_wait && !mixer.mute) {
+    if (!mixer.mute) {
         int32_t *in = &mixer.work[mixer.work_out][0];
         while (need > 0) {
             if (mixer.work_out == mixer.work_in) break;
             auto left = MIXER_CLIP((((int64_t)(*in++)) * (int64_t)volscale1) >> (MIXER_VOLSHIFT + MIXER_VOLSHIFT));
             auto right = MIXER_CLIP((((int64_t)(*in++)) * (int64_t)volscale2) >> (MIXER_VOLSHIFT + MIXER_VOLSHIFT));
-            *output++= (left + right) / 2.f / 32768.0f;
+            mixer.last_dac = (left + right) / 2.f / 32768.0f;
+            *output++ = mixer.last_dac;
             mixer.work_out++;
             if (mixer.work_out >= mixer.work_wrap) {
                 mixer.work_out = 0;
@@ -957,26 +951,9 @@ static void MIXER_CallBack(float *stream, int len) {
         }
     }
 
-    if (need > 0)
-        mixer.prebuffer_wait = true;
-
-    remains = (int)mixer.work_in - (int)mixer.work_out;
-    if (remains < 0) remains += (int)mixer.work_wrap;
-
-    if ((unsigned long)remains >= (mixer.blocksize*2UL)) {
-        /* drop some samples to keep time */
-        unsigned int drop;
-
-        if ((unsigned long)remains >= (mixer.blocksize*3UL)) // hard drop
-            drop = ((unsigned int)remains - (unsigned int)(mixer.blocksize));
-        else // subtle drop
-            drop = (((unsigned int)remains - (unsigned int)(mixer.blocksize*2)) / 50U) + 1;
-
-        while (drop > 0) {
-            mixer.work_out++;
-            if (mixer.work_out >= mixer.work_wrap) mixer.work_out = 0;
-            drop--;
-        }
+    while (need > 0) {
+        *output++ = mixer.last_dac;
+        need--;
     }
 }
 
@@ -1223,6 +1200,7 @@ void MIXER_Init() {
     mixer.mastervol[1]=1.0f;
     mixer.recordvol[0]=1.0f;
     mixer.recordvol[1]=1.0f;
+    mixer.last_dac=0.0f;
     mixer.dc_adj[0]=0;
     mixer.dc_adj[1]=0;
 

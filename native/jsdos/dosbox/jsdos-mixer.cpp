@@ -504,25 +504,12 @@ static void MIXER_Mix(void) {
 	mixer.needed+=(mixer.tick_counter >> TICK_SHIFT);
 	mixer.tick_counter &= TICK_MASK;
 
-
-  static auto pushedAt = GetMsPassedFromStart();
-  static double restSamplesCount = 0;
-  auto now = GetMsPassedFromStart();
-  auto dt = now - pushedAt;
-
-  auto exactSamplesCount = dt * mixer.freq / 1000 + restSamplesCount;
-  int samplesCount = exactSamplesCount;
-  if (samplesCount >= PUSH_SIZE) {
-    restSamplesCount = exactSamplesCount - samplesCount;
-    if (samplesCount > BLOCK_SIZE) {
-      samplesCount = BLOCK_SIZE;
-    }
-    MIXER_CallBack(blockBuffer, samplesCount);
-    if (!muted) {
-        client_sound_push(blockBuffer, samplesCount);
-    }
-    pushedAt = now;
-  }
+	while (mixer.done >= PUSH_SIZE) {
+		memset(blockBuffer, 0, sizeof(blockBuffer));
+		MIXER_CallBack(blockBuffer, PUSH_SIZE);
+		if (!muted)
+			client_sound_push(blockBuffer, PUSH_SIZE);
+	}
 }
 
 static void MIXER_Mix_NoSound(void) {
