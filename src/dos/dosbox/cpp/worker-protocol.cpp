@@ -1019,7 +1019,7 @@ void client_frame_set_size(int width, int height) {
 }
 
 void client_frame_update_lines(uint32_t *lines, uint32_t batchCount, void *rgba, bool bgra) {
-  if (!frameRgb) {
+  if (!frameRgb || !rgba || frameWidth <= 0 || frameHeight <= 0) {
     return;
   }
 
@@ -1036,6 +1036,17 @@ void client_frame_update_lines(uint32_t *lines, uint32_t batchCount, void *rgba,
     uint32_t start = lines[base];
     uint32_t count = lines[base + 1];
     uint32_t offset = lines[base + 2];
+
+    if (start >= static_cast<uint32_t>(frameHeight)) {
+      continue;
+    }
+    const uint32_t available = static_cast<uint32_t>(frameHeight) - start;
+    if (count > available) {
+      count = available;
+    }
+    if (count == 0) {
+      continue;
+    }
 
     uint8_t* bpp3Begin = frameRgb + start * frameWidth * 3;
     uint8_t* bpp3 = bpp3Begin;
