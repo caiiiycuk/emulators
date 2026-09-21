@@ -47,6 +47,8 @@ export function testAudioWorklet() {
         }
         assert.approximately(output[output.length - 1], 0, 0.000001,
             "an underrun should fade all the way to silence");
+        assert.isBelow(processor.bufferedFrames(), 512,
+            "an underrun should not retain the rendered half-frame");
 
         output.fill(1);
         send(processor, tone(2560, 1024, 44100));
@@ -58,6 +60,29 @@ export function testAudioWorklet() {
         processor.process([], [[output]]);
         assert.isAbove(output.some((sample) => sample !== 0) ? 1 : 0, 0,
             "playback should resume after the prebuffer is restored");
+    });
+
+    test("fades in after rebuffering", () => {
+        const processor = createProcessor(44100);
+        send(processor, { type: "init", sourceRate: 44100 });
+        send(processor, constantSamples(2560, 0.5));
+
+        const output = new Float32Array(128);
+        for (let i = 0; i < 80; ++i) {
+            processor.process([], [[output]]);
+        }
+
+        send(processor, constantSamples(2048, 0.5));
+        processor.process([], [[output]]);
+
+        assert.isBelow(Math.abs(output[0]), 0.01,
+            "resumed playback should not jump directly from silence");
+        for (let i = 1; i < output.length; ++i) {
+            assert.isBelow(Math.abs(output[i] - output[i - 1]), 0.01,
+                "fade-in should not introduce sharp discontinuities");
+        }
+        assert.isAbove(output[output.length - 1], 0.2,
+            "the resumed signal should fade toward its original level");
     });
 }
 
@@ -87,6 +112,12 @@ function tone(start: number, length: number, sourceRate: number) {
     for (let i = 0; i < length; ++i) {
         samples[i] = Math.sin((start + i) * 2 * Math.PI * 1000 / sourceRate) * 0.5;
     }
+    return samples;
+}
+
+function constantSamples(length: number, value: number) {
+    const samples = new Float32Array(length);
+    samples.fill(value);
     return samples;
 }
 

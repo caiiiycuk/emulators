@@ -152,7 +152,7 @@ class Processor extends AudioWorkletProcessor {
             return false;
         }
         for (let i = 0; i < this.hopSize; ++i) {
-            this.outputQueue.push(this.queue.peek(i));
+            this.outputQueue.push(this.queue.peek(i) * (i + 1) / this.hopSize);
             this.tail[i] = this.queue.peek(this.hopSize + i);
         }
         this.haveTail = true;
@@ -220,6 +220,9 @@ class Processor extends AudioWorkletProcessor {
     }
 
     stopForUnderflow() {
+        if (this.haveTail) {
+            this.queue.discard(this.hopSize);
+        }
         this.started = false;
         this.haveTail = false;
         this.outputQueue.clear();

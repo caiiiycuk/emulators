@@ -179,7 +179,22 @@ void client_sound_init(int freq) {
 }
 
 void client_sound_push(const float *samples, int num_samples) {
-  saudio_push(samples, num_samples);
+  if (!saudio_isvalid()) {
+    return;
+  }
+
+  int pushed = 0;
+  while (pushed < num_samples) {
+    const int available = saudio_expect();
+    if (available == 0) {
+      usleep(1000);
+      continue;
+    }
+
+    const int remaining = num_samples - pushed;
+    const int batch = available < remaining ? available : remaining;
+    pushed += saudio_push(samples + pushed, batch);
+  }
 }
 
 void client_network_connected(NetworkType networkType, const char* address) {
