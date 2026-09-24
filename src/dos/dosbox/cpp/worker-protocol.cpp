@@ -160,6 +160,22 @@ EM_JS(void, ws_init_runtime, (const char* sessionId), {
           Module.sockdrivePreload = data.props.sockdrivePreload || "default";
           Module.sockdriveOpfsRoot = data.props.sockdriveOpfsRoot || "jsdos";
           Module._extractBundleToFs();
+          if (data.props.mcpServerPort !== undefined) {
+            const port = data.props.mcpServerPort;
+            if (!Number.isInteger(port) || port < 0 || port > 65535) {
+              Module.err("Invalid MCP server port: " + port);
+            } else {
+              const configPath = "/home/web_user/.jsdos/dosbox.conf";
+              try {
+                const config = Module.FS.readFile(configPath, { encoding: "utf8" });
+                const separator = config.endsWith("\n") ? "" : "\n";
+                Module.FS.writeFile(configPath,
+                  config + separator + "[dosbox]\nmcp_server=" + port + "\n");
+              } catch (error) {
+                Module.err("Unable to set MCP server port: " + error);
+              }
+            }
+          }
           Module._runRuntime();
           sendMessage("ws-server-ready");
         } break;

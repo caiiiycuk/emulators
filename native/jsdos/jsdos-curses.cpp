@@ -153,5 +153,7 @@ int whline(WINDOW *, chtype, int) {
 
 void DISP2_SetPageHandler(void) {}
 void DISP2_RegisterPorts(void) {}
-bool DISP2_Active(void) {}
+bool DISP2_Active(void) {
+    return false;
+}
 void DISP2_Shut() {}

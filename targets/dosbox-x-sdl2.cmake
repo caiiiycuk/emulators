@@ -749,6 +749,10 @@ if (${EMSCRIPTEN})
             "-sASYNCIFY_IMPORTS=['syncSleep']"
             )
 
+    if (DOSBOX_DEBUG)
+        target_link_options(dosbox-x-sdl2 PUBLIC "-lwebsocket.js")
+    endif()
+
     target_compile_options(libdosbox-x-jsdos PUBLIC -fwasm-exceptions -sWASM_LEGACY_EXCEPTIONS=1)
 
     add_executable(wdosbox-x "${SRC_DIR}/dos/dosbox/cpp/worker-protocol.cpp"
@@ -782,6 +786,10 @@ if (${EMSCRIPTEN})
 #       "-sSAFE_HEAP=2"
         "-sERROR_ON_UNDEFINED_SYMBOLS=1"
     )
+
+    if (DOSBOX_DEBUG)
+        list(APPEND WDOSBOXX_LINK_OPTIONS "-lwebsocket.js")
+    endif()
 
     target_link_options(wdosbox-x PUBLIC
         ${WDOSBOXX_LINK_OPTIONS}

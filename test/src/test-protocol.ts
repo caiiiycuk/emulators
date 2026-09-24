@@ -8,16 +8,18 @@ import {
     ServerMessage,
     TransportLayer,
 } from "../../src/protocol/protocol";
+import { BackendOptions } from "../../src/emulators";
 
 class TestTransportLayer implements TransportLayer {
     sessionId = "test-session";
     net: Net | null = null;
     handler: MessageHandler = () => {/**/};
+    messages: { name: ClientMessage, props: { [key: string]: any } }[] = [];
 
     sendMessageToServer(name: ClientMessage,
         props: { [key: string]: any },
         transfer?: Transferable[]) {
-        /**/
+        this.messages.push({ name, props });
     }
 
     initMessageHandler(handler: MessageHandler) {
@@ -76,15 +78,26 @@ export function testProtocol() {
         assert.ok(actual);
         assert.deepEqual(Array.from(actual!), Array.from(expected));
     });
+
+    test("passes optional MCP server port to wc-run", async () => {
+        const { transport } = createCommandInterface({ mcpServerPort: 58992 });
+
+        transport.sendMessageToClient("ws-ready", {});
+        await new Promise((resolve) => setTimeout(resolve, 0));
+
+        const run = transport.messages.find((message) => message.name === "wc-run");
+        assert.ok(run);
+        assert.equal(run!.props.mcpServerPort, 58992);
+    });
 }
 
-function createCommandInterface() {
+function createCommandInterface(options: BackendOptions = {}) {
     const transport = new TestTransportLayer();
     const ci = new CommandInterfaceOverTransportLayer([], transport, (err) => {
         if (err !== null) {
             throw err;
         }
-    }, {});
+    }, options);
 
     return { ci, transport };
 }

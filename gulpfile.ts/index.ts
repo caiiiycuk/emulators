@@ -6,13 +6,12 @@ import { test } from "./test";
 import { emitTypes } from "./types";
 import { updateDosbox } from "./update-dosbox";
 import { dosboxAsyncify, dosboxXAsyncify } from "./asyncify";
-import { debugPort } from "process";
 
 function build(compress: boolean, debug: boolean) {
     return series(
         wasm(compress, debug),
         compileJs,
-        parallel(emulators, test),
+        parallel(emulators(debug), test),
     );
 }
 

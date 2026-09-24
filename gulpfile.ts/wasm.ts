@@ -52,6 +52,11 @@ function copyAssets() {
         .pipe(dest("dist"));
 }
 
+async function copyDebugAssets() {
+    await fs.promises.copyFile("build/debug/wdosbox-x.js", "dist/wdosbox-x-dbg.js");
+    await fs.promises.copyFile("build/debug/wdosbox-x.wasm", "dist/wdosbox-x-dbg.wasm");
+}
+
 interface FileSize {
     size: number,
     gzSize: number,
@@ -130,6 +135,7 @@ export function wasm(compress: boolean, debug: boolean) {
         () => debug ? makeWDosboxXDebug() : Promise.resolve(),
         makeWDosboxXJspi,
         copyAssets,
+        () => debug ? copyDebugAssets() : Promise.resolve(),
         () => generateBuildInfo(compress),
     );
 }
