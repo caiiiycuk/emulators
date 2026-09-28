@@ -1779,8 +1779,6 @@ void voodoo_ogl_reset_videomode(void) {
 #endif
 		new_width = v->fbi.width;
 
-    client_frame_set_size(new_width, new_height);
-
     if (!ogl_surface) {
       sdl.window = SDL_CreateWindow("DOSBox",
           SDL_WINDOWPOS_UNDEFINED,
@@ -1808,7 +1806,12 @@ void voodoo_ogl_reset_videomode(void) {
         printf("ERROR: Could not get window surface\n");
         abort();
       }
+    } else {
+      SDL_SetWindowSize(sdl.window, new_width, new_height);
+      ogl_surface = SDL_GetWindowSurface(sdl.window);
     }
+
+    client_frame_set_size(new_width, new_height);
 
     ApplyPreventCap();
 
