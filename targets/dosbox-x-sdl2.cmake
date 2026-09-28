@@ -34,6 +34,7 @@ set(SOURCES_X_CORE
         "${DBX_PATH}/src/misc/programs.cpp"
         "${DBX_PATH}/src/misc/ethernet_pcap.cpp"
         "${DBX_PATH}/src/misc/mkdir_p.cpp"
+        "${DBX_PATH}/src/misc/localpipe.cpp"
         #	"${DBX_PATH}/src/misc/winiconv.c"
         "${DBX_PATH}/src/misc/support.cpp"
         "${DBX_PATH}/src/misc/clipboard.cpp"
@@ -76,6 +77,7 @@ set(SOURCES_X_CORE
         "${DBX_PATH}/src/hardware/iohandler.cpp"
         "${DBX_PATH}/src/hardware/vga_tseng.cpp"
         "${DBX_PATH}/src/hardware/adlib.cpp"
+        "${DBX_PATH}/src/hardware/cqm.c"
         "${DBX_PATH}/src/hardware/esfmu/esfm.c"
         "${DBX_PATH}/src/hardware/esfmu/esfm_registers.c"
         "${DBX_PATH}/src/hardware/cmos.cpp"
@@ -183,6 +185,7 @@ set(SOURCES_X_CORE
         "${DBX_PATH}/src/hardware/parport/filelpt.cpp"
         "${DBX_PATH}/src/hardware/parport/parport.cpp"
         "${DBX_PATH}/src/hardware/parport/directlpt.cpp"
+        "${DBX_PATH}/src/hardware/parport/extlpt.cpp"
         "${DBX_PATH}/src/hardware/parport/printer_charmaps.cpp"
         "${DBX_PATH}/src/dos/drive_physfs.cpp"
         "${DBX_PATH}/src/dos/drive_cache.cpp"
@@ -572,6 +575,13 @@ set(SOURCES_X_CORE
         "${DBX_PATH}/src/ints/int10_vptable.cpp"
         "${DBX_PATH}/src/ints/bios_keyboard.cpp"
         "${DBX_PATH}/src/ints/bios_disk.cpp"
+        "${DBX_PATH}/src/ints/imagedisk_emptydrive.cpp"
+        "${DBX_PATH}/src/ints/imagedisk_int13.cpp"
+        "${DBX_PATH}/src/ints/imagedisk_teledisk.cpp"
+        "${DBX_PATH}/src/ints/imagedisk_vfd.cpp"
+        "${DBX_PATH}/src/ints/imagedisk_d88.cpp"
+        "${DBX_PATH}/src/ints/imagedisk_nfd.cpp"
+        "${DBX_PATH}/src/ints/imagedisk_msdosblockdev.cpp"
         "${DBX_PATH}/src/fpu/fpu.cpp"
         # "${DBX_PATH}/src/builtin/replace_exe.cpp"
         # "${DBX_PATH}/src/builtin/hexmem32_exe.cpp"
@@ -607,10 +617,10 @@ set(SOURCES_X_CORE
         "${DBX_PATH}/src/builtin/xcopy_exe.cpp"
         # "${DBX_PATH}/src/builtin/find_exe.cpp"
         # "${DBX_PATH}/src/tool/mach-o-matic.cpp"
-        "${DBX_PATH}/src/debug/debug.cpp"
-        "${DBX_PATH}/src/debug/debug_disasm.cpp"
+        # "${DBX_PATH}/src/debug/debug.cpp"
+        # "${DBX_PATH}/src/debug/debug_disasm.cpp"
         "${DBX_PATH}/src/hardware/imfc.cpp"
-        #	"${DBX_PATH}/src/debug/debug_win32.cpp"
+        # "${DBX_PATH}/src/debug/debug_win32.cpp"
         )
 
 if (APPLE)
@@ -623,7 +633,7 @@ endif ()
 set(SOURCES_X_SDL_MAIN
         "${DBX_PATH}/src/gui/sdlmain.cpp"
         "${DBX_PATH}/src/gui/sdlmain_linux.cpp"
-        "${DBX_PATH}/src/debug/debug_gui.cpp"
+        # "${DBX_PATH}/src/debug/debug_gui.cpp"
         "${DBX_PATH}/src/hardware/mixer.cpp"
         "${DBX_PATH}/src/hardware/ipx.cpp"
         "${DBX_PATH}/src/hardware/ipxserver.cpp"
@@ -632,7 +642,6 @@ set(SOURCES_X_SDL_MAIN
         )
 
 set(SOURCES_X_JSDOS_CORE
-        "${NATIVE_DIR}/jsdos/dosbox-x/jsdos-x-render.cpp"
         "${NATIVE_DIR}/jsdos/dosbox-x/jsdos-x-tinyfd.cpp"
         "${NATIVE_DIR}/jsdos/jsdos-timer.cpp"
         "${NATIVE_DIR}/jsdos/jsdos-support.cpp"
@@ -652,12 +661,37 @@ set(SOURCES_X_JSDOS_MAIN
         "${NATIVE_DIR}/jsdos/jsdos-net.cpp"
         )
 
-add_library(libdosbox-x-sdl2 OBJECT ${SOURCES_X_SDL} ${SOURCES_X_CORE} ${SOURCES_X_JSDOS_CORE})
+if (DOSBOX_DEBUG)
+    set(SOURCES_X_DEBUG
+        "${DBX_PATH}/src/debug/debug.cpp"
+        "${DBX_PATH}/src/debug/debug_disasm.cpp"
+        "${DBX_PATH}/src/debug/debug_gui.cpp"
+    )
+
+    if(${EMSCRIPTEN})
+        list(APPEND SOURCES_X_DEBUG
+            "${NATIVE_DIR}/jsdos/jsdos-curses.cpp"
+            "${NATIVE_DIR}/jsdos/jsdos-debug-mcp.cpp"
+        )
+    else()
+        list(APPEND SOURCES_X_DEBUG
+                "${DBX_PATH}/src/debug/debug_mcp.cpp"
+        )
+    endif()
+
+    if (DOSBOX_DEBUG)
+        list(APPEND DEFINITIONS_CORE_X -DC_DEBUG=1 -DC_HEAVY_DEBUG=1)
+    endif()
+else()
+    set(SOURCES_X_DEBUG)
+endif()
+
+add_library(libdosbox-x-sdl2 OBJECT ${SOURCES_X_SDL} ${SOURCES_X_CORE} ${SOURCES_X_JSDOS_CORE} ${SOURCES_X_DEBUG})
 target_compile_definitions(libdosbox-x-sdl2 PUBLIC ${DEFINITIONS_CORE_X})
 set_property(TARGET libdosbox-x-sdl2 PROPERTY CXX_STANDARD 11)
 
 add_library(libdosbox-x-jsdos OBJECT ${SOURCES_X_SDL} ${SOURCES_X_CORE} ${SOURCES_X_JSDOS_CORE}
-        ${SOURCES_X_JSDOS_MAIN})
+        ${SOURCES_X_JSDOS_MAIN} ${SOURCES_X_DEBUG})
 target_compile_definitions(libdosbox-x-jsdos
         PUBLIC ${DEFINITIONS_CORE_X}
         PUBLIC "-DJSDOS_X")
@@ -674,6 +708,7 @@ set(DOSBOX_X_INCLUDE_DIRECTORIES
         "${DBX_PATH}/src/hardware/snd_pc98/generic"
         "${DBX_PATH}/src/hardware/snd_pc98/common"
         "${DBX_PATH}/src/hardware/snd_pc98/x11"
+        "${DBX_PATH}/src/cpu"
         "${DBX_PATH}/src"
         "${DBX_PATH}"
         "${SDL2_INCLUDE_DIRS}"
@@ -714,6 +749,10 @@ if (${EMSCRIPTEN})
             "-sASYNCIFY_IMPORTS=['syncSleep']"
             )
 
+    if (DOSBOX_DEBUG)
+        target_link_options(dosbox-x-sdl2 PUBLIC "-lwebsocket.js")
+    endif()
+
     target_compile_options(libdosbox-x-jsdos PUBLIC -fwasm-exceptions -sWASM_LEGACY_EXCEPTIONS=1)
 
     add_executable(wdosbox-x "${SRC_DIR}/dos/dosbox/cpp/worker-protocol.cpp"
@@ -747,6 +786,10 @@ if (${EMSCRIPTEN})
 #       "-sSAFE_HEAP=2"
         "-sERROR_ON_UNDEFINED_SYMBOLS=1"
     )
+
+    if (DOSBOX_DEBUG)
+        list(APPEND WDOSBOXX_LINK_OPTIONS "-lwebsocket.js")
+    endif()
 
     target_link_options(wdosbox-x PUBLIC
         ${WDOSBOXX_LINK_OPTIONS}

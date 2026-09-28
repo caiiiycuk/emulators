@@ -23,6 +23,7 @@ export interface BackendOptions {
     audioWorklet?: boolean;
     sockdrivePreload?: "all" | "default" | "none";
     sockdriveOpfsRoot?: string;
+    mcpServerPort?: number;
     net?: Net;
 }
 
@@ -80,6 +81,9 @@ export interface Emulators {
 
     // * dosboxJspiWorker - create dosbox-x worker emulator backend (using jspi)
     dosboxXJspiWorker: (init: InitFs, options?: BackendOptions) => Promise<CommandInterface>;
+
+    // * dosboxXDebugWorker - create dosbox-x worker emulator backend with debugger support
+    dosboxXDebugWorker: (init: InitFs, options?: BackendOptions) => Promise<CommandInterface>;
 
     // * backend - create abstract emulation backend by given TransportLayer
     backend: (init: InitFs, transportLayer: TransportLayer,

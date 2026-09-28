@@ -309,6 +309,7 @@ export class CommandInterfaceOverTransportLayer implements CommandInterface {
                             myPeerId: this.myPeerId,
                             sockdrivePreload: this.options.sockdrivePreload,
                             sockdriveOpfsRoot: this.options.sockdriveOpfsRoot,
+                            mcpServerPort: this.options.mcpServerPort,
                         });
                     })
                     .catch((e) => {

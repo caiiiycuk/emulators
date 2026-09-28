@@ -80,9 +80,23 @@ function dosboxxJsJspi() {
         .pipe(dest("dist"));
 }
 
+function dosboxxJsDebug() {
+    return src("dist/wdosbox-x-dbg.js")
+        .pipe(footer(fs.readFileSync("src/dos/dosbox/ts/worker-server.js")))
+        .pipe(replace("@MODULE_NAME@", "WDOSBOXX"))
+        .pipe(replace("@SOCKDRIVE@", fs.readFileSync("dist/sockdrive.js", "utf8")))
+        .pipe(dest("dist"));
+}
+
 function cleanupJs() {
     return del("dist/sockdrive.js");
 }
 
 export const compileJs = series(clean, parallel(emulatorsJs, sockdriveJs));
-export const emulators = series(parallel(dosboxJs, dosboxxJs, dosboxxJsJspi), cleanupJs);
+export function emulators(debug: boolean) {
+    const compileEmulators = debug ?
+        parallel(dosboxJs, dosboxxJs, dosboxxJsJspi, dosboxxJsDebug) :
+        parallel(dosboxJs, dosboxxJs, dosboxxJsJspi);
+
+    return series(compileEmulators, cleanupJs);
+}

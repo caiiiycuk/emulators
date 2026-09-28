@@ -14,8 +14,8 @@ namespace jsdos {
         SockDrive(size_t handle, const std::string& url);
     public:
         virtual ~SockDrive();
-        virtual uint8_t Read_AbsoluteSector(uint32_t sectnum, void* data) override;
-        virtual uint8_t Write_AbsoluteSector(uint32_t sectnum, const void* data) override;
+        virtual Int13Status Read_AbsoluteSector(uint32_t sectnum, void* data) override;
+        virtual Int13Status Write_AbsoluteSector(uint32_t sectnum, const void* data) override;
 
         static SockDrive* create(const std::string& url);
     };

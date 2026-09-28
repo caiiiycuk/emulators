@@ -6,7 +6,8 @@ import { execute } from "./execute";
 
 export default async function make(listsPath: string,
                                    buildPath: string,
-                                   ...targets: string[]) {
+                                   target: string,
+                                   debug = false) {
     listsPath = path.resolve(listsPath);
     buildPath = path.resolve(buildPath);
     const cwd = path.resolve(process.cwd());
@@ -14,11 +15,11 @@ export default async function make(listsPath: string,
     if (!fs.existsSync(buildPath)) {
         fs.ensureDirSync(buildPath);
         process.chdir(buildPath);
-        await emcmake(listsPath);
+        await emcmake(listsPath, debug);
     }
 
     process.chdir(buildPath);
-    await makeBuild(...targets);
+    await makeBuild(target);
     process.chdir(cwd);
 }
 
@@ -26,6 +27,7 @@ async function makeBuild(...targets: string[]) {
     await execute("ninja", "-j" + cpus().length, ...targets);
 }
 
-async function emcmake(listsPath: string) {
-    await execute("emcmake", "cmake", "-GNinja", "-DCMAKE_BUILD_TYPE=Release", listsPath);
+async function emcmake(listsPath: string, debug: boolean) {
+    await execute("emcmake", "cmake", "-GNinja", "-DCMAKE_BUILD_TYPE=Release",
+        "-DDOSBOX_DEBUG=" + (debug ? "ON" : "OFF"), listsPath);
 }

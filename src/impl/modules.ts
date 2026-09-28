@@ -9,6 +9,7 @@ export interface IWasmModules {
     dosbox: () => Promise<WasmModule>;
     dosboxx: () => Promise<WasmModule>;
     dosboxxJspi: () => Promise<WasmModule>;
+    dosboxxDebug: () => Promise<WasmModule>;
 }
 
 interface Globals {
@@ -98,11 +99,13 @@ export class WasmModulesImpl implements IWasmModules {
     private wdosboxJs: string;
     private wdosboxxJs: string;
     private wdosboxxJsJspi: string;
+    private wdosboxxJsDebug: string;
 
     private libzipPromise?: Promise<WasmModule>;
     private dosboxPromise?: Promise<WasmModule>;
     private dosboxxPromise?: Promise<WasmModule>;
     private dosboxxJspiPromise?: Promise<WasmModule>;
+    private dosboxxDebugPromise?: Promise<WasmModule>;
 
     public wasmSupported = false;
 
@@ -110,7 +113,8 @@ export class WasmModulesImpl implements IWasmModules {
         pathSuffix: string,
         wdosboxJs: string,
         wdosboxxJs: string,
-        wdosboxxJsJspi: string) {
+        wdosboxxJsJspi: string,
+        wdosboxxJsDebug: string) {
         if (pathPrefix.length > 0 && pathPrefix[pathPrefix.length - 1] !== "/") {
             pathPrefix += "/";
         }
@@ -120,6 +124,7 @@ export class WasmModulesImpl implements IWasmModules {
         this.wdosboxJs = wdosboxJs;
         this.wdosboxxJs = wdosboxxJs;
         this.wdosboxxJsJspi = wdosboxxJsJspi;
+        this.wdosboxxJsDebug = wdosboxxJsDebug;
     }
 
     libzip() {
@@ -159,6 +164,16 @@ export class WasmModulesImpl implements IWasmModules {
         this.dosboxxJspiPromise = this
             .loadModule(this.pathPrefix + this.wdosboxxJsJspi + this.pathSuffix, "WDOSBOXXJSPI");
         return this.dosboxxJspiPromise;
+    }
+
+    dosboxxDebug() {
+        if (this.dosboxxDebugPromise !== undefined) {
+            return this.dosboxxDebugPromise;
+        }
+
+        this.dosboxxDebugPromise = this
+            .loadModule(this.pathPrefix + this.wdosboxxJsDebug + this.pathSuffix, "WDOSBOXX");
+        return this.dosboxxDebugPromise;
     }
 
     private loadModule(url: string,

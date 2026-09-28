@@ -49,6 +49,10 @@ std::list<KeyEvent> keyEvents;
 std::list<MouseEvent> mouseEvents;
 double executeNextKeyEventAt = 0;
 
+#ifdef C_DEBUG
+extern Bitu DEBUG_EnableDebugger(void);
+#endif
+
 void jsdos::DoKeyEvents() {
 #ifndef EMSCRIPTEN
   std::lock_guard<std::mutex> g(keyMutex);
@@ -61,10 +65,23 @@ void jsdos::DoKeyEvents() {
   auto frameTime = GetMsPassedFromStart();
   auto it = keyEvents.begin();
   auto clientTime = it->clientTime;
+#ifdef C_DEBUG
+  static bool altPressed = false;
+  static bool f12Pressed = false;
+#endif
 
   while (executeNextKeyEventAt <= frameTime && it != keyEvents.end()) {
     auto key = it->key;
     auto pressed = it->pressed;
+
+#ifdef C_DEBUG
+    if (key == KBD_leftalt) {
+      altPressed = pressed;
+    }
+    if (key == KBD_f12) {
+      f12Pressed = pressed;
+    }
+#endif
 
     KEYBOARD_AddKey(key, pressed);
     it = keyEvents.erase(it);
@@ -75,6 +92,12 @@ void jsdos::DoKeyEvents() {
       executeNextKeyEventAt = frameTime + 16;
     }
   }
+
+#ifdef C_DEBUG
+  if (altPressed && f12Pressed) {
+    DEBUG_EnableDebugger();
+  }
+#endif
 }
 
 void jsdos::DoMouseEvents() {

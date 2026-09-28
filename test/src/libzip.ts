@@ -7,7 +7,7 @@ import LibZip from "../../src/libzip/libzip";
 export async function makeLibZip(module?: any) {
     module = module || {};
     const pathPrefix = emulatorsImpl.pathPrefix === "" ? "/" : emulatorsImpl.pathPrefix;
-    const wasm = await new WasmModulesImpl(pathPrefix, "", "", "", "").libzip();
+    const wasm = await new WasmModulesImpl(pathPrefix, "", "", "", "", "").libzip();
     await wasm.instantiate(module);
     return new LibZip(module, "/home/web_user");
 }

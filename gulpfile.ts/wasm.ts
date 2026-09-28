@@ -37,6 +37,10 @@ async function makeWDosboxX() {
     return await make(".", "build/wasm", "wdosbox-x");
 }
 
+async function makeWDosboxXDebug() {
+    return await make(".", "build/debug", "wdosbox-x", true);
+}
+
 async function makeWDosboxXJspi() {
     return await make(".", "build/wasm", "wdosbox-x-jspi");
 }
@@ -46,6 +50,11 @@ function copyAssets() {
         "build/wasm/w*.wasm",
         "build/wasm/w*.symbols"])
         .pipe(dest("dist"));
+}
+
+async function copyDebugAssets() {
+    await fs.promises.copyFile("build/debug/wdosbox-x.js", "dist/wdosbox-x-dbg.js");
+    await fs.promises.copyFile("build/debug/wdosbox-x.wasm", "dist/wdosbox-x-dbg.wasm");
 }
 
 interface FileSize {
@@ -117,14 +126,16 @@ export const Build = {
 `);
 }
 
-export function wasm(compress: boolean) {
+export function wasm(compress: boolean, debug: boolean) {
     return series(clean,
         makeWLibZip,
         makeGL4ES,
         makeWDosbox,
         makeWDosboxX,
+        () => debug ? makeWDosboxXDebug() : Promise.resolve(),
         makeWDosboxXJspi,
         copyAssets,
+        () => debug ? copyDebugAssets() : Promise.resolve(),
         () => generateBuildInfo(compress),
     );
 }
