@@ -1,5 +1,35 @@
 # Changelog
 
+## v8.5.0
+
+### Added
+
+- Added a DOSBox-X debug worker build with browser MCP/debugger support through `dosboxXDebugWorker` and the `mcpServerPort` backend option.
+- Added browser diagnostics and CI coverage for D3DTunnel 3Dfx/WebGL rendering.
+- Added worker WebGL state preservation tests and audio worklet regression tests.
+
+### Improved
+
+- Updated DOSBox-X from `2025.05.03-patch-10-gdd065da31` to `dosbox-x-v2026.08.31-92-g48abd08ee` ([compare](https://github.com/js-dos/dosbox-x/compare/dd065da3111b6dd00abb70820fb750bf36a8d5c2...48abd08ee956aeb786308c6091fd28a328514cc3)) and refreshed the asyncify list.
+- Improved browser audio playback when emulation speed changes, including sample-rate handling, pitch stability, underrun recovery, rebuffering, and fade-in/fade-out behavior.
+- Improved DOSBox-X mixer output pacing and buffering, including DC bias correction support.
+- Improved WebGL frame blits for 3Dfx rendering by preserving GL state and avoiding framebuffer feedback loops.
+- Improved Sokol audio output by waiting for available audio buffer space before pushing samples.
+
+### Fixed
+
+- Fixed Voodoo/OpenGL resize handling in DOSBox-X.
+- Fixed stale frame updates after frame size changes.
+- Fixed out-of-bounds RGBA frame writes in the Sokol protocol path.
+- Fixed D3DTunnel browser rendering stability, including spline transition tolerance.
+- Fixed sockdrive code in the DOSBox-X update branch.
+
+### Changed
+
+- Split regular and debug DOSBox-X builds so debugger sources are only included in debug builds.
+- Removed the obsolete js-dos DOSBox-X render shim and routed frame updates through the worker protocol path.
+- Added the `test:browser:d3dtunnel` script and included Tomb Raider 3Dfx and D3DTunnel checks in `test:all`.
+
 ## v8.4.1
 
 - Improve sockdrive in direct mode
