@@ -18,7 +18,8 @@ jsdos::SockDrive* jsdos::SockDrive::create(const std::string& url) {
 }
 
 jsdos::SockDrive::SockDrive(size_t handle, const std::string& url)
-    : imageDisk::imageDisk(nullptr, url.c_str(), sockdrive_size(handle), true), handle(handle) {
+    : imageDisk::imageDisk(nullptr, url.c_str(), static_cast<uint64_t>(sockdrive_size(handle)) * 1024, true),
+      handle(handle) {
   this->Set_Geometry(sockdrive_heads(handle), sockdrive_cylinders(handle), sockdrive_sectors(handle),
                      sockdrive_sector_size(handle));
 }
