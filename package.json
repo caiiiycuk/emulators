@@ -36,6 +36,7 @@
     "test:browser": "node -r ts-node/register/transpile-only test/src/browser-runner.ts",
     "test:browser:tomb3dfx": "node -r ts-node/register/transpile-only test/src/browser-runner.ts --tomb3dfx",
     "test:browser:d3dtunnel": "node -r ts-node/register/transpile-only test/src/browser-runner.ts --d3dtunnel",
+    "test:browser:civ2": "node -r ts-node/register/transpile-only test/src/browser-runner.ts --civ2",
     "test:browser:build": "yarn run gulp production && yarn test:browser",
     "test:browser:net": "node -r ts-node/register/transpile-only test/src/browser-runner.ts --net",
     "test:browser:net:build": "yarn run gulp production && yarn test:browser:net",

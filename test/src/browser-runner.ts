@@ -3,6 +3,7 @@ import { createServer, IncomingMessage, Server, ServerResponse } from "http";
 import { AddressInfo } from "net";
 import { extname, join, resolve, sep } from "path";
 import { chromium, Page } from "playwright";
+import { runCiv2 } from "./civ2";
 import { runD3DTunnel } from "./d3dtunnel";
 import { runTomb3dfx } from "./tomb3dfx";
 import { runWorkerWebGL } from "./worker-webgl";
@@ -35,9 +36,11 @@ const distRoot = join(repoRoot, "dist");
 const testMode = getBrowserTestMode();
 const tomb3dfx = process.argv.includes("--tomb3dfx");
 const d3dtunnel = process.argv.includes("--d3dtunnel");
-const artifactsName = tomb3dfx ? "tomb3dfx" : d3dtunnel ? "d3dtunnel" : "";
+const civ2 = process.argv.includes("--civ2");
+const artifactsName = tomb3dfx ? "tomb3dfx" : d3dtunnel ? "d3dtunnel" : civ2 ? "civ2" : "";
 const artifactsDir = join(distRoot, "test-artifacts", artifactsName);
 const maxBrowserLogs = Number(process.env.BROWSER_TEST_MAX_CONSOLE_LOGS ?? 200);
+const civ2Bundle = resolve(repoRoot, process.env.CIV2_BUNDLE ?? "civ2.jsdos");
 
 const requiredArtifacts = tomb3dfx ? [
     "test/tomb3dfx.html", "test/dosbox-x/tomb3dfx.jsdos",
@@ -45,6 +48,8 @@ const requiredArtifacts = tomb3dfx ? [
 ] : d3dtunnel ? [
     "test/d3dtunnel.html", "test/dosbox-x/d3d_tunnel.jsdos",
     "emulators.js", "wlibzip.js", "wlibzip.wasm", "wdosbox-x.js", "wdosbox-x.wasm",
+] : civ2 ? [
+    "test/civ2.html", "emulators.js", "wlibzip.js", "wlibzip.wasm", "wdosbox-x.js", "wdosbox-x.wasm",
 ] : [
     "test/test.html",
     "test/test.js",
@@ -77,16 +82,19 @@ const mimeTypes: Record<string, string> = {
 
 async function main() {
     assertRequiredArtifacts();
-    if (tomb3dfx || d3dtunnel) {
+    if (tomb3dfx || d3dtunnel || civ2) {
         mkdirSync(artifactsDir, { recursive: true });
         const screenshots = tomb3dfx ? [
             "menu", "passport", "level", "menu-waiting", "passport-waiting", "level-waiting",
             "level-before-f4", "level-between-f4", "level-after-f4", "failure",
             ...Array.from({ length: 8 }, (_, i) => "boot-" + (i + 1)),
-        ] : [
+        ] : d3dtunnel ? [
             "waiting", "failure",
             ...Array.from({ length: 12 }, (_, i) => "boot-" + (i + 1)),
             ...Array.from({ length: 20 }, (_, i) => "tunnel-" + (i + 1).toString().padStart(2, "0")),
+        ] : [
+            "desktop", "game", "desktop-waiting", "game-waiting", "failure",
+            ...Array.from({ length: 12 }, (_, i) => "boot-" + (i + 1)),
         ];
         for (const name of [...screenshots.map((name) => name + ".png"), "failure.txt", "browser.log.json"]) {
             rmSync(join(artifactsDir, name), { force: true });
@@ -107,12 +115,25 @@ async function main() {
     const requestFailures: string[] = [];
 
     try {
-        browser = await chromium.launch({ headless: true });
-        page = await browser.newPage(tomb3dfx || d3dtunnel ? {
+        browser = await chromium.launch({
+            headless: true,
+            args: civ2 ? ["--disable-dev-shm-usage", "--js-flags=--max-old-space-size=8192"] : [],
+        });
+        page = await browser.newPage(tomb3dfx || d3dtunnel || civ2 ? {
             viewport: { width: 640, height: 480 }, deviceScaleFactor: 1,
         } : {});
 
         await runWorkerWebGL(page);
+
+        if (civ2) {
+            await page.context().route("https://br.cdn.dos.zone/**", async (route) => {
+                const response = await route.fetch();
+                await route.fulfill({
+                    response,
+                    headers: { ...response.headers(), "access-control-allow-origin": "*" },
+                });
+            });
+        }
 
         page.on("console", (message) => {
             const text = message.text();
@@ -144,6 +165,9 @@ async function main() {
             requestFailures.push(request.url() + " " + (failure?.errorText ?? "failed"));
         });
         page.on("response", (response) => {
+            if (civ2 && response.status() === 403 && response.url().endsWith("/preload_ranges.metaj")) {
+                return;
+            }
             if (response.status() >= 400) {
                 requestFailures.push(response.status() + " " + response.url());
             }
@@ -181,6 +205,17 @@ async function main() {
             console.log("D3DTunnel screenshots saved to " + artifactsDir);
             return;
         }
+        if (civ2) {
+            await withTimeout((async () => {
+                await page!.goto(baseUrl + "/test/civ2.html", { waitUntil: "load" });
+                await runCiv2(page!, artifactsDir, abort.signal);
+            })(), testMode.timeoutMs, testMode.name);
+            if (pageErrors.length > 0 || requestFailures.length > 0) {
+                throw new Error("Civilization II browser errors; see browser.log.json");
+            }
+            console.log("Civilization II screenshots saved to " + artifactsDir);
+            return;
+        }
         await page.goto(baseUrl + "/test/test.html", { waitUntil: "load" });
         const mochaResult = await withTimeout(runBrowserTests(page, testMode), testMode.timeoutMs, testMode.name);
         const hasFailures = mochaResult.failureCount > 0 || pageErrors.length > 0;
@@ -197,7 +232,7 @@ async function main() {
         }
     } catch (error) {
         abort.abort();
-        if ((tomb3dfx || d3dtunnel) && page !== undefined) {
+        if ((tomb3dfx || d3dtunnel || civ2) && page !== undefined) {
             if (d3dtunnel) {
                 await page.screenshot({ path: join(artifactsDir, "failure.png"),
                     timeout: 5000 }).catch(() => undefined);
@@ -214,7 +249,7 @@ async function main() {
         process.exitCode = 1;
     } finally {
         try {
-            if (tomb3dfx || d3dtunnel) {
+            if (tomb3dfx || d3dtunnel || civ2) {
                 writeFileSync(join(artifactsDir, "browser.log.json"), JSON.stringify({
                     browserLogs, omittedBrowserLogs, pageErrors, requestFailures,
                 }, null, 2));
@@ -237,6 +272,10 @@ function getBrowserTestMode(): BrowserTestMode {
     if (process.argv.includes("--d3dtunnel")) {
         return { name: "D3DTunnel", createTestsFunction: "",
             timeoutMs: Number(process.env.BROWSER_TEST_TIMEOUT_MS ?? 240000) };
+    }
+    if (process.argv.includes("--civ2")) {
+        return { name: "Civilization II", createTestsFunction: "",
+            timeoutMs: Number(process.env.BROWSER_TEST_TIMEOUT_MS ?? 305000) };
     }
     if (process.argv.includes("--net")) {
         return {
@@ -261,6 +300,10 @@ function assertRequiredArtifacts() {
     if (missingArtifacts.length > 0) {
         throw new Error("Missing browser test artifacts in dist: " + missingArtifacts.join(", ") +
             ". Run yarn run gulp production before yarn test:browser.");
+    }
+
+    if (civ2 && !existsSync(civ2Bundle)) {
+        throw new Error("Missing Civilization II bundle: " + civ2Bundle);
     }
 }
 
@@ -287,7 +330,9 @@ function serveStaticFile(request: IncomingMessage, response: ServerResponse) {
             return;
         }
 
-        if (!existsSync(filePath)) {
+        if (civ2 && requestedPath === "/test/dosbox-x/civ2.jsdos") {
+            filePath = civ2Bundle;
+        } else if (!existsSync(filePath)) {
             sendStatus(response, 404, "Not found");
             return;
         }
@@ -307,7 +352,9 @@ function serveStaticFile(request: IncomingMessage, response: ServerResponse) {
             "Content-Type": mimeTypes[extname(filePath)] ?? "application/octet-stream",
             "Content-Length": fileStat.size,
         });
-        createReadStream(filePath).pipe(response);
+        createReadStream(filePath, {
+            highWaterMark: civ2 && filePath === civ2Bundle ? 4 * 1024 * 1024 : undefined,
+        }).pipe(response);
     } catch (error) {
         sendStatus(response, 500, formatError(error));
     }
