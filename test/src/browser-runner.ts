@@ -40,7 +40,7 @@ const civ2 = process.argv.includes("--civ2");
 const artifactsName = tomb3dfx ? "tomb3dfx" : d3dtunnel ? "d3dtunnel" : civ2 ? "civ2" : "";
 const artifactsDir = join(distRoot, "test-artifacts", artifactsName);
 const maxBrowserLogs = Number(process.env.BROWSER_TEST_MAX_CONSOLE_LOGS ?? 200);
-const civ2Bundle = resolve(repoRoot, process.env.CIV2_BUNDLE ?? "civ2.jsdos");
+const civ2Bundle = resolve(repoRoot, process.env.CIV2_BUNDLE ?? "test/dosbox-x/civiliaztion2rusupd.jsdos");
 
 const requiredArtifacts = tomb3dfx ? [
     "test/tomb3dfx.html", "test/dosbox-x/tomb3dfx.jsdos",

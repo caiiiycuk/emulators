@@ -1,2 +1,3 @@
 test/dosbox-x/tomb3dfx.jsdos filter=lfs diff=lfs merge=lfs -text
 test/dosbox-x/d3d_tunnel.jsdos filter=lfs diff=lfs merge=lfs -text
+test/dosbox-x/civiliaztion2rusupd.jsdos filter=lfs diff=lfs merge=lfs -text
