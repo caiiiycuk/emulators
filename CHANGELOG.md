@@ -1,5 +1,17 @@
 # Changelog
 
+## v8.5.1
+
+### Added
+
+- Added a Civilization II sockdrive browser test (`yarn test:browser:civ2`) with a separate CI workflow and README badge. The test is included in `test:all`.
+
+### Fixed
+
+- Fixed sockdrive drives hanging Windows 95 guests (for example Civilization II) after the DOSBox-X update: the sockdrive disk size is now passed to `imageDisk` in bytes instead of KiB.
+- Fixed the browser DOSBox-X debugger crashing with `RuntimeError: unreachable` on MCP `RUN`/`VRT` by adding `DEBUG_Loop` to the asyncify list.
+- Fixed missing `gl4es` build dependencies for `libdosbox-x-jsdos` and `wdosbox-x-jspi`.
+
 ## v8.5.0
 
 ### Added
