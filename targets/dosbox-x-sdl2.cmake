@@ -726,6 +726,7 @@ target_include_directories(libdosbox-x-jsdos PUBLIC
 
 if (GL4ES)
     target_include_directories(libdosbox-x-jsdos PUBLIC ${GL4ES_INCLUDE})
+    add_dependencies(libdosbox-x-jsdos gl4es)
 endif()
 
 add_executable(dosbox-x-sdl2 ${SOURCES_X_SDL_MAIN}
@@ -807,6 +808,7 @@ if (${EMSCRIPTEN})
     )
 
     add_dependencies(wdosbox-x gl4es)
+    add_dependencies(wdosbox-x-jspi gl4es)
 elseif (APPLE)
     target_link_libraries(dosbox-x-sdl2
             ${SDL2_LIBRARIES}
