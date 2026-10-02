@@ -1,5 +1,11 @@
 # Changelog
 
+## v8.5.2
+
+### Fixed
+
+- Fixed keyboard and mouse input breaking in DOS games such as Master of Orion II after the DOSBox-X update by cherry-picking upstream `Fix Windows 3.1 PS/2 mouse regression`: DOSBox-X no longer enables the PS/2 AUX port and IRQ12 at BIOS startup when `biosps2=true`.
+
 ## v8.5.1
 
 ### Added
