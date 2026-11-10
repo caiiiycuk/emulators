@@ -14,6 +14,7 @@ export async function dosDirect(wasmModule: WasmModule,
     let handler: MessageHandler = messagesQueue.handler.bind(messagesQueue);
 
     const module: any = {};
+    let audio: Awaited<ReturnType<typeof createAudioPort>>;
 
     module.postMessage = (name: ServerMessage, props: { [key: string]: any }) => {
         handler(name, props);
@@ -37,6 +38,7 @@ export async function dosDirect(wasmModule: WasmModule,
             messagesQueue.sendTo(handler);
         },
         exit: () => {
+            audio?.dispose();
             if (typeof window !== "undefined") {
                 window.removeEventListener("message", sleepHandler);
             }
@@ -50,12 +52,17 @@ export async function dosDirect(wasmModule: WasmModule,
         window.addEventListener("message", sleepHandler, { passive: true });
     }
 
-    module.canvas = canvas;
-    if (audioWorklet) {
-        module.audioPort = await createAudioPort();
+    try {
+        module.canvas = canvas;
+        if (audioWorklet) {
+            audio = await createAudioPort();
+            module.audioPort = audio?.port;
+        }
+        await wasmModule.instantiate(module);
+        module.callMain([sessionId]);
+        return transportLayer;
+    } catch (error) {
+        transportLayer.exit?.();
+        throw error;
     }
-    await wasmModule.instantiate(module);
-    module.callMain([sessionId]);
-
-    return transportLayer;
 }

@@ -20,6 +20,13 @@ dryrun.zip
 dev.js
 /test
 /dist/test
+/dist/test-artifacts
+/.opencode
+/openspec
+/talks
+/sockdrive
+/scripts
+/AGENTS.md
 cmake-build-*
 native
 src

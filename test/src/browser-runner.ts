@@ -7,6 +7,7 @@ import { runCiv2 } from "./civ2";
 import { runD3DTunnel } from "./d3dtunnel";
 import { runTomb3dfx } from "./tomb3dfx";
 import { runWorkerWebGL } from "./worker-webgl";
+import { runAudioLifecycle } from "./browser-audio-lifecycle";
 
 interface BrowserLog {
     type: string;
@@ -215,6 +216,9 @@ async function main() {
             }
             console.log("Civilization II screenshots saved to " + artifactsDir);
             return;
+        }
+        if (!process.argv.includes("--net")) {
+            await withTimeout(runAudioLifecycle(browser, baseUrl), testMode.timeoutMs, "Audio lifecycle");
         }
         await page.goto(baseUrl + "/test/test.html", { waitUntil: "load" });
         const mochaResult = await withTimeout(runBrowserTests(page, testMode), testMode.timeoutMs, testMode.name);
