@@ -226,30 +226,48 @@ export function testAudioLifecycle() {
         }
     });
 
-    test("worker errors preserve the live audio resources and error message", async () => {
-        const browser = createAudioBrowser();
-        try {
-            const transport = await dosWorker("data:text/javascript,", {} as any, "fixture", undefined, true);
-            const messages: { name: string, props: any }[] = [];
-            transport.initMessageHandler((name, props) => messages.push({ name, props }));
-            browser.workerError();
-            assert.deepEqual(messages, [{ name: "ws-err", props: {
-                type: "error", filename: undefined, message: "fixture worker failure",
-            } }]);
-            assert.deepEqual(browser.contexts.map((context) => context.closeCount), [0]);
-            assert.deepEqual(browser.nodes.map((node) => node.closedPorts), [0]);
-            assert.deepEqual(browser.nodes.map((node) => node.disconnected), [0]);
-            assert.equal(browser.listeners.get("pointerdown")?.size, 1);
-            assert.equal(browser.listeners.get("keydown")?.size, 1);
-            transport.exit?.();
-            assert.deepEqual(browser.contexts.map((context) => context.closeCount), [1]);
-            assert.deepEqual(browser.nodes.map((node) => node.closedPorts), [1]);
-            assert.equal(browser.listeners.get("pointerdown")?.size ?? 0, 0);
-            assert.equal(browser.listeners.get("keydown")?.size ?? 0, 0);
-        } finally {
-            browser.restore();
-        }
-    });
+    for (const beforeReady of [false, true]) {
+        test(`worker errors preserve audio and deliver ${beforeReady ? "queued" : "live"} messages`, async () => {
+            const browser = createAudioBrowser();
+            try {
+                const transport = await dosWorker("data:text/javascript,", {} as any, "fixture", undefined, true);
+                if (beforeReady) {
+                    browser.workerError();
+                }
+                const ready: (Error | null)[] = [];
+                const ci = new CommandInterfaceOverTransportLayer([], transport, (error) => ready.push(error), {});
+                let exitCount = 0;
+                ci.events().onExit(() => exitCount++);
+                const messages: { type: string, message: string }[] = [];
+                ci.events().onMessage((type, message) => messages.push({ type, message }));
+                browser.workerMessage("ws-server-ready", { sessionId: "fixture" });
+                if (!beforeReady) {
+                    browser.workerError("fixture-worker.js");
+                }
+                assert.deepEqual(ready, [null]);
+                assert.deepEqual(messages, [{ type: "error", message: "[worker]fixture worker failure" +
+                (beforeReady ? "" : " (fixture-worker.js)") }]);
+                assert.equal(exitCount, 0);
+                assert.equal(browser.terminatedWorkers, 0);
+                assert.deepEqual(browser.contexts.map((context) => context.closeCount), [0]);
+                assert.deepEqual(browser.nodes.map((node) => node.closedPorts), [0]);
+                assert.deepEqual(browser.nodes.map((node) => node.disconnected), [0]);
+                assert.equal(browser.listeners.get("pointerdown")?.size, 1);
+                assert.equal(browser.listeners.get("keydown")?.size, 1);
+                await ci.exit();
+                await ci.exit();
+                assert.equal(exitCount, 1);
+                assert.equal(browser.terminatedWorkers, 1);
+                assert.deepEqual(browser.contexts.map((context) => context.closeCount), [1]);
+                assert.deepEqual(browser.nodes.map((node) => node.closedPorts), [1]);
+                assert.deepEqual(browser.nodes.map((node) => node.disconnected), [1]);
+                assert.equal(browser.listeners.get("pointerdown")?.size ?? 0, 0);
+                assert.equal(browser.listeners.get("keydown")?.size ?? 0, 0);
+            } finally {
+                browser.restore();
+            }
+        });
+    }
 }
 
 function createAudioBrowser() {
@@ -264,7 +282,7 @@ function createAudioBrowser() {
         failFirstInstall: false,
         installations: [] as { props: { module?: unknown, audioPort?: unknown } }[],
         terminatedWorkers: 0,
-        workerError: () => undefined as void,
+        workerError: (_filename?: string) => undefined as void,
         workerMessage: (_name: string, _props: any) => undefined as void,
         restore: () => undefined as void,
     };
@@ -317,7 +335,9 @@ function createAudioBrowser() {
         onmessage: ((event: any) => void) | null = null;
         terminated = false;
         constructor() {
-            browser.workerError = () => this.onerror?.({ type: "error", message: "fixture worker failure" });
+            browser.workerError = (filename?: string) => this.onerror?.({
+                type: "error", filename, message: "fixture worker failure",
+            });
             browser.workerMessage = (name, props) => this.onmessage?.({ data: { name, props } });
         }
         postMessage(message: { name: string, props: any }) {

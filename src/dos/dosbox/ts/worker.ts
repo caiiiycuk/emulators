@@ -21,7 +21,9 @@ export async function dosWorker(workerUrl: string,
     const worker = new Worker(localUrl);
     let audio: Awaited<ReturnType<typeof createAudioPort>>;
     worker.onerror = (e) => {
-        handler("ws-err", { type: e.type, filename: e.filename, message: e.message });
+        handler("ws-err", {
+            sessionId, tag: "worker", message: e.message + (e.filename ? " (" + e.filename + ")" : ""),
+        });
     };
     worker.onmessage = (e) => {
         const data = e.data;

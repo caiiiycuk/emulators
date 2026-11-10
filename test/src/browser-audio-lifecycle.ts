@@ -115,6 +115,9 @@ export async function runAudioLifecycle(browser: Browser, baseUrl: string) {
                     }, backend.endsWith("Worker"));
                     assert.deepEqual(afterError.messages, [
                         { type: "error", message: "[fixture]fixture recoverable backend error" },
+                        ...(backend.endsWith("Worker") ? [
+                            { type: "error", message: "[worker]fixture recoverable worker error" },
+                        ] : []),
                     ], backend + ": ws-err was not delivered");
                     assert.deepEqual(afterError.contexts, ["closed", "running"], backend + ": error closed audio");
                     assert.deepEqual(afterError.disconnects, [1, 0], backend + ": error disconnected audio");
