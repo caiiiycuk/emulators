@@ -1,6 +1,29 @@
 import { join } from "path";
-import { Page } from "playwright";
+import { Page, Route } from "playwright";
 import { PNG } from "pngjs";
+
+export function isMissingCiv2Preload(url: string, status: number) {
+    return (status === 403 || status === 404) && url.endsWith("/preload_ranges.metaj");
+}
+
+export async function routeCiv2Request(route: Route) {
+    if (route.request().url().endsWith("/preload_ranges.metaj")) {
+        const response = await fetch(route.request().url(), { headers: route.request().headers() });
+        if (isMissingCiv2Preload(route.request().url(), response.status)) {
+            // SAFETY: Missing optional metadata can carry a bogus Brotli header; do not decode its error body.
+            await response.body?.cancel().catch(() => undefined);
+            await route.fulfill({ status: response.status, body: "",
+                headers: { "access-control-allow-origin": "*" } });
+        } else {
+            await route.fulfill({ status: response.status, body: Buffer.from(await response.arrayBuffer()),
+                headers: { "access-control-allow-origin": "*",
+                    "content-type": response.headers.get("content-type") ?? "application/json" } });
+        }
+        return;
+    }
+    const response = await route.fetch();
+    await route.fulfill({ response, headers: { ...response.headers(), "access-control-allow-origin": "*" } });
+}
 
 function fraction(png: PNG, x: number, y: number, width: number, height: number,
                   matches: (r: number, g: number, b: number) => boolean) {
