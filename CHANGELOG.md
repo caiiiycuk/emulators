@@ -1,5 +1,12 @@
 # Changelog
 
+## v8.5.3
+
+### Fixed
+
+- Fixed native AudioWorklet resources leaking after direct or worker shutdown and initialization failures.
+- Fixed Worker errors not reaching CommandInterface message subscribers.
+
 ## v8.5.2
 
 ### Fixed

@@ -10,6 +10,8 @@ import { testDosBundle } from "./test-bundle";
 import { testDos } from "./test-dos";
 import { testProtocol } from "./test-protocol";
 import { testAudioWorklet } from "./test-audio-worklet";
+import { testAudioLifecycle } from "./test-audio-lifecycle";
+import { testCiv2Preload } from "./test-civ2-preload";
 
 const repoRoot = resolve(__dirname, "../..");
 const testRoot = join(repoRoot, "test");
@@ -57,6 +59,8 @@ test("loader can load wdosbox.js from build/wasm", async () => {
 
 testProtocol();
 testAudioWorklet();
+testAudioLifecycle();
+testCiv2Preload();
 testLibZip();
 testDosBundle();
 testDos([

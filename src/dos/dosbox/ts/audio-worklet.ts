@@ -1,28 +1,46 @@
-export async function createAudioPort(): Promise<MessagePort | undefined> {
+export async function createAudioPort(): Promise<{ port: MessagePort, dispose: () => void } | undefined> {
     let url: string | undefined;
+    let context: AudioContext | undefined;
+    let node: AudioWorkletNode | undefined;
+    const resumeWebAudio = () => {
+        if (context?.state === "suspended") {
+            context.resume().catch(console.error);
+        }
+    };
+    const dispose = () => {
+        if (typeof document !== "undefined") {
+            document.removeEventListener("pointerdown", resumeWebAudio, true);
+            document.removeEventListener("keydown", resumeWebAudio, true);
+        }
+        node?.port.close();
+        node?.disconnect();
+        node = undefined;
+        if (context !== undefined) {
+            if (context.state !== "closed") {
+                context.close().catch(console.error);
+            }
+            context = undefined;
+        }
+    };
 
     try {
         const blob = new Blob([audioWorkletCode], { type: "application/javascript" });
         url = URL.createObjectURL(blob);
-        const context = new AudioContext({ latencyHint: "interactive" });
+        context = new AudioContext({ latencyHint: "interactive" });
         await context.audioWorklet.addModule(url);
-        const node = new AudioWorkletNode(context, "jsdos-audio", {
+        node = new AudioWorkletNode(context, "jsdos-audio", {
             numberOfInputs: 0,
             numberOfOutputs: 1,
             outputChannelCount: [1],
         });
         node.connect(context.destination);
 
-        const resumeWebAudio = () => {
-            if (context.state === "suspended") {
-                context.resume().catch(console.error);
-            }
-        };
         document.addEventListener("pointerdown", resumeWebAudio, { once: true, capture: true });
         document.addEventListener("keydown", resumeWebAudio, { once: true, capture: true });
 
-        return node.port;
+        return { port: node.port, dispose };
     } catch (e) {
+        dispose();
         console.error("error creating audio port", e);
         return undefined;
     } finally {

@@ -3,10 +3,11 @@ import { createServer, IncomingMessage, Server, ServerResponse } from "http";
 import { AddressInfo } from "net";
 import { extname, join, resolve, sep } from "path";
 import { chromium, Page } from "playwright";
-import { runCiv2 } from "./civ2";
+import { isMissingCiv2Preload, routeCiv2Request, runCiv2 } from "./civ2";
 import { runD3DTunnel } from "./d3dtunnel";
 import { runTomb3dfx } from "./tomb3dfx";
 import { runWorkerWebGL } from "./worker-webgl";
+import { runAudioLifecycle } from "./browser-audio-lifecycle";
 
 interface BrowserLog {
     type: string;
@@ -126,13 +127,7 @@ async function main() {
         await runWorkerWebGL(page);
 
         if (civ2) {
-            await page.context().route("https://br.cdn.dos.zone/**", async (route) => {
-                const response = await route.fetch();
-                await route.fulfill({
-                    response,
-                    headers: { ...response.headers(), "access-control-allow-origin": "*" },
-                });
-            });
+            await page.context().route("https://br.cdn.dos.zone/**", routeCiv2Request);
         }
 
         page.on("console", (message) => {
@@ -165,7 +160,7 @@ async function main() {
             requestFailures.push(request.url() + " " + (failure?.errorText ?? "failed"));
         });
         page.on("response", (response) => {
-            if (civ2 && response.status() === 403 && response.url().endsWith("/preload_ranges.metaj")) {
+            if (civ2 && isMissingCiv2Preload(response.url(), response.status())) {
                 return;
             }
             if (response.status() >= 400) {
@@ -215,6 +210,9 @@ async function main() {
             }
             console.log("Civilization II screenshots saved to " + artifactsDir);
             return;
+        }
+        if (!process.argv.includes("--net")) {
+            await withTimeout(runAudioLifecycle(browser, baseUrl), testMode.timeoutMs, "Audio lifecycle");
         }
         await page.goto(baseUrl + "/test/test.html", { waitUntil: "load" });
         const mochaResult = await withTimeout(runBrowserTests(page, testMode), testMode.timeoutMs, testMode.name);

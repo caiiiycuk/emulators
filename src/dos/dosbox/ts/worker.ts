@@ -19,8 +19,11 @@ export async function dosWorker(workerUrl: string,
     }
     const localUrl = URL.createObjectURL(await response.blob());
     const worker = new Worker(localUrl);
+    let audio: Awaited<ReturnType<typeof createAudioPort>>;
     worker.onerror = (e) => {
-        handler("ws-err", { type: e.type, filename: e.filename, message: e.message });
+        handler("ws-err", {
+            sessionId, tag: "worker", message: e.message + (e.filename ? " (" + e.filename + ")" : ""),
+        });
     };
     worker.onmessage = (e) => {
         const data = e.data;
@@ -45,6 +48,7 @@ export async function dosWorker(workerUrl: string,
             messagesQueue.sendTo(handler);
         },
         exit: () => {
+            audio?.dispose();
             URL.revokeObjectURL(localUrl);
             worker.terminate();
         },
@@ -52,29 +56,30 @@ export async function dosWorker(workerUrl: string,
     };
 
     const transfer: Transferable[] = canvas ? [canvas] : [];
-    let audioPort;
-
-    if (audioWorklet) {
-        audioPort = await createAudioPort();
-        if (audioPort) {
-            transfer.push(audioPort);
-        }
-    }
-
     try {
-        transportLayer.sendMessageToServer("wc-install", {
-            module: (wasmModule as any).wasmModule,
-            sessionId,
-            canvas,
-            audioPort,
-        }, transfer);
-    } catch (e) {
-        transportLayer.sendMessageToServer("wc-install", {
-            sessionId,
-            canvas,
-            audioPort,
-        }, transfer);
+        if (audioWorklet) {
+            audio = await createAudioPort();
+            if (audio !== undefined) {
+                transfer.push(audio.port);
+            }
+        }
+        try {
+            transportLayer.sendMessageToServer("wc-install", {
+                module: (wasmModule as any).wasmModule,
+                sessionId,
+                canvas,
+                audioPort: audio?.port,
+            }, transfer);
+        } catch (e) {
+            transportLayer.sendMessageToServer("wc-install", {
+                sessionId,
+                canvas,
+                audioPort: audio?.port,
+            }, transfer);
+        }
+        return transportLayer;
+    } catch (error) {
+        transportLayer.exit?.();
+        throw error;
     }
-
-    return transportLayer;
 }
