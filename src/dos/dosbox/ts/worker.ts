@@ -29,6 +29,17 @@ export async function dosWorker(workerUrl: string,
         const data = e.data;
         if (data?.name !== undefined) {
             handler(data.name, data.props);
+        } else if (data?.type === "MIDI Raw Byte" || data?.type === "MIDI_BYTE") {
+            // Direct output to the browser console on the Main Thread side!
+            /*
+            console.log(
+                "[WadNexus MIDI Byte]:",
+                data.data.toString(16).toUpperCase(),
+                "(Hex:", data.data, "res:", String.fromCharCode(data.data), ")",
+            );
+            */
+            // Passing the MIDI byte via a handler to the main thread.
+            window.dispatchEvent(new CustomEvent("mt32-midi-byte", { detail: data.data }));
         }
     };
 
