@@ -1,0 +1,92 @@
+name: compact
+version: 1
+description: Minimal spec-driven workflow - proposal → specs → tasks
+artifacts:
+  - id: proposal
+    generates: proposal.md
+    description: Why the change is needed and what it touches
+    template: proposal.md
+    instruction: |
+      Write proposal.md. Target 150 words; go longer only when completeness requires it.
+      State each fact once. No introductions, summaries, or generic advice.
+      Imperative sentences; name the condition and the action - no "usually",
+      "if needed", "etc.". One term per concept, kept across all artifacts.
+
+      Sections (`## Why` and `## What Changes` are required by `openspec validate`;
+      Why must be 50-1000 characters):
+      - **Why**: the problem, 1-2 sentences.
+      - **What Changes**: bullets. Mark breaking changes **BREAKING**. A non-obvious
+        technical decision is one bullet: the decision and its reason.
+      - **Capabilities**: the specs this change creates or modifies.
+        - New: `<kebab-case-path>`, one line on the behavior it owns. Each becomes
+          `specs/<path>/spec.md`. Name a durable system behavior, not this change's work.
+        - Modified: the exact existing path under `openspec/specs/`. List only
+          requirement-level behavior changes, not implementation details.
+        Run `openspec list --specs` first and reuse an existing path over a
+        near-duplicate name; read a related spec in full with
+        `openspec show "<spec-id>" --type spec` before deciding it is unaffected.
+      - **Out of scope**: what this change leaves untouched that a reader would
+        expect in it. Omit the section when nothing needs excluding.
+
+      A change with no capabilities (refactor, tooling, docs) sets `skip_specs: true`
+      in its `.openspec.yaml`; `openspec validate` rejects a zero-delta change without
+      it. Never invent a requirement to pass validation.
+    requires: []
+
+  - id: specs
+    generates: "specs/**/*.md"
+    description: Requirement deltas for each capability in the proposal
+    template: spec.md
+    instruction: |
+      Write one delta file per capability in the proposal at
+      `specs/<capability-path>/spec.md`. Write each file as soon as it is drafted;
+      keep existing files unless asked to rewrite them.
+
+      A spec is a behavior contract: observable behavior, inputs, outputs, error
+      conditions. No class or function names, no library choices, no implementation
+      steps - if the implementation can change without changing visible behavior,
+      it does not belong in the spec. Use the proposal's terms; a vague condition
+      ("usually", "if needed") becomes an explicit scenario or is dropped.
+
+      Format, enforced by `openspec validate`:
+      - Deltas sit under `## ADDED Requirements`, `## MODIFIED Requirements`,
+        `## REMOVED Requirements`, `## RENAMED Requirements`.
+      - A requirement is `### Requirement: <name>`, then one observable behavior
+        stated with SHALL or MUST in at most 500 characters. Split a requirement
+        that covers several behaviors.
+      - Every requirement has at least one `#### Scenario: <name>` (exactly 4
+        hashtags) with `- **WHEN** ...` and `- **THEN** ...` bullets. Cover distinct
+        outcomes; drop equivalent scenarios.
+      - New capability only: the file opens with `## Purpose` - one sentence of 50+
+        characters. A delta for an existing capability has no Purpose section.
+      - MODIFIED: copy the entire existing requirement block from
+        `openspec/specs/<capability-path>/spec.md` and edit it; a partial block
+        deletes the omitted text at archive. A new behavior that leaves existing
+        requirements intact is ADDED, not MODIFIED.
+      - REMOVED: include **Reason** and **Migration**.
+    requires:
+      - proposal
+
+  - id: tasks
+    generates: tasks.md
+    description: Implementation checklist
+    template: tasks.md
+    instruction: |
+      Write tasks.md: the implementation checklist.
+
+      - Group tasks under `## 1. <group>` headings. A task is
+        `- [ ] 1.1 <result>, verified by <test, command, or observable behavior>`.
+        Apply parses this checkbox format; a line without a checkbox is not tracked.
+      - One checkbox per independently verifiable result, ordered by dependency.
+        Do not restate requirements or list routine coding steps.
+      - Each group lands the tests and docs its own work calls for; never collect
+        them into a final group.
+    requires:
+      - specs
+
+apply:
+  requires: [tasks]
+  tracks: tasks.md
+  instruction: |
+    Work through unchecked tasks in order and mark each done as you finish it.
+    Stop and ask when blocked.
